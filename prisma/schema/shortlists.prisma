@@ -1,0 +1,21 @@
+model Shortlist {
+  id               Int        @id @default(autoincrement())
+
+  chitragupta_name String 
+
+  company_id       Int 
+  company          Company   @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  role             String
+  round            Int
+  type             SHORTLIST_TYPE
+
+  is_active       Boolean    @default(true)
+  is_featured      Boolean    @default(false)
+
+  // Many-to-many relation with Users (shortlisted PlaceCom IDs)
+  shortlisted_users User[]    @relation("ShortlistUsers")
+
+  created_at       DateTime   @default(now())
+  updated_at       DateTime   @updatedAt
+}

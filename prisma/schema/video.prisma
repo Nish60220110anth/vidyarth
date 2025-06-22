@@ -1,0 +1,11 @@
+model Company_Video {
+  id          Int      @id @default(autoincrement())
+  company_id  Int
+  video_url   String
+  description String?
+  is_featured Boolean @default(false)
+
+  company     Company  @relation(fields: [company_id], references: [id])
+
+  @@unique([company_id, video_url])
+}

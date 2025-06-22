@@ -1,0 +1,17 @@
+model Company_Compendium {
+  id         Int    @id @default(autoincrement())
+  company_id Int    @unique
+  content    String @db.Text
+
+  pdf_id        Int
+  compedium_pdf Company_Compendium_Pdf_Path[] @relation("CompendiumPdfPaths")
+
+  company Company @relation(fields: [company_id], references: [id])
+}
+
+model Company_Compendium_Pdf_Path {
+  id            Int                @id @default(autoincrement())
+  compendium_id Int
+  pdf_path      String             @db.Text
+  compendium    Company_Compendium @relation("CompendiumPdfPaths", fields: [compendium_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}

@@ -1,0 +1,39 @@
+model Company {
+  id           Int      @id @default(autoincrement())
+  company_name String   @unique
+  company_full String   @db.VarChar(255)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  logo_url String?
+
+  domains CompanyDomainMapping[]
+
+  // Relations
+  info             Company_Info?
+  jds              Company_JD[]
+  compendium       Company_Compendium[]
+  alum_experiences Company_Alum_Exp[]
+  shortlists       Shortlist[]
+
+  news News_Company[]
+  videos Company_Video[]
+}
+
+model CompanyDomainMapping {
+  id         Int     @id @default(autoincrement())
+  company    Company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  company_id Int
+
+  domain DOMAIN
+
+  @@unique([company_id, domain])
+}
+
+model Company_Info {
+  id            Int    @id @default(autoincrement())
+  company_id    Int    @unique
+  brief_content String
+
+  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}

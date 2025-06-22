@@ -1,0 +1,79 @@
+model User {
+  id         Int        @id @default(autoincrement())
+
+  name       String
+  pgpid      String?    @unique
+  pcomid     String?
+  email_id   String     @unique
+
+  password   String
+  role       USER_ROLE
+
+  is_active  Boolean    @default(false)
+  is_verified Boolean    @default(false)
+
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+
+  last_login        DateTime?
+
+  alum_experiences Company_Alum_Exp[]
+  authored_news    News[]
+
+  shadow_as_user1 ShadowPair? @relation("ShadowUser1")
+  shadow_as_user2 ShadowPair? @relation("ShadowUser2")
+
+  // DISHA relation (1-to-1)
+  disha_profile    DishaMentee? @relation("DishaProfile")
+
+  // DISHA mentorship role (1-to-many)
+  disha_mentees    DishaMentee[] @relation("DishaMentor")
+
+  domain_preference UserDomainPreference? @relation("UserDomain")
+  known_languages  UserLanguage[] @relation("LanguagesKnown")
+  shortlists Shortlist[] @relation("ShortlistUsers")
+
+  @@unique([pgpid, pcomid])
+}
+
+
+model DishaMentee {
+  id             Int     @id @default(autoincrement())
+
+  user_id        Int     @unique
+  user           User    @relation("DishaProfile", fields: [user_id], references: [id])
+
+  mentor_id      Int?    
+  mentor         User?    @relation("DishaMentor", fields: [mentor_id], references: [id])
+
+  placement_cycle_id Int
+  placement_cycle     Placement_Cycle @relation(fields: [placement_cycle_id], references: [id])
+
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+}
+
+
+model ShadowPair {
+  id        Int  @id @default(autoincrement())
+
+  user1     User @relation("ShadowUser1", fields: [user1Id], references: [id])
+  user1Id   Int  @unique
+  user2     User @relation("ShadowUser2", fields: [user2Id], references: [id])
+  user2Id   Int  @unique
+}
+
+model UserLanguage {
+  id           Int       @id @default(autoincrement())
+
+  user_id      Int
+  user         User      @relation("LanguagesKnown",fields: [user_id], references: [id])
+
+  language     LANGUAGE
+  proficiency  PROFICIENCY
+
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  @@unique([user_id, language]) // prevent duplicates per user
+}

@@ -1,0 +1,44 @@
+model News {
+  id String @id @default(cuid())
+
+  title          String
+  content        String  @db.Text
+  link_to_source String?
+  path_to_image  String?
+
+  is_active   Boolean @default(true)
+  is_approved Boolean @default(false)
+
+  news_tag NEWS_DOMAIN_TAG
+  subdomain_tag NEWS_SUBDOMAIN_TAG?
+
+  author_id  Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  author User @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  companies News_Company[]
+  domains   News_Domain[]
+}
+
+model News_Company {
+  id         Int    @id @default(autoincrement())
+  news_id    String
+  company_id Int
+
+  news    News    @relation(fields: [news_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([news_id, company_id])
+}
+
+model News_Domain {
+  id      Int    @id @default(autoincrement())
+  news_id String
+  domain  DOMAIN
+
+  news News @relation(fields: [news_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([news_id, domain])
+}
