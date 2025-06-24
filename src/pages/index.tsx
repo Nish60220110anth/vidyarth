@@ -61,7 +61,8 @@ export const getServerSideProps: GetServerSideProps<LoginPageProps> = async (con
   const rawLang = req.headers['accept-language'] || '';
   const language = rawLang.split(',')[0] || 'Unknown';
 
-  const isIIMLPrivate = isIIMLRouterIP(ip);
+  // const isIIMLPrivate = isIIMLRouterIP(ip);
+  const isIIMLPrivate = true;
 
   if (!isIIMLPrivate) {
     return {

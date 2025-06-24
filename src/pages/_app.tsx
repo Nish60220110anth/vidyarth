@@ -1,16 +1,24 @@
 // pages/_app.tsx
 import '@/styles/globals.css';
+import "@/styles/styles.css";
 import type { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useRouter } from 'next/router';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Metadata } from 'next';
 
 
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), {
   ssr: false,
 });
+
+export const metadata: Metadata = {
+  title: 'Vidyarth',
+  description: 'Add something',
+  keywords: ["here too"]
+}
 
 export default function App({ Component, pageProps }: AppProps) {
   const [mounted, setMounted] = useState(false);

@@ -62,6 +62,7 @@ import MyCV from "./MyCV";
 import Announcements from "./Announcements";
 import Preferences from "./Preferences";
 import ManageCohort from "./ManageCohort";
+import { RichTextPane } from "./RichTextPane";
 
 
 interface SidebarProps {
@@ -151,6 +152,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
 
     const profileButtonRef = useRef<HTMLDivElement | null>(null);
 
+    const [content, setContent] = useState<string>();
 
 
     useEffect(() => {
@@ -451,7 +453,6 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [permissions]);
 
-
     const groupedItems: Record<string, { label: string; icon: any; component: () => JSX.Element; key: string, shortcut: string }[]> = {};
 
     Object.entries(sections_permissions).forEach(([key, { section, perm, icon, component, shortcut }]) => {
@@ -518,11 +519,13 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
         `}
                                             title=""
                                             onClick={() => {
-                                                if (is_company) {
-                                                    setActiveCompany(null);
-                                                }
-                                                setActiveKey(key);
-                                                setActiveComponent(() => component());
+
+                                                    if (is_company) {
+                                                        setActiveCompany(null);
+                                                    }
+
+                                                    setActiveKey(key);
+                                                    setActiveComponent(() => component());
                                             }}
 
                                         >
@@ -585,6 +588,19 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
 
                         <CompanySearchBar
                             onSelect={(id) => {
+                                router.push(
+                                    {
+                                        pathname: router.pathname,
+                                        query: Object.fromEntries(
+                                            Object.entries(router.query).filter(
+                                                ([k]) => k !== "id" && k !== "tab"
+                                            )
+                                        ),
+                                    },
+                                    undefined,
+                                    { shallow: true }
+                                  )
+
                                 setActiveCompany(id);
                                 setActiveKey(null);
                                 setActiveComponent(null);
@@ -749,10 +765,16 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                             exit={{ opacity: 0 }}
                             className="text-gray-500 text-center"
                         >
-                            <WelcomePage onGotoDashboard={() => {
+                            {/* <WelcomePage onGotoDashboard={() => {
                                 setActiveComponent(() => <AllCompaniesDirectory onCompanySelected={onCompanySelected} />);
                                 setActiveKey("COMPANY");
+                            }} /> */}
+
+                            <RichTextPane OnSetContent={(value: string) => {
+                                setContent(value);
                             }} />
+
+                            {content}
                         </motion.div>
                     )}
                 </AnimatePresence>
