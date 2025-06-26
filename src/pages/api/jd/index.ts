@@ -111,17 +111,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     },
                 });
 
-                // await file.makePublic(); - dude, use this when u want to make the link shorter
+                await fileRef.makePublic(); 
 
-                // const publicUrl = file.publicUrl();
+                const publicUrl = fileRef.publicUrl();
                 // getting signed makes the file more private 
 
-                const [signedUrl] = await fileRef.getSignedUrl({
-                    action: "read",
-                    expires: "03-01-2030",
-                });
+                // const [signedUrl] = await fileRef.getSignedUrl({
+                //     action: "read",
+                //     expires: "03-01-2030",
+                // });
 
-                pdf_path = signedUrl;
+                pdf_path = publicUrl;
             }
 
             if (keep_existing_pdf) {
@@ -181,7 +181,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === "GET") {
         try {
+            const { cid, status } = req.query;
+
+            const filters: any = {};
+
+            if (cid) {
+                filters.company_id = parseInt(Array.isArray(cid) ? cid[0] : cid);
+            }
+
+            if (status === "OPEN" || status === "CLOSED") {
+                filters.placement_cycle = {
+                    status: status.toUpperCase(),
+                };
+            }
+
             const allJDs = await prisma.company_JD.findMany({
+                where: filters,
                 include: {
                     company: {
                         include: {
@@ -195,13 +210,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     updated_at: "desc",
                 },
             });
-
+    
             return res.status(200).json(allJDs);
         } catch (error) {
             console.error("Error fetching JDs:", error);
             return res.status(500).json({ error: "Failed to fetch JDs" });
         }
     }
+    
 
     if (req.method === "DELETE") {
         try {

@@ -465,7 +465,7 @@ export default function ManageCohort() {
                                 const dishaName = getDishaName(student.disha_profile?.mentor_id ?? null);
 
                                 return (
-                                    <tr key={student.id} className="border-b hover:bg-gray-800 transition duration-200 ease-in-out align-middle hover:shadow-[0_0_8px_1px_rgba(0,255,255,0.3)]">
+                                    <tr key={student.id} className="border-b hover:bg-gray-800 transition duration-200 ease-in-out align-middle hover:shadow-[0_0_8px_1px_rgba(0,255,255,0.3)] text-white">
                                         <td className="w-[18%] px-3 py-2 text-left font-semibold ">
                                             {isEditing ? (
                                                 <select

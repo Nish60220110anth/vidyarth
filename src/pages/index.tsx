@@ -4,16 +4,7 @@ import { UAParser } from 'ua-parser-js';
 
 
 function isIIMLRouterIP(ip: string): boolean {
-
-  if (!ip) return false;
-
-  if (ip === '127.0.0.1' || ip === '::1') return true;
-
-  const parts = ip.split('.').map(Number);
-  if (parts.length !== 4 || parts.some((n) => isNaN(n))) return false;
-
-  const [a, b, c] = parts;
-  return (a === 192 && b === 168 && c >= 80 && c <= 95);
+  return true; // todo: for future use case
 }
 
 type LoginPageProps = {
@@ -45,12 +36,9 @@ export const getServerSideProps: GetServerSideProps<LoginPageProps> = async (con
     ? forwarded.split(',')[0].trim()
     : req.socket.remoteAddress || '';
 
-  // TEMP for testing
+
   // ip = "192.168.85.170";
 
-  console.log('Client IP:', ip);
-
-  // 📦 Parse browser info
   const parser = new UAParser(req.headers['user-agent']);
   const browserInfo = parser.getBrowser(); // { name: 'Chrome', version: '113.0.0.0' }
   const osInfo = parser.getOS();           // { name: 'Windows', version: '10' }

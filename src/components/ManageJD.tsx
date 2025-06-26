@@ -27,6 +27,7 @@ interface JDEntry {
     company_id: number,
     company_full: string,
     company_logo: string,
+    company_name: string,
     company_domains: string[],
     placement_cycle_id: number,
     placement_cycle_type: string,
@@ -90,6 +91,7 @@ export default function ManageJDList() {
                 company_id: jd.company.id,
                 company_full: jd.company.company_full,
                 company_logo: jd.company.logo_url || "",
+                company_name: jd.company.company_name,
                 company_domains: (jd.company.domains || []).map((d: any) => d.domain),
 
                 placement_cycle_id: jd.placement_cycle.id,
@@ -346,7 +348,7 @@ export default function ManageJDList() {
 
     const getFilteredJDs = () => {
         const filtered = jdList.filter((jd) => {
-            const matchesCompany = selectedCompany === "" || jd.company_full.toLowerCase().includes(selectedCompany.toLowerCase());
+            const matchesCompany = selectedCompany === "" || jd.company_full.toLowerCase().includes(selectedCompany.toLowerCase()) || jd.company_name.toLowerCase().includes(selectedCompany.toLowerCase());
             const matchesRole = selectedRole === "" || jd.role.toLowerCase().includes(selectedRole.toLowerCase());
             const matchesDomain = selectedDomain === "" || jd.domains.some(d => d.domain === selectedDomain);
             const matchesCycle = selectedCycle === "" || jd.placement_cycle_type === selectedCycle;

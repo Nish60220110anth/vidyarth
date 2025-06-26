@@ -17,7 +17,7 @@ model Company {
   shortlists       Shortlist[]
 
   news News_Company[]
-  videos Company_Video[]
+  videos Video[]
 }
 
 model CompanyDomainMapping {

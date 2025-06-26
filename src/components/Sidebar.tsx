@@ -16,7 +16,8 @@ import {
     Cog6ToothIcon,
     ClipboardDocumentCheckIcon,
     SpeakerWaveIcon,
-    UsersIcon
+    UsersIcon,
+    VideoCameraIcon
 } from "@heroicons/react/24/outline";
 import { ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";
 import axios from "axios";
@@ -63,6 +64,7 @@ import Announcements from "./Announcements";
 import Preferences from "./Preferences";
 import ManageCohort from "./ManageCohort";
 import { RichTextPane } from "./RichTextPane";
+import ManageVideo from "./ManageVideo";
 
 
 interface SidebarProps {
@@ -323,6 +325,13 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
             icon: (cls) => <UsersIcon className={cls} />,
             component: () => <ManageCohort />,
             shortcut: "H"
+        },
+        VIDEO: {
+            section: "Manage Content",
+            perm: ACCESS_PERMISSION.MANAGE_VIDEOS,
+            icon: (cls) => <VideoCameraIcon className={cls} />,
+            component: () => <ManageVideo />,
+            shortcut: "I"
         },
         ANNOUNCEMENTS: {
             section: "Announcements",
@@ -765,16 +774,16 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                             exit={{ opacity: 0 }}
                             className="text-gray-500 text-center"
                         >
-                            {/* <WelcomePage onGotoDashboard={() => {
+                             <WelcomePage onGotoDashboard={() => {
                                 setActiveComponent(() => <AllCompaniesDirectory onCompanySelected={onCompanySelected} />);
                                 setActiveKey("COMPANY");
-                            }} /> */}
+                            }} /> 
 
-                            <RichTextPane OnSetContent={(value: string) => {
+                            {/* <RichTextPane OnSetContent={(value: string) => {
                                 setContent(value);
                             }} />
 
-                            {content}
+                            {content} */}
                         </motion.div>
                     )}
                 </AnimatePresence>

@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { Company } from "./CompanySearchDropDown";
 import { AnimatePresence, motion } from "framer-motion";
 import { ALL_DOMAINS } from "./ManageCompanyList";
+import { ArrowPathIcon } from "@heroicons/react/24/solid";
 
 function groupByFirstLetter(companies: Company[]): Record<string, Company[]> {
     const grouped: Record<string, Company[]> = {};
@@ -56,14 +57,8 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
     const [visibleCompanyCount, setVisibleCompanyCount] = useState(10);
     const [loadingMore, setLoadingMore] = useState(false);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
-
-
-    useEffect(() => {
-        setIsLoading(true);
-        const t = setTimeout(() => setIsLoading(false), 600);
-        return () => clearTimeout(t);
-    }, [selectedDomain]);
 
     useEffect(() => {
         if (!sentinelRef.current || loadingMore) return;
@@ -85,16 +80,24 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
         return () => observer.disconnect();
     }, [loadingMore]);
 
+    const fetchData = async () => {
+        setIsRefreshing(true);
+        try {
+            const res = await axios.get("/api/company");
+            setAllCompanies(res.data.filter((c: Company) => c.id > 0) || []);
+        } catch (error) {
+            console.error("Failed to load companies", error);
+        }
+        finally {
+            setTimeout(() => setIsRefreshing(false), 1000);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const res = await axios.get("/api/company");
-                setAllCompanies(res.data || []);
-            } catch (error) {
-                console.error("Failed to load companies", error);
-            }
-        };
+        setIsLoading(true);
         fetchData();
+        const t = setTimeout(() => setIsLoading(false), 1000);
+        return () => clearTimeout(t);
     }, []);
 
     useEffect(() => {
@@ -210,6 +213,18 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                             </button>
                         );
                     })}
+
+                    <button
+                        onClick={fetchData}
+                        className="p-2 rounded-md border border-gray-300 text-gray-600 hover:text-cyan-600 hover:border-cyan-500 transition shadow-sm hover:shadow-md"
+                        title="Refresh"
+                    >
+                        <motion.div animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }} transition={{ repeat: isRefreshing ? Infinity : 0, repeatType: "loop", ease: "linear", duration: 1 }}>
+                            <ArrowPathIcon className="h-5 w-5" />
+                        </motion.div>
+                    </button>
+
+
                 </div>
 
 
@@ -315,6 +330,15 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                         </motion.div>
                     </div>
                 ))}
+
+                {isLoading && (
+                    <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
+                        <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
+                        <p className="text-cyan-200 text-lg font-medium animate-pulse">Loading Companies...</p>
+                    </div>
+                )}
+
+
             </div>
         </>
     );

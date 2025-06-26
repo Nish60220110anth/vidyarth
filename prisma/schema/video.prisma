@@ -1,11 +1,39 @@
-model Company_Video {
-  id          Int      @id @default(autoincrement())
-  company_id  Int
-  video_url   String
-  description String?
-  is_featured Boolean @default(false)
+model Video {
+  id         Int @id @default(autoincrement())
+  company_id Int
 
-  company     Company  @relation(fields: [company_id], references: [id])
+  type     VIDEO_REQ           @default(COMPANY) // generic or company 
+  source   VIDEO_STREAM_SOURCE @default(YOUTUBE) // youtube or vimeo
+  title    String
+  embed_id String?
 
-  @@unique([company_id, video_url])
+  thumbnail_image_name String? @default("thumbnail")
+  thumbnail_url        String? @db.Text
+  firebase_path        String?
+  is_featured          Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id])
+}
+
+model YouTubeEmbedSettings {
+  id              String   @id @default(uuid())
+  autoplay        Boolean  @default(false)
+  mute            Boolean  @default(false)
+  controls        Int      @default(1)   // 0, 1, 2
+  loop            Boolean  @default(false)
+  startAt         Int?     // in seconds
+  endAt           Int?
+  rel             Boolean  @default(true)
+  modestBranding  Boolean  @default(false)
+  fs              Boolean  @default(true)
+  ccLoadPolicy    Boolean  @default(false)
+  ccLangPref      String?  // "en", "fr", etc.
+  ivLoadPolicy    Int?     // 1 or 3
+  playsInline     Boolean  @default(false)
+  disableKb       Boolean  @default(false)
+  enableJsApi     Boolean  @default(false)
+  origin          String?  // optional
 }

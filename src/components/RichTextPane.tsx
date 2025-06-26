@@ -124,6 +124,31 @@ export function RichTextPane({ OnSetContent }: { OnSetContent: (arg0: string) =>
                         <ClearEditorPlugin />
                         <OnChangePlugin onChange={OnChange} />
                         {process.env.NODE_ENV == "development" && false && <TreeViewPlugin />}
+
+                        <div className="relative pb-[56.25%] h-0 overflow-hidden">
+                            <iframe
+                                className="absolute top-0 left-0 w-full h-full"
+                                height="561"
+                                src="https://www.youtube.com/embed/s3Q6yghOnZg?autoplay=0&mute=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=s3Q6yghOnZg"
+                                title="Every Game A Higher Rank Lobby 💀"
+                                style={{ border: "none" }}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                referrerPolicy="strict-origin-when-cross-origin"
+                                allowFullScreen
+                            />
+
+                            <iframe
+                                className="absolute top-0 left-0 w-full h-full"
+                                height="561"
+                                src="https://player.vimeo.com/video/1089161635?autoplay=1&loop=1&muted=1&title=0&byline=0&portrait=0&color=00adef"
+                                title="Every Game A Higher Rank Lobby 💀"
+                                style={{ border: "none" }}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                referrerPolicy="strict-origin-when-cross-origin"
+                                allowFullScreen
+                            />
+                        </div>
+
                     </div>
                 </div>
             </LexicalComposer>
