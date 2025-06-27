@@ -55,7 +55,7 @@ export default function ManageVideoList() {
     const [editedVideo, setEditedVideo] = useState<Partial<VideoEntry> & { image_file?: File; isNewImageUploaded?: boolean }>({
         isNewImageUploaded: false
     });
-    const [editCompany, setEditCompany] = useState<Company>();
+    const [editCompany, setEditCompany] = useState<Partial<Company>>();
     const [showCompanyOverlay, setShowCompanyOverlay] = useState(false);
 
     const [sortKey, setSortKey] = useState<SortKey>("company_full");
@@ -130,6 +130,11 @@ export default function ManageVideoList() {
         setEditedVideo({
             ...video,
             isNewImageUploaded: false,
+        });
+        setEditCompany({
+            id: video.company_id || 0,
+            company_full: video.company_full,
+            logo_url: video.company_logo,
         });
     };
 
@@ -229,6 +234,8 @@ export default function ManageVideoList() {
         } finally {
             setShowLoadingScreen(false)
         }
+
+        setShowLoadingScreen(false);
         setEditId(null);
         setEditedVideo({});
     };
@@ -757,7 +764,7 @@ export default function ManageVideoList() {
             {showLoadingScreen && (
                 <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
                     <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
-                    <p className="text-cyan-200 text-lg font-medium animate-pulse">Uploading Image Entry...</p>
+                    <p className="text-cyan-200 text-lg font-medium animate-pulse">Uploading Video Entry...</p>
                 </div>
             )}
 

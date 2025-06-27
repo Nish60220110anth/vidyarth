@@ -129,7 +129,7 @@ export default function ManageCompanyList() {
 
             const active = document.activeElement as HTMLInputElement | HTMLTextAreaElement | null;
 
-            if (!active || (active.tagName === "INPUT" ||  active.tagName === "TEXTAREA")) return;
+            if (!active || (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) return;
 
             if (e.ctrlKey && e.shiftKey && e.code === "KeyC") {
                 e.preventDefault();
@@ -221,7 +221,7 @@ export default function ManageCompanyList() {
     });
 
     return (
-        <div className="p-6 md:p-10 bg-gray-100 h-full -z-10">
+        <div className="px-4 py-6 md:px-10 md:py-10 bg-gray-100 min-h-screen">
             <div className="sticky top-0 bg-gray-100 pb-4 z-20">
                 {/* Breadcrumb */}
                 <div className="text-sm text-gray-600 flex gap-2 mb-2">
@@ -243,7 +243,7 @@ export default function ManageCompanyList() {
 
                 <div className="mt-4 flex justify-between items-center">
                     {/* Left side: Search + Refresh */}
-                    <div className="flex items-center gap-2">
+                    <div className="items-center flex flex-col md:flex-row md:items-center gap-2 mt-4">
                         {/* Domain Filter Dropdown */}
                         <select
                             value={selectedDomain}
@@ -358,7 +358,7 @@ export default function ManageCompanyList() {
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="mt-6 grid grid-cols-12 gap-4 font-semibold text-gray-700 text-sm uppercase tracking-wide"
+                    className="hidden md:grid mt-6 grid-cols-12 gap-4 font-semibold text-gray-700 text-sm uppercase tracking-wide"
                 >
                     <div className="col-span-2">Logo</div>
                     <div className="col-span-3 flex items-center gap-1 cursor-pointer" onClick={() => toggleSort("company_full")}>Full Name
@@ -387,7 +387,7 @@ export default function ManageCompanyList() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.35, ease: "easeOut" }}
-                                className={`mt-4 grid grid-cols-12 gap-4 items-center bg-white shadow-sm rounded-lg px-4 py-3 ${company.id === newCompanyId ? "animate-highlight" : ""
+                                className={`mt-4 grid grid-cols-1 md:grid-cols-12 gap-4 md:items-center md:py-3 bg-white shadow-sm rounded-lg px-4 py-3 ${company.id === newCompanyId ? "animate-highlight" : ""
                                     }`}
                             >
                                 <div className="col-span-2">

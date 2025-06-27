@@ -20,72 +20,83 @@ import axios from "axios";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
+import JDPane from "./content/JDPane";
+import VideoPane from "./content/VideoPane";
 
+
+type PaneComponentProps = Record<string, any>;
 
 const SummaryPane = () => <p>This is the Summary pane.</p>;
 const OverviewPane = () => <p>This is the Overview pane.</p>;
 const NewsPane = () => <p>This is the News pane.</p>;
-const JdPane = () => <p>This is the JD pane.</p>;
 const CompendiumPane = () => <p>This is the Compendium pane.</p>;
-const VideosPane = () => <p>This is the Videos pane.</p>;
 const AlumExpPane = () => <p>This is the Alum Exp pane.</p>;
 
 export const PANE_CONFIG: {
     label: string;
     icon: JSX.Element;
-    component: JSX.Element;
+    component: (props: PaneComponentProps) => JSX.Element;
     color: string;
 }[] = [
         {
             label: "Summary",
             icon: <ChartBarSquareIcon className="w-4 h-4 mr-1" />,
-            component: <SummaryPane />,
+            component: () => <SummaryPane />,
             color: "bg-blue-100 text-blue-800",
         },
         {
             label: "Overview",
             icon: <DocumentTextIcon className="w-4 h-4 mr-1" />,
-            component: <OverviewPane />,
+            component: () => <OverviewPane />,
             color: "bg-purple-100 text-purple-800",
         },
         {
             label: "News",
             icon: <NewspaperIcon className="w-4 h-4 mr-1" />,
-            component: <NewsPane />,
+            component: () => <NewsPane />,
             color: "bg-yellow-100 text-yellow-800",
         },
         {
-            label: "JD",
+            label: "Job Description",
             icon: <ClipboardDocumentListIcon className="w-4 h-4 mr-1" />,
-            component: <JdPane />,
+            component: ({ allJds }) => <JDPane jds={allJds || []} />,
             color: "bg-green-100 text-green-800",
         },
         {
             label: "Compendium",
             icon: <BookOpenIcon className="w-4 h-4 mr-1" />,
-            component: <CompendiumPane />,
+            component: () => <CompendiumPane />,
             color: "bg-red-100 text-red-800",
         },
         {
             label: "Videos",
             icon: <VideoCameraIcon className="w-4 h-4 mr-1" />,
-            component: <VideosPane />,
+            component: ({ allVideos }) => <VideoPane videos={allVideos} />,
             color: "bg-indigo-100 text-indigo-800",
         },
         {
             label: "Alum Exp",
             icon: <AcademicCapIcon className="w-4 h-4 mr-1" />,
-            component: <AlumExpPane />,
+            component: () => <AlumExpPane />,
             color: "bg-pink-100 text-pink-800",
         },
     ];
 
-interface JDEntry {
+export interface JDEntry {
     company: string,
     role: string,
     cycle_type: string,
     year: string,
     jd_pdf_path: string,
+    domains: string[],
+}
+
+export interface VideoEntry {
+    source: string,
+    title: string,
+    embed_id: string,
+    thumbnail_url: string,
+    updated_at: Date,
 }
 
 export default function CompanyPage({ id, company }: { id: number; company: Company }) {
@@ -99,8 +110,11 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
     const currentTabIndex = PANE_CONFIG.findIndex((p) => p.label === activeTab);
 
     const [allJds, setAllJDS] = useState<Partial<JDEntry>[]>();
+    const [allVideos, setAllVideos] = useState<Partial<VideoEntry>[]>();
+
     const [isDownloading, setIsDownloading] = useState(false);
 
+    const hasValidJDs = (allJds ?? []).some(jd => jd?.jd_pdf_path);
 
     const handleDownloadJDs = async () => {
         setIsDownloading(true);
@@ -162,7 +176,7 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                 console.error(`Failed to fetch: ${jd.jd_pdf_path}`, err);
                 toast.error(`Failed to fetch file: ${jd.company}`);
                 setIsDownloading(false);
-            } 
+            }
         }
 
         const content = await zip.generateAsync({ type: "blob" });
@@ -174,7 +188,7 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
 
     const fetchJDs = async () => {
         try {
-            const res = await axios.get(`/api/jd?cid=${companyId}&status=OPEN`);
+            const res = await axios.get(`/api/jd?cid=${companyId}&status=OPEN&active=true`);
 
             const transformed = res.data.map((jd: any): JDEntry => ({
                 company: jd.company.company_full,
@@ -182,6 +196,7 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                 cycle_type: jd.placement_cycle.placement_type,
                 year: jd.placement_cycle.year,
                 jd_pdf_path: jd.pdf_path,
+                domains: jd.domains.map((d: any) => d.domain),
             }));
 
             setAllJDS(transformed);
@@ -190,10 +205,26 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
         }
     };
 
-    console.log(allJds);
+    const fetchVideos = async () => {
+        try {
+            const res = await axios.get(`/api/video?cid=${companyId}&is_featured=true`);
+            const transformed = res.data.map((video: any): VideoEntry => ({
+                source: video.source,
+                title: video.title,
+                embed_id: video.embed_id,
+                thumbnail_url: video.thumbnail_url,
+                updated_at: new Date(video.updated_at),
+            }));
+
+            setAllVideos(transformed);
+        } catch (err) {
+            toast.error("Failed to load videos");
+        }
+    }
 
     useEffect(() => {
         fetchJDs();
+        fetchVideos();
     }, [companyId]);
 
     return (
@@ -271,13 +302,26 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                             {/* Button */}
                             <button
                                 onClick={async () => {
-                                    handleDownloadJDs();
+                                    if (hasValidJDs) handleDownloadJDs();
                                 }}
-                                className="group flex items-center gap-2 border border-gray-300 text-gray-700 bg-white px-4 py-2 rounded-md text-sm shadow-sm hover:shadow-md hover:ring-1 hover:ring-cyan-400 transition-all duration-200 ease-out"
+                                disabled={!hasValidJDs}
+                                className={`group flex items-center gap-2 px-4 py-2 rounded-md text-sm shadow-sm transition-all duration-200 ease-out
+        ${hasValidJDs
+                                        ? "border border-gray-300 text-gray-700 bg-white hover:shadow-md hover:ring-1 hover:ring-cyan-400"
+                                        : "border border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed"
+                                    }`}
                             >
-                                <ArrowDownTrayIcon className="w-4 h-4 text-gray-500 group-hover:-translate-y-0.5 transition-transform duration-200" />
-                                <span className="group-hover:text-cyan-700 transition-colors duration-200">
-                                    Download JD
+                                <ArrowDownTrayIcon
+                                    className={`w-4 h-4 transition-transform duration-200 ${hasValidJDs
+                                        ? "text-gray-500 group-hover:-translate-y-0.5"
+                                        : "text-gray-400"
+                                        }`}
+                                />
+                                <span
+                                    className={`transition-colors duration-200 ${hasValidJDs ? "group-hover:text-cyan-700" : "text-gray-400"
+                                        }`}
+                                >
+                                    {hasValidJDs ? "Download JD" : "No JD"}
                                 </span>
                             </button>
 
@@ -349,8 +393,13 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                             className="bg-white rounded-xl p-6 shadow-lg"
                         >
-                            <h2 className="text-lg font-semibold text-gray-800 mb-4">{activeTab}</h2>
-                            {activePane?.component}
+                            {activeTab === "Job Description" ? (
+                                <JDPane jds={allJds || []} />
+                            ) : activeTab === "Videos" ? (
+                                <VideoPane videos={allVideos || []} />
+                            ) : (
+                                activePane?.component({})
+                            )}
                         </motion.div>
                     </AnimatePresence>
                 </div>

@@ -181,9 +181,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === "GET") {
         try {
-            const { cid, status } = req.query;
+            const { cid, status, active } = req.query;
 
-            const filters: any = {};
+            const filters: any = {
+            };
 
             if (cid) {
                 filters.company_id = parseInt(Array.isArray(cid) ? cid[0] : cid);
@@ -193,6 +194,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 filters.placement_cycle = {
                     status: status.toUpperCase(),
                 };
+            }
+
+            if(active) {
+                filters.is_active = active === "true";
             }
 
             const allJDs = await prisma.company_JD.findMany({

@@ -59,6 +59,9 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
     const sentinelRef = useRef<HTMLDivElement | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
+    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+
 
     useEffect(() => {
         if (!sentinelRef.current || loadingMore) return;
@@ -189,44 +192,66 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                 ))}
             </div>
 
+
             <div className="p-6">
-                <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
-                    <button
-                        className={`px-3 py-1 text-sm rounded-full border ${selectedDomain === "ALL"
-                            ? "bg-cyan-100 text-cyan-800 border-cyan-400"
-                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"}`}
-                        onClick={() => setSelectedDomain("ALL")}
-                    >
-                        All
-                    </button>
-                    {ALL_DOMAINS.map((domain) => {
-                        const tagClass = getDomainStyle(domain) || getDomainStyle("Other");
-                        const active = selectedDomain === domain;
-                        return (
-                            <button
-                                key={domain}
-                                className={`px-3 py-1 text-sm rounded-full border transition
-                        ${active ? tagClass : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"}`}
-                                onClick={() => setSelectedDomain(domain)}
+                <div className="flex flex-wrap items-center gap-2 mb-6">
+                    {/* Domain Filter Buttons */}
+                    <div className="flex flex-wrap gap-2 flex-1">
+                        <button
+                            className={`px-3 py-1 text-sm rounded-full border whitespace-nowrap ${selectedDomain === "ALL"
+                                    ? "bg-cyan-100 text-cyan-800 border-cyan-400"
+                                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                                }`}
+                            onClick={() => setSelectedDomain("ALL")}
+                        >
+                            All
+                        </button>
+                        {ALL_DOMAINS.map((domain) => {
+                            const tagClass = getDomainStyle(domain) || getDomainStyle("Other");
+                            const active = selectedDomain === domain;
+                            return (
+                                <button
+                                    key={domain}
+                                    className={`px-3 py-1 text-sm rounded-full border whitespace-nowrap transition ${active
+                                            ? tagClass
+                                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                                        }`}
+                                    onClick={() => setSelectedDomain(domain)}
+                                >
+                                    {domain}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* View Toggle + Refresh */}
+                    <div className="flex gap-2 mt-2 sm:mt-0 shrink-0">
+                        <button
+                            onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
+                            className="px-3 py-1 text-sm rounded-full border bg-white text-gray-700 hover:bg-gray-100 whitespace-nowrap"
+                        >
+                            {viewMode === "grid" ? "📄 List View" : "🔳 Grid View"}
+                        </button>
+
+                        <button
+                            onClick={fetchData}
+                            className="p-2 rounded-md border border-gray-300 text-gray-600 hover:text-cyan-600 hover:border-cyan-500 transition shadow-sm hover:shadow-md"
+                            title="Refresh"
+                        >
+                            <motion.div
+                                animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
+                                transition={{
+                                    repeat: isRefreshing ? Infinity : 0,
+                                    repeatType: "loop",
+                                    ease: "linear",
+                                    duration: 1,
+                                }}
                             >
-                                {domain}
-                            </button>
-                        );
-                    })}
-
-                    <button
-                        onClick={fetchData}
-                        className="p-2 rounded-md border border-gray-300 text-gray-600 hover:text-cyan-600 hover:border-cyan-500 transition shadow-sm hover:shadow-md"
-                        title="Refresh"
-                    >
-                        <motion.div animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }} transition={{ repeat: isRefreshing ? Infinity : 0, repeatType: "loop", ease: "linear", duration: 1 }}>
-                            <ArrowPathIcon className="h-5 w-5" />
-                        </motion.div>
-                    </button>
-
-
+                                <ArrowPathIcon className="h-5 w-5" />
+                            </motion.div>
+                        </button>
+                    </div>
                 </div>
-
 
                 {Object.keys(groupedCompanies).length === 0 && (
                     <motion.div
@@ -240,96 +265,161 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                 )}
 
 
-                {Object.entries(groupedCompanies).map(([letter, companies]) => (
-                    <div key={letter} id={letter} className="mb-8 scroll-mt-24 min-h-[120px]">
-                        <h2 className="text-xl font-bold text-gray-700 mb-3 scroll-mt-24">{letter}</h2>
+                {Object.entries(groupedCompanies).map(([letter, companies]) => {
+                    return viewMode === "grid" ? (
 
-                        <motion.div
-                            key={selectedDomain}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                        >
+                        <div key={letter} id={letter} className="mb-8 scroll-mt-24 min-h-[120px]">
+                            <h2 className="text-xl font-bold text-gray-700 mb-3 scroll-mt-24">{letter}</h2>
 
                             <motion.div
-                                layout
-                                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-                                transition={{ staggerChildren: 0.05 }}
+                                key={selectedDomain}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.3 }}
                             >
-                                <AnimatePresence mode="popLayout">
-                                    {
-                                        companies.slice(0, visibleCompanyCount).map((company, idx) => (
-                                            <motion.div
-                                                key={company.id}
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -10 }}
-                                                transition={{ delay: idx * 0.025, duration: 0.25 }}
-                                                layout
-                                            >
-                                                <button
-                                                    onClick={() => onCompanySelected?.(company)}
-                                                    className="group flex items-start gap-4 p-4 rounded-xl border border-gray-200 bg-white 
+
+                                <motion.div
+                                    layout
+                                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+                                    transition={{ staggerChildren: 0.05 }}
+                                >
+                                    <AnimatePresence mode="popLayout">
+                                        {
+                                            companies.slice(0, visibleCompanyCount).map((company, idx) => (
+                                                <motion.div
+                                                    key={company.id}
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    transition={{ delay: idx * 0.025, duration: 0.25 }}
+                                                    layout
+                                                >
+                                                    <button
+                                                        onClick={() => onCompanySelected?.(company)}
+                                                        className="group flex items-start gap-4 p-4 rounded-xl border border-gray-200 bg-white 
                                     hover:shadow-[0_4px_20px_rgba(0,255,255,0.2)] hover:border-cyan-400 
                                     transition-all duration-300 ease-in-out w-full transform hover:-translate-y-1"
-                                                >
-                                                    <div className="flex items-center justify-center h-12 w-12 rounded-full bg-gray-100">
-                                                        {company.logo_url ? (
-                                                            <img
-                                                                src={company.logo_url}
-                                                                alt={company.company_name}
-                                                                className="h-8 w-8 object-contain"
-                                                            />
-                                                        ) : (
-                                                            <div className="h-8 w-8 bg-gray-300 rounded-full" />
-                                                        )}
-                                                    </div>
-
-                                                    <div className="text-left flex flex-col gap-1">
-                                                        <p className="text-sm font-semibold text-gray-800 group-hover:text-cyan-600 transition-all">
-                                                            {company.company_name}
-                                                        </p>
-                                                        <p className="text-xs text-gray-500">{company.company_full}</p>
-
-                                                        <div className="flex flex-wrap gap-1 mt-1">
-                                                            {company.domains.slice(0, 2).map(({ domain }) => (
-                                                                <span
-                                                                    key={domain}
-                                                                    className={`px-1 py-0.5 text-[0.65rem] rounded-full border font-medium ${getDomainStyle(domain)} break-words whitespace-normal`}
-                                                                >
-                                                                    {domain}
-                                                                </span>
-                                                            ))}
-
-                                                            {company.domains.length > 2 && (
-                                                                <span className="px-2 py-0.5 text-[0.65rem] rounded-full border font-medium bg-gray-100 text-gray-600 border-gray-300">
-                                                                    +{company.domains.length - 2} more
-                                                                </span>
+                                                    >
+                                                        <div className="flex items-center justify-center h-12 w-12 rounded-full bg-gray-100">
+                                                            {company.logo_url ? (
+                                                                <img
+                                                                    src={company.logo_url}
+                                                                    alt={company.company_name}
+                                                                    className="h-8 w-8 object-contain"
+                                                                />
+                                                            ) : (
+                                                                <div className="h-8 w-8 bg-gray-300 rounded-full" />
                                                             )}
                                                         </div>
 
-                                                    </div>
-                                                </button>
-                                            </motion.div>
-                                        ))}
-                                </AnimatePresence>
+                                                        <div className="text-left flex flex-col gap-1">
+                                                            <p className="text-sm font-semibold text-gray-800 group-hover:text-cyan-600 transition-all">
+                                                                {company.company_name}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">{company.company_full}</p>
 
-                                {loadingMore && (
-                                    <>
-                                        {Array.from({ length: 5 }).map((_, i) => (
-                                            <SkeletonCard key={`skeleton-${i}`} />
-                                        ))}
-                                    </>
-                                )}
+                                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                                {company.domains.slice(0, 2).map(({ domain }) => (
+                                                                    <span
+                                                                        key={domain}
+                                                                        className={`px-1 py-0.5 text-[0.65rem] rounded-full border font-medium ${getDomainStyle(domain)} break-words whitespace-normal`}
+                                                                    >
+                                                                        {domain}
+                                                                    </span>
+                                                                ))}
 
-                                <div ref={sentinelRef} className="h-1 col-span-full" />
+                                                                {company.domains.length > 2 && (
+                                                                    <span className="px-2 py-0.5 text-[0.65rem] rounded-full border font-medium bg-gray-100 text-gray-600 border-gray-300">
+                                                                        +{company.domains.length - 2} more
+                                                                    </span>
+                                                                )}
+                                                            </div>
 
+                                                        </div>
+                                                    </button>
+                                                </motion.div>
+                                            ))}
+                                    </AnimatePresence>
+
+                                    {loadingMore && (
+                                        <>
+                                            {Array.from({ length: 5 }).map((_, i) => (
+                                                <SkeletonCard key={`skeleton-${i}`} />
+                                            ))}
+                                        </>
+                                    )}
+
+                                    <div ref={sentinelRef} className="h-1 col-span-full" />
+
+                                </motion.div>
                             </motion.div>
+                        </div>
+                    ) : (
+                        // Flat list layout version
+                            <motion.div
+                                layout
+                                className="divide-y divide-gray-200 border border-gray-200 rounded-xl overflow-hidden"
+                                transition={{ staggerChildren: 0.04 }}
+                            >
+                                <AnimatePresence mode="popLayout">
+                                    {companies.slice(0, visibleCompanyCount).map((company, idx) => (
+                                        <motion.div
+                                            key={company.id}
+                                            layout
+                                            initial={{ opacity: 0, y: 12 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -12 }}
+                                            transition={{ delay: idx * 0.015, duration: 0.2 }}
+                                        >
+                                            <button
+                                                tabIndex={0}
+                                                onClick={() => onCompanySelected?.(company)}
+                                                className="group w-full flex items-center px-4 py-3 bg-white shadow-sm rounded-none
+                                           hover:shadow-md hover:scale-[1.01] focus:shadow-lg focus:outline-none 
+                                           focus:ring-2 focus:ring-cyan-400 transition-all duration-200 transform 
+                                           ring-1 ring-transparent hover:ring-cyan-300"
+                                            >
+                                                <div className="w-10 h-10 flex justify-center items-center bg-gray-100 rounded-full mr-4 shrink-0">
+                                                    {company.logo_url ? (
+                                                        <img
+                                                            src={company.logo_url}
+                                                            alt={company.company_name}
+                                                            className="h-6 w-6 object-contain"
+                                                        />
+                                                    ) : (
+                                                        <div className="h-6 w-6 bg-gray-300 rounded-full" />
+                                                    )}
+                                                </div>
 
-                        </motion.div>
-                    </div>
-                ))}
+                                                <div className="flex-1 min-w-0 text-left">
+                                                    <div className="text-sm font-semibold text-gray-800 truncate group-hover:text-cyan-700 transition-colors">
+                                                        {company.company_name}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 truncate">
+                                                        {company.company_full}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {company.domains.map(({ domain }) => (
+                                                            <span
+                                                                key={domain}
+                                                                className={`px-2 py-0.5 text-[0.65rem] rounded-full border font-medium ${getDomainStyle(domain)}`}
+                                                            >
+                                                                {domain}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </motion.div>
+                                    ))}
+                                </AnimatePresence>
+                            </motion.div>
+                      
+                      
+                    )
+                }
+                )}
 
                 {isLoading && (
                     <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
@@ -343,3 +433,4 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
         </>
     );
 }
+

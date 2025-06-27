@@ -71,7 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const id = Array.isArray(fields.id) ? parseInt(fields.id[0]) : parseInt(fields.id);
             const company_id = Array.isArray(fields.company_id) ? parseInt(fields.company_id[0]) : parseInt(fields.company_id);
             const video_type = Array.isArray(fields.type) ? fields.type[0] : fields.type;
-            const video_source = Array.isArray(fields.stream_source) ? fields.stream_source[0] : fields.stream_source;
+            const video_source = Array.isArray(fields.source) ? fields.source[0] : fields.source;
             const title = Array.isArray(fields.title) ? fields.title[0] : fields.title;
             const embed_id = Array.isArray(fields.embed_id) ? fields.embed_id[0] : fields.embed_id;
             const image_name = Array.isArray(fields.image_name) ? fields.image_name[0] : fields.image_name;
@@ -124,6 +124,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     },
                 });
             } else {
+                // delete existing thumbnail if exists
+                const existingVideo = await prisma.video.findUnique({
+                    where: { id },
+                });
+
+                if (existingVideo?.thumbnail_url && existingVideo.firebase_path) {
+                    const imageRef = bucket.file(existingVideo.firebase_path);
+                    await imageRef.delete();
+                }
+
                 await prisma.video.update({
                     where: { id },
                     data: {
@@ -135,6 +145,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         thumbnail_image_name: image_name,
                         thumbnail_url: image_path,
                         is_featured,
+                        firebase_path
                     },
                 });
             }
@@ -154,8 +165,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === "GET") {
+
+        const {cid, is_featured} = req.query;
+
+        const filters: any = {
+        };
+
+        if (cid) {
+            filters.company_id = parseInt(Array.isArray(cid) ? cid[0] : cid);
+        }
+
+        if (is_featured) {
+            filters.is_featured = is_featured === "true";
+        }
+
         try {
             const allVideos = await prisma.video.findMany({
+                where: filters,
                 include: {
                     company: {
                         include: {
