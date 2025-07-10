@@ -1,6 +1,16 @@
 // pages/_app.tsx
 import '@/styles/globals.css';
 import "@/styles/styles.css";
+import "@/styles/ImageNode.css";
+import "@/styles/Modal.css";
+import "@/styles/Button.css";
+import "@/styles/Dialog.css";
+import "@/styles/Input.css";
+import "@/styles/Select.css";
+import "@/styles/Checkbox.css";
+import "@/styles/Placeholder.css";
+import "@/styles/ContentEditable.css";
+
 import type { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';

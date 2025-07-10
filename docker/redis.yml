@@ -1,0 +1,16 @@
+services:
+  redis:
+    image: redis:7
+    container_name: redis-server
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --requirepass nishanth@9344905119
+      --databases 1
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:

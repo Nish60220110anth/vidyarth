@@ -1,9 +1,9 @@
 // components/ManagePlacementCycle.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { PLACEMENT_CYCLE_TYPE, PLACEMENT_CYCLE_STATUS } from "@prisma/client";
+import { PLACEMENT_CYCLE_TYPE, PLACEMENT_CYCLE_STATUS, ACCESS_PERMISSION } from "@prisma/client";
 import {
     ArrowPathIcon,
     PencilIcon,
@@ -13,6 +13,7 @@ import {
     PlusIcon,
 } from "@heroicons/react/24/outline";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
+import axios from "axios";
 
 export interface PlacementCycle {
     id: number;
@@ -46,7 +47,7 @@ export default function ManagePlacementCycle() {
         /^([A-Za-z]+\/[A-Za-z]+ \d{4}-\d{2})$/,                       // PGP/ABM 2023-25
         /^([A-Za-z]+ \d{4}-\d{2})$/,                                  // PGP 2023-25
     ];
-    
+
     const [batchNameError, setBatchNameError] = useState(false);
 
 
@@ -62,13 +63,16 @@ export default function ManagePlacementCycle() {
     const fetchCycles = async () => {
         setIsRefreshing(true);
         try {
-            const res = await fetch("/api/placement-cycles");
-            const data = await res.json();
+            const res = await axios.get("/api/placement-cycles", {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.MANAGE_PLACEMENT_CYCLE
+                }
+            });
+            const data = res.data;
             setCycles(data);
             setAllCycles(data);
         } catch (err) {
             toast.error("Failed to load placement cycles");
-            console.error(err);
         } finally {
             setTimeout(() => {
                 setIsRefreshing(false)
@@ -86,7 +90,7 @@ export default function ManagePlacementCycle() {
             const active = document.activeElement as HTMLInputElement | HTMLTextAreaElement | null;
 
             if (!active || (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) return;
-            
+
             if (e.ctrlKey && e.shiftKey && e.code === "KeyC") {
                 e.preventDefault();
                 const selectedText = active.value.substring(active.selectionStart || 0, active.selectionEnd || 0);
@@ -133,7 +137,10 @@ export default function ManagePlacementCycle() {
         try {
             const res = await fetch(`/api/placement-cycles/${editId}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-access-permission": ACCESS_PERMISSION.MANAGE_PLACEMENT_CYCLE
+                },
                 body: JSON.stringify(newCycle),
             });
 
@@ -156,12 +163,16 @@ export default function ManagePlacementCycle() {
 
     const handleDelete = async (id: number) => {
         try {
-            const res = await fetch(`/api/placement-cycles/${id}`, { method: "DELETE" });
+            const res = await fetch(`/api/placement-cycles/${id}`, {
+                method: "DELETE",
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.MANAGE_PLACEMENT_CYCLE
+                }
+            });
             if (!res.ok) throw new Error("Delete failed");
 
             setCycles(cycles.filter((c) => c.id !== id));
             setAllCycles(allCycles.filter((c) => c.id !== id));
-            toast.success("Placement cycle deleted");
         } catch (err) {
             toast.error("Failed to delete");
             console.error(err);
@@ -306,6 +317,9 @@ export default function ManagePlacementCycle() {
                             try {
                                 const res = await fetch("/api/placement-cycles", {
                                     method: "POST",
+                                    headers: {
+                                        "x-access-permission": ACCESS_PERMISSION.MANAGE_PLACEMENT_CYCLE
+                                    }
                                 });
 
                                 if (!res.ok) {
@@ -379,19 +393,19 @@ export default function ManagePlacementCycle() {
                     >
                         <div className="col-span-4 text-center relative">
                             {isEditing ? (
-                                <>                                
-                                <input
-                                    type="text"
-                                    value={newCycle.batch_name || ""}
-                                    onChange={(e) => {
-                                        const value = e.target.value.trim();
-                                        setNewCycle({ ...newCycle, batch_name: e.target.value });
-                                        const isValid = BATCH_NAME_REGEXES.some((regex) => regex.test(value.trim()));
-                                        setBatchNameError(!isValid);
-                                    }}
-                                    className={`w-full px-2 py-1 border rounded-md ${batchNameError ? "border-red-500" : "border-gray-300"
-                                        }`}
-                                />
+                                <>
+                                    <input
+                                        type="text"
+                                        value={newCycle.batch_name || ""}
+                                        onChange={(e) => {
+                                            const value = e.target.value.trim();
+                                            setNewCycle({ ...newCycle, batch_name: e.target.value });
+                                            const isValid = BATCH_NAME_REGEXES.some((regex) => regex.test(value.trim()));
+                                            setBatchNameError(!isValid);
+                                        }}
+                                        className={`w-full px-2 py-1 border rounded-md ${batchNameError ? "border-red-500" : "border-gray-300"
+                                            }`}
+                                    />
                                     {batchNameError && (
                                         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-3 py-1 text-xs bg-red-100 text-red-700 rounded shadow max-w-xs z-10 text-left">
                                             Valid formats:<br />

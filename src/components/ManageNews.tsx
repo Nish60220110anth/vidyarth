@@ -8,7 +8,6 @@ import axios from "axios";
 import { ALL_DOMAINS } from "./ManageCompanyList";
 import { News, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG } from "@prisma/client";
 
-
 export default function ManageNews() {
     const router = useRouter();
 
@@ -43,11 +42,12 @@ export default function ManageNews() {
                 params: query,
                 headers: {
                     "Content-Type": "application/json",
+                    "x-access-permission": "MANAGE_NEWS"
                 },
             });
 
-            const { data } = res.data;
-            setNewsList(data);
+            const { newsList } = res.data;
+            setNewsList(newsList);
         } catch {
             toast.error("Failed to load news");
         } finally {
@@ -58,7 +58,7 @@ export default function ManageNews() {
     useEffect(() => {
         const timeout = setTimeout(() => {
             fetchNews();
-        }, 400); // adjust as needed
+        }, 400);
 
         return () => clearTimeout(timeout);
     }, [search]);
@@ -66,11 +66,7 @@ export default function ManageNews() {
 
     useEffect(() => {
         fetchNews();
-    }, [selectedDomain, isActive, isApproved, dateRange, newsDomainTag, newsSubdomainTag]);
-
-    useEffect(() => {
-
-    }, [isRefreshing]);
+    }, [selectedDomain, isActive, isApproved, dateRange, newsDomainTag, newsSubdomainTag, isRefreshing]);
 
     return (
         <div className="p-6 md:p-10 bg-gray-100 h-full">
@@ -198,14 +194,15 @@ export default function ManageNews() {
                                     is_default: true,
                                 }, {
                                     headers: {
-                                        "Content-Type": "application/json"
+                                        "Content-Type": "application/json",
+                                        "x-access-permission": "MANAGE_NEWS"
                                     }
                                 });
 
                                 const { success, error } = res.data;
 
                                 if (success) {
-                                    toast.success("Default news created");
+                                    toast.success("Default News created");
                                     fetchNews();
                                 } else {
                                     toast.error(error || "Failed to add news");
@@ -263,17 +260,22 @@ export default function ManageNews() {
 
             {/* News card grid or list will go here */}
             <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6 mt-4">
-                {newsList.map((news: News) => (
-                    <div key={`${news.id}-${news.updated_at}`} className="break-inside-avoid">
-                        <NewsCard
-                            news={news}
-                            fetchNews={fetchNews}
-                            search={search}
-                            is_read={false}
-                            is_short={false}
-                        />
+                {newsList.length > 0 ? (
+                    newsList.map((news: News) => (
+                        <div key={`${news.id}-${news.updated_at}`} className="break-inside-avoid">
+                            <NewsCard
+                                news={news}
+                                fetchNews={fetchNews}
+                                search={search}
+                                is_read={false}
+                            />
+                        </div>
+                    ))
+                ) : (
+                    <div className="col-span-full w-full flex justify-center items-center py-10 text-cyan-700 text-base font-medium italic">
+                        No news found. Try changing filters or adding a news item.
                     </div>
-                ))}
+                )}
             </div>
 
         </div>

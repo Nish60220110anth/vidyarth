@@ -1,9 +1,8 @@
 import { getIronSession, IronSession, IronSessionData } from 'iron-session';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { sessionOptions } from '@/lib/session';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     const session: IronSession<IronSessionData> = await getIronSession(req, res, sessionOptions);
@@ -47,7 +46,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return res.status(403).json({ error: 'User not verified' });
     }
 
-    console.log('User session:', user);
+    if(session.role != user.role) {
+        session.destroy();
+        return res.status(403).json({ error: 'Permissions Updated' });
+    }
 
     session.email = user.email_id;
     session.role = user.role;

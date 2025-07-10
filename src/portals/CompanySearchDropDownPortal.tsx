@@ -1,7 +1,7 @@
 // components/CompanySearchDropdownPortal.tsx
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Company } from "@/components/CompanySearchDropDown";
 
 interface Props {
@@ -26,8 +26,38 @@ export default function CompanySearchDropdownPortal({
     onClearRecent,
 }: Props) {
 
-    const portalRef = useRef<HTMLDivElement>(null);
+    const portalRef = useRef<HTMLUListElement>(null);
     const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
+    const [dropdownStyle, setDropdownStyle] = useState({
+        top: 0,
+        left: 0,
+        width: 0,
+      });
+
+    useEffect(() => {
+        if (!anchorEl) return;
+
+        const updatePosition = () => {
+            const rect = anchorEl.getBoundingClientRect();
+            setDropdownStyle({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX,
+                width: rect.width,
+            });
+        };
+
+        updatePosition();
+
+        const resizeObserver = new ResizeObserver(updatePosition);
+        resizeObserver.observe(anchorEl);
+
+        window.addEventListener("scroll", updatePosition, true); // handle scroll
+
+        return () => {
+            resizeObserver.disconnect();
+            window.removeEventListener("scroll", updatePosition, true);
+        };
+    }, [anchorEl]);
 
 
     useEffect(() => {
@@ -38,9 +68,9 @@ export default function CompanySearchDropdownPortal({
                 anchorEl &&
                 !anchorEl.contains(e.target as Node)
             ) {
-                // delay close slightly
+
                 hoverTimeout.current = setTimeout(() => {
-                    onSelect(null as any); // close signal
+                    onSelect(null as any);
                 }, 100);
             }
         };
@@ -55,16 +85,14 @@ export default function CompanySearchDropdownPortal({
 
     if (!show || !anchorEl) return null;
 
-    const rect = anchorEl.getBoundingClientRect();
     const style = {
         position: "absolute" as const,
-        top: `${rect.bottom + window.scrollY}px`,
-        left: `${rect.left + window.scrollX}px`,
-        width: `${rect.width}px`,
+        top: dropdownStyle.top,
+        left: dropdownStyle.left,
+        width: dropdownStyle.width,
         zIndex: 9999,
     };
-
-
+    
     const resultsToShow =
         search.trim() === "" && recentSelections.length > 0
             ? recentSelections

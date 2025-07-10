@@ -1,11 +1,11 @@
-import { $createParagraphNode, $createTextNode, $getRoot } from "lexical";
+import { $createParagraphNode, $createTextNode, $getRoot, EditorState, LexicalEditor } from "lexical";
 import { $createListItemNode, $createListNode } from "@lexical/list";
 
 /**
  * docs: https://lexical.dev/docs/demos/plugins/markdown
  */
 
-export function customLexicalTree() {
+export function customLexicalTree(editor: LexicalEditor) {
     const root = $getRoot();
 
     const paragraphParent = $createParagraphNode();

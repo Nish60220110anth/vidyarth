@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { useRouter } from "next/router";
 import { Company } from "./CompanySearchDropDown";
 import { AnimatePresence, motion } from "framer-motion";
 import { ALL_DOMAINS } from "./ManageCompanyList";
-import { ArrowPathIcon } from "@heroicons/react/24/solid";
-
+import { ArrowPathIcon, Bars3Icon, Squares2X2Icon } from "@heroicons/react/24/solid";
+import { ACCESS_PERMISSION } from "@prisma/client";
 function groupByFirstLetter(companies: Company[]): Record<string, Company[]> {
     const grouped: Record<string, Company[]> = {};
 
@@ -61,15 +60,13 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
 
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-
-
     useEffect(() => {
         if (!sentinelRef.current || loadingMore) return;
 
         const observer = new IntersectionObserver(async ([entry]) => {
             if (entry.isIntersecting && !loadingMore) {
                 setLoadingMore(true);
-                await new Promise((res) => setTimeout(res, 800)); // artificial delay
+                await new Promise((res) => setTimeout(res, 800));
                 setVisibleCompanyCount((prev) => prev + 40);
                 setLoadingMore(false);
             }
@@ -86,8 +83,13 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
     const fetchData = async () => {
         setIsRefreshing(true);
         try {
-            const res = await axios.get("/api/company");
-            setAllCompanies(res.data.filter((c: Company) => c.id > 0) || []);
+            const res = await axios.get("/api/company", {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+                }
+            });
+
+            setAllCompanies(res.data.companies.filter((c: Company) => c.id > 0) || []);
         } catch (error) {
             console.error("Failed to load companies", error);
         }
@@ -151,9 +153,6 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
         setGroupedCompanies(groupByFirstLetter(sorted));
     }, [allCompanies, selectedDomain]);
 
-
-
-
     const getDomainStyle = (domain: string) => {
         const styles: Record<string, string> = {
             FINANCE: "bg-green-100 text-green-800 border-green-300",
@@ -192,15 +191,14 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                 ))}
             </div>
 
-
             <div className="p-6">
                 <div className="flex flex-wrap items-center gap-2 mb-6">
                     {/* Domain Filter Buttons */}
                     <div className="flex flex-wrap gap-2 flex-1">
                         <button
                             className={`px-3 py-1 text-sm rounded-full border whitespace-nowrap ${selectedDomain === "ALL"
-                                    ? "bg-cyan-100 text-cyan-800 border-cyan-400"
-                                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                                ? "bg-cyan-100 text-cyan-800 border-cyan-400"
+                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
                                 }`}
                             onClick={() => setSelectedDomain("ALL")}
                         >
@@ -213,8 +211,8 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                 <button
                                     key={domain}
                                     className={`px-3 py-1 text-sm rounded-full border whitespace-nowrap transition ${active
-                                            ? tagClass
-                                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                                        ? tagClass
+                                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
                                         }`}
                                     onClick={() => setSelectedDomain(domain)}
                                 >
@@ -226,12 +224,37 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
 
                     {/* View Toggle + Refresh */}
                     <div className="flex gap-2 mt-2 sm:mt-0 shrink-0">
-                        <button
+                        <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            whileHover={{ backgroundColor: "#f1f5f9" }}
                             onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-                            className="px-3 py-1 text-sm rounded-full border bg-white text-gray-700 hover:bg-gray-100 whitespace-nowrap"
+                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm rounded-full border font-medium shadow-sm transition-all duration-200 
+    ${viewMode === "grid"
+                                    ? "bg-white text-gray-700 hover:text-cyan-700"
+                                    : "bg-cyan-100 text-cyan-800 hover:bg-cyan-200"}
+  `}
+                            title={viewMode === "grid" ? "Switch to List View" : "Switch to Grid View"}
                         >
-                            {viewMode === "grid" ? "📄 List View" : "🔳 Grid View"}
-                        </button>
+                            <motion.span
+                                animate={{ rotate: viewMode === "grid" ? 0 : 360 }}
+                                transition={{ duration: 0.5 }}
+                                className="inline-flex items-center justify-center"
+                            >
+                                {viewMode === "list" ? (
+                                    <Bars3Icon className="w-5 h-5" />
+                                ) : (
+                                    <Squares2X2Icon className="w-5 h-5" />
+                                )}
+                            </motion.span>
+                            {viewMode === "grid" ? "Grid" : "List"}
+
+                            <span
+                                className={`absolute -inset-0.5 rounded-full ring-2 ring-offset-1 transition-all duration-300 
+      ${viewMode === "list" ? "ring-cyan-300" : "ring-transparent"}
+    `}
+                                aria-hidden="true"
+                            />
+                        </motion.button>
 
                         <button
                             onClick={fetchData}
@@ -357,6 +380,9 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                         </div>
                     ) : (
                         // Flat list layout version
+                        <div key={letter} id={letter} className="mb-6 scroll-mt-24 min-h-[60px]">
+                            <h2 className="text-base font-semibold text-gray-600 mb-2">{letter}</h2>
+
                             <motion.div
                                 layout
                                 className="divide-y divide-gray-200 border border-gray-200 rounded-xl overflow-hidden"
@@ -414,21 +440,17 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                         </motion.div>
                                     ))}
                                 </AnimatePresence>
-                            </motion.div>
-                      
-                      
-                    )
-                }
-                )}
 
+                            </motion.div>
+                        </div>
+                    )
+                })}
                 {isLoading && (
                     <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
                         <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
                         <p className="text-cyan-200 text-lg font-medium animate-pulse">Loading Companies...</p>
                     </div>
                 )}
-
-
             </div>
         </>
     );

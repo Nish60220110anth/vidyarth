@@ -33,12 +33,12 @@ export default function UserManagementPage() {
     const [users, setUsers] = useState<User[]>([]);
 
     useEffect(() => {
-        axios.get("/api/users").then(res => setUsers(res.data));
+        axios.get("/api/admin/users").then(res => setUsers(res.data));
     }, []);
 
     const updateUser = async (id: number, updates: Partial<User>) => {
         try {
-            const res = await axios.patch(`/api/users/${id}`, updates);
+            const res = await axios.patch(`/api/admin/users/${id}`, updates);
             if (res.status === 200) {
                 setUsers(users.map(u => (u.id === id ? { ...u, ...updates } : u)));
                 toast.success("User updated successfully");
@@ -56,7 +56,7 @@ export default function UserManagementPage() {
 
     const deleteUser = async (id: number) => {
         try {
-            const res = await axios.delete(`/api/users/${id}`);
+            const res = await axios.delete(`/api/admin/users/${id}`);
             if (res.status === 200) {
                 setUsers(users.filter(u => u.id !== id));
                 toast.success("User deleted");

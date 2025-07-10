@@ -1,16 +1,15 @@
-import { JDEntry } from "../Company";
+
 import { ArrowDownTrayIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import { DOMAIN_COLORS } from "../ManageCompanyList";
 import saveAs from "file-saver";
 import axios from "axios";
+import { JDEntry, JDPaneProps } from "@/types/panes";
 
-interface JDPaneProps {
-    jds: Partial<JDEntry>[];
-}
+const JDPane: React.FC<JDPaneProps> = ({ props }) => {
 
-const JDPane: React.FC<JDPaneProps> = ({ jds }) => {
+    const { jds } = props;
     
     const handleDownload = async (jd: Partial<JDEntry>) => {
         if (!jd.jd_pdf_path) {

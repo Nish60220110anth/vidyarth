@@ -11,7 +11,7 @@ import { ArrowDownTrayIcon, ArrowPathIcon, ChevronDownIcon, ChevronUpIcon, PlusI
 import PortalWrapper from "./PortableWrapper";
 import CompanySearchDropdown, { Company } from "./CompanySearchDropDown";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { PLACEMENT_CYCLE_STATUS, PLACEMENT_CYCLE_TYPE } from "@prisma/client";
+import { ACCESS_PERMISSION, PLACEMENT_CYCLE_STATUS, PLACEMENT_CYCLE_TYPE } from "@prisma/client";
 import { PlacementCycle } from "./ManagePlacementCycle";
 import ConfirmRowOverlay from "./ConfirmOverlay";
 import ExcelJS from "exceljs";
@@ -79,9 +79,14 @@ export default function ManageJDList() {
     const fetchJDs = async () => {
         setIsRefreshing(true);
         try {
-            const res = await axios.get("/api/jd");
+            const res = await axios.get("/api/jd", {
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_JD
+                }
+            });
 
-            const transformed = res.data.map((jd: any): JDEntry => ({
+            const transformed = res.data.allJDs.map((jd: any): JDEntry => ({
                 id: jd.id,
                 role: jd.role,
                 pdf_path: jd.pdf_path,
@@ -113,8 +118,12 @@ export default function ManageJDList() {
     const fetchCycles = async () => {
         setIsRefreshing(true);
         try {
-            const res = await fetch("/api/placement-cycles");
-            const data = await res.json();
+            const res = await axios.get("/api/placement-cycles", {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_JD
+                }
+            });
+            const data = res.data;
             setPlacementCycles(data.map((value: PlacementCycle): {
                 id: number;
                 label: string,
@@ -130,7 +139,6 @@ export default function ManageJDList() {
             }));
         } catch (err) {
             toast.error("Failed to load placement cycles");
-            console.error(err);
         } finally {
             setTimeout(() => {
                 setIsRefreshing(false)
@@ -170,7 +178,11 @@ export default function ManageJDList() {
                 name = `${companyName}(${role})`
             }
 
-            await axios.delete("/api/jd", { params: { id } });
+            await axios.delete("/api/jd", {
+                params: { id }, headers: {
+                    "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_JD
+                }
+            });
 
             toast.success(`${name} deleted`);
             fetchJDs();
@@ -308,13 +320,12 @@ export default function ManageJDList() {
             const res = await axios.put("/api/jd/", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
+                    "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_JD
                 },
             });
             setShowLoadingScreen(false);
-
             toast.success("JD updated");
 
-            // Cleanup
             setEditJDId(null);
             setEditedJD({ isNewPDFUploaded: false });
             setEditCompany(undefined);
@@ -464,7 +475,11 @@ export default function ManageJDList() {
         }
 
         try {
-            const res = await axios.get(`/api/company/get-domain/${companyId}`);
+            const res = await axios.get(`/api/company/get-domain/${companyId}`, {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_JD
+                }
+            });
             const fetchedDomains: string[] = res.data.domains || [];
 
             return fetchedDomains;
@@ -607,7 +622,8 @@ export default function ManageJDList() {
                                     is_default: true
                                 }, {
                                     headers: {
-                                        "Content-Type": "application/json"
+                                        "Content-Type": "application/json",
+                                        "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_JD
                                     }
                                 });
                                 toast.success("added new JD")
@@ -736,6 +752,7 @@ export default function ManageJDList() {
                                                                 setEditCompany(company);
                                                                 setShowCompanyOverlay(false);
                                                             }}
+                                                            permission="MANAGE_COMPANY_JD"
                                                         />
                                                     </div>
                                                 </motion.div>

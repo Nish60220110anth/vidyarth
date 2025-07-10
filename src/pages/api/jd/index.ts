@@ -1,8 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient, DOMAIN } from "@prisma/client";
+import { DOMAIN, ACCESS_PERMISSION } from "@prisma/client";
 import { bucket } from "@/lib/firebase-admin";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
+import formidable from "formidable";
+import fs from "fs";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { apiHelpers } from "@/lib/server/responseHelpers";
 
 export const config = {
     api: {
@@ -10,9 +13,38 @@ export const config = {
     },
 };
 
-import formidable from "formidable";
-import fs from "fs";
-
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    get: {
+        permissions: [
+            ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY,
+            ACCESS_PERMISSION.MANAGE_COMPANY_JD
+        ],
+        filters: {
+            [ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY]: {
+                priority: 1,
+                filter: {
+                    is_active: true,
+                    placement_cycle: {
+                        status: "OPEN"
+                    }
+                },
+            },
+            [ACCESS_PERMISSION.MANAGE_COMPANY_JD]: {
+                priority: 1,
+                filter: {},
+            },
+        },
+    },
+    put: {
+        permissions: [ACCESS_PERMISSION.MANAGE_COMPANY_JD],
+    },
+    delete: {
+        permissions: [ACCESS_PERMISSION.MANAGE_COMPANY_JD],
+    },
+    post: {
+        permissions: [ACCESS_PERMISSION.MANAGE_COMPANY_JD],
+    },
+};
 
 const parseForm = async (req: NextApiRequest): Promise<{ fields: any; files: any }> => {
     return new Promise((resolve, reject) => {
@@ -24,16 +56,15 @@ const parseForm = async (req: NextApiRequest): Promise<{ fields: any; files: any
     });
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === "POST") {
         try {
-            const { fields, files } = await parseForm(req);
-            console.log(fields)
-
+            const { fields } = await parseForm(req);
             const is_default = Array.isArray(fields.is_default) ? fields.is_default[0] : fields.is_default
 
             if (is_default !== true && is_default !== "true") {
-                return res.status(400).json({ error: "Invalid request. Use PUT for main update." });
+                apiHelpers.badRequest(res, "Use PUT for main update")
+                return;
             }
 
             const defaultJD = await prisma.company_JD.create({
@@ -67,10 +98,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 },
             });
 
-            return res.status(200).json(refreshedJD);
+            apiHelpers.success(res, { refreshedJD })
+            return;
         } catch (error) {
             console.error("Error creating default JD:", error);
-            return res.status(500).json({ error: "Failed to create default JD" });
+            apiHelpers.error(res, "Failed to create default JD", 500)
+            return;
         }
     }
 
@@ -79,8 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const { fields, files } = await parseForm(req);
 
             const {
-                domains,
-                is_default, // ignored in PUT but accepted for safety
+                domains
             } = fields;
 
             const id = Array.isArray(fields.id) ? fields.id[0] : fields.id;
@@ -92,7 +124,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const keep_existing_pdf = Array.isArray(fields.keep_existing_pdf) ? fields.keep_existing_pdf[0] === "true" : fields.keep_existing_pdf === "true";
 
             if (!id || !company_id || !placement_cycle_id || !role) {
-                return res.status(400).json({ error: "Missing required fields" });
+                apiHelpers.badRequest(res)
+                return;
             }
 
             let pdf_path = "";
@@ -111,7 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     },
                 });
 
-                await fileRef.makePublic(); 
+                await fileRef.makePublic();
 
                 const publicUrl = fileRef.publicUrl();
                 // getting signed makes the file more private 
@@ -172,32 +205,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 },
             });
 
-            return res.status(200).json(refreshedJD);
+            apiHelpers.success(res, { refreshedJD })
+            return;
         } catch (error) {
-            console.error("Error updating JD:", error);
-            return res.status(500).json({ error: "Failed to update JD" });
+            apiHelpers.error(res, "Failed to update JD", 500)
+            return;
         }
     }
 
     if (req.method === "GET") {
         try {
-            const { cid, status, active } = req.query;
+            const { cid } = req.query;
 
+            const permissionFilter = (req as any).filter ?? {};
             const filters: any = {
+                ...permissionFilter
             };
 
             if (cid) {
                 filters.company_id = parseInt(Array.isArray(cid) ? cid[0] : cid);
-            }
-
-            if (status === "OPEN" || status === "CLOSED") {
-                filters.placement_cycle = {
-                    status: status.toUpperCase(),
-                };
-            }
-
-            if(active) {
-                filters.is_active = active === "true";
             }
 
             const allJDs = await prisma.company_JD.findMany({
@@ -215,21 +241,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     updated_at: "desc",
                 },
             });
-    
-            return res.status(200).json(allJDs);
+
+            apiHelpers.success(res, { allJDs })
+            return;
         } catch (error) {
             console.error("Error fetching JDs:", error);
-            return res.status(500).json({ error: "Failed to fetch JDs" });
+            apiHelpers.error(res, "Failed to fetch JD", 500)
+            return;
         }
     }
-    
 
     if (req.method === "DELETE") {
         try {
             const jdId = req.query.id;
 
             if (!jdId || typeof jdId !== "string") {
-                return res.status(400).json({ error: "Invalid or missing JD ID" });
+                apiHelpers.badRequest(res)
+                return;
             }
 
             const jd = await prisma.company_JD.findUnique({
@@ -237,7 +265,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
 
             if (!jd) {
-                return res.status(404).json({ error: "JD not found" });
+                apiHelpers.notFound(res)
+                return;
             }
 
             if (jd.firebase_path) {
@@ -257,12 +286,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 where: { id: jdId },
             });
 
-            return res.status(200).json({ success: true, message: "JD deleted successfully" });
+            apiHelpers.success(res, {})
+            return;
         } catch (err) {
             console.error("Error deleting JD:", err);
-            return res.status(500).json({ error: "Failed to delete JD" });
+            apiHelpers.error(res, "Failed to delete JD")
+            return;
         }
     }
-    
-    return res.status(405).json({ error: "Method not allowed" });
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

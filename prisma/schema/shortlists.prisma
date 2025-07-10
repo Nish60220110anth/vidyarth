@@ -1,21 +1,22 @@
 model Shortlist {
-  id               Int        @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  chitragupta_name String 
+  company_id Int
+  shortlist_id Int @default(0)
+  company    Company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  company_id       Int 
-  company          Company   @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  round_details  String
+  shortlist_type SHORTLIST_TYPE
+  round_type     String
+  day            Int?
+  role           String
 
-  role             String
-  round            Int
-  type             SHORTLIST_TYPE
-
-  is_active       Boolean    @default(true)
-  is_featured      Boolean    @default(false)
+  is_active   Boolean @default(true)
+  is_featured Boolean @default(false)
 
   // Many-to-many relation with Users (shortlisted PlaceCom IDs)
-  shortlisted_users User[]    @relation("ShortlistUsers")
+  shortlisted_users User[] @relation("ShortlistUsers")
 
-  created_at       DateTime   @default(now())
-  updated_at       DateTime   @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }

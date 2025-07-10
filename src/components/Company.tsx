@@ -22,14 +22,16 @@ import { saveAs } from "file-saver";
 
 import JDPane from "./content/JDPane";
 import VideoPane from "./content/VideoPane";
+import { JDEntry, NewsEntry, VideoEntry } from "@/types/panes";
+import NewsPane from "./content/NewsPane";
+import OverviewPane from "./content/OverviewPane";
+import CompendiumPane from "./content/CompendiumPane";
+import { ACCESS_PERMISSION } from "@prisma/client";
 
 
 type PaneComponentProps = Record<string, any>;
 
 const SummaryPane = () => <p>This is the Summary pane.</p>;
-const OverviewPane = () => <p>This is the Overview pane.</p>;
-const NewsPane = () => <p>This is the News pane.</p>;
-const CompendiumPane = () => <p>This is the Compendium pane.</p>;
 const AlumExpPane = () => <p>This is the Alum Exp pane.</p>;
 
 export const PANE_CONFIG: {
@@ -47,31 +49,43 @@ export const PANE_CONFIG: {
         {
             label: "Overview",
             icon: <DocumentTextIcon className="w-4 h-4 mr-1" />,
-            component: () => <OverviewPane />,
+            component: ({ company, company_id }) => <OverviewPane props={{
+                company: company,
+                company_id: company_id,
+            }} />,
             color: "bg-purple-100 text-purple-800",
         },
         {
             label: "News",
             icon: <NewspaperIcon className="w-4 h-4 mr-1" />,
-            component: () => <NewsPane />,
+            component: ({ allNews }) => <NewsPane props={{
+                news: allNews || []
+            }} />,
             color: "bg-yellow-100 text-yellow-800",
         },
         {
             label: "Job Description",
             icon: <ClipboardDocumentListIcon className="w-4 h-4 mr-1" />,
-            component: ({ allJds }) => <JDPane jds={allJds || []} />,
+            component: ({ allJds }) => <JDPane props={{
+                jds: allJds || []
+            }} />,
             color: "bg-green-100 text-green-800",
         },
         {
             label: "Compendium",
             icon: <BookOpenIcon className="w-4 h-4 mr-1" />,
-            component: () => <CompendiumPane />,
+            component: ({ company, company_id }) => <CompendiumPane props={{
+                company: company,
+                company_id: company_id,
+            }} />,
             color: "bg-red-100 text-red-800",
         },
         {
             label: "Videos",
             icon: <VideoCameraIcon className="w-4 h-4 mr-1" />,
-            component: ({ allVideos }) => <VideoPane videos={allVideos} />,
+            component: ({ allVideos }) => <VideoPane props={{
+                videos: allVideos || []
+            }} />,
             color: "bg-indigo-100 text-indigo-800",
         },
         {
@@ -81,23 +95,6 @@ export const PANE_CONFIG: {
             color: "bg-pink-100 text-pink-800",
         },
     ];
-
-export interface JDEntry {
-    company: string,
-    role: string,
-    cycle_type: string,
-    year: string,
-    jd_pdf_path: string,
-    domains: string[],
-}
-
-export interface VideoEntry {
-    source: string,
-    title: string,
-    embed_id: string,
-    thumbnail_url: string,
-    updated_at: Date,
-}
 
 export default function CompanyPage({ id, company }: { id: number; company: Company }) {
     const companyId = Array.isArray(id) ? id[0] : id;
@@ -111,10 +108,22 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
 
     const [allJds, setAllJDS] = useState<Partial<JDEntry>[]>();
     const [allVideos, setAllVideos] = useState<Partial<VideoEntry>[]>();
+    const [allNews, setAllNews] = useState<Partial<NewsEntry>[]>();
 
     const [isDownloading, setIsDownloading] = useState(false);
 
     const hasValidJDs = (allJds ?? []).some(jd => jd?.jd_pdf_path);
+
+    const paneProps: Record<string, JSX.Element> = {
+        "Job Description": <JDPane props={{ jds: allJds || [] }} />,
+        "Videos": <VideoPane props={{ videos: allVideos || [] }} />,
+        "News": <NewsPane props={{ news: allNews || [] }} />,
+        "Overview": <OverviewPane props={{ company, company_id: id }} />,
+        "Summary": <SummaryPane />,
+        "Compendium": <CompendiumPane props={{ company, company_id: id }} />,
+        "Alum Exp": <AlumExpPane />,
+    };
+
 
     const handleDownloadJDs = async () => {
         setIsDownloading(true);
@@ -188,9 +197,18 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
 
     const fetchJDs = async () => {
         try {
-            const res = await axios.get(`/api/jd?cid=${companyId}&status=OPEN&active=true`);
+            const res = await axios.get(`/api/jd?cid=${companyId}`, {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+                }
+            });
 
-            const transformed = res.data.map((jd: any): JDEntry => ({
+            if (!res.data.success) {
+                toast.error(res.data.error || "Error fetching JDs")
+                return;
+            }
+
+            const transformed = res.data.allJDs.map((jd: any): JDEntry => ({
                 company: jd.company.company_full,
                 role: jd.role,
                 cycle_type: jd.placement_cycle.placement_type,
@@ -198,17 +216,26 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                 jd_pdf_path: jd.pdf_path,
                 domains: jd.domains.map((d: any) => d.domain),
             }));
-
             setAllJDS(transformed);
-        } catch (err) {
-            toast.error("Failed to load JDs");
+        } catch (err: any) {
+            toast.error(err || "Error fetching JDs");
         }
     };
 
     const fetchVideos = async () => {
         try {
-            const res = await axios.get(`/api/video?cid=${companyId}&is_featured=true`);
-            const transformed = res.data.map((video: any): VideoEntry => ({
+            const res = await axios.get(`/api/video?cid=${companyId}`, {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+                }
+            });
+
+            if (!res.data.success) {
+                toast.error(res.data.error || "Error fetching Videos")
+                return;
+            }
+
+            const transformed = res.data.allVideos.map((video: any): VideoEntry => ({
                 source: video.source,
                 title: video.title,
                 embed_id: video.embed_id,
@@ -217,14 +244,46 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
             }));
 
             setAllVideos(transformed);
-        } catch (err) {
-            toast.error("Failed to load videos");
+        } catch (err: any) {
+            toast.error(err || "Error fetching Videos");
+        }
+    }
+
+    const fetchNews = async () => {
+        try {
+
+            const res = await axios.get(`/api/news?cid=${companyId}`, {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+                }
+            });
+
+            if (!res.data.success) {
+                toast.error(res.data.error)
+                return;
+            }
+
+            const transformed = res.data.newsList.map((news: any): NewsEntry => ({
+                title: news.title,
+                content: news.content,
+                created_at: new Date(news.created_at),
+                image_url: news.image_url,
+                source_link: news.link_to_source,
+                domains: news.domains.map((d: any) => d.domain),
+                news_tag: news.news_tag,
+                subdomain_tag: news.subdomain_tag,
+            }));
+
+            setAllNews(transformed);
+        } catch (err: any) {
+            toast.error(err || "Failed to load news");
         }
     }
 
     useEffect(() => {
         fetchJDs();
         fetchVideos();
+        fetchNews();
     }, [companyId]);
 
     return (
@@ -233,14 +292,14 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                 <title>Company Page</title>
             </Head>
 
-            <div className="min-h-screen flex flex-col bg-gray-100 font-[Urbanist]">
+            <div className="min-h-screen flex flex-col bg-gray-100 font-[Urbanist] scroll-smooth">
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, ease: [0.25, 1, 0.5, 1] }}
-                    className="w-full px-6 py-4 bg-white shadow-sm flex justify-between items-start border-b border-gray-200"
-                >
+                    className="sticky top-0 z-40 w-full px-4 sm:px-6 py-3 sm:py-4 bg-white shadow-sm flex flex-col 
+                    sm:flex-row justify-between sm:items-start gap-4">
                     {/* Left: Logo + Info */}
                     <div className="flex items-center gap-4">
                         <motion.div
@@ -267,7 +326,7 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                                 {company.company_full}
                             </motion.h1>
 
-                            <div className="flex flex-wrap gap-2 mt-1">
+                            <div className="flex flex-wrap gap-1 sm:gap-2 mt-1 justify-center sm:justify-start">
                                 {company.domains?.map((d, i) => {
                                     const color = DOMAIN_COLORS[d.domain?.toUpperCase()] || {
                                         bg: "bg-gray-100",
@@ -296,8 +355,7 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="flex flex-wrap gap-3 items-center justify-end"
-                    >
+                        className="flex flex-col sm:flex-row flex-wrap gap-2 items-center justify-center sm:justify-end w-full sm:w-auto">
                         <div className="relative inline-block">
                             {/* Button */}
                             <button
@@ -358,8 +416,8 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
 
 
                 {/* Tabs */}
-                <div className="w-full bg-white shadow px-6 py-2">
-                    <div className="flex flex-wrap gap-3 overflow-x-auto">
+                <div className="sticky top-[5.25rem] z-30 w-full bg-white shadow px-6 py-2">
+                    <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
                         {PANE_CONFIG.map((pane) => (
                             <button
                                 key={pane.label}
@@ -370,9 +428,11 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                                     setActiveTab(pane.label);
                                 }}
 
-                                className={`flex items-center px-4 py-1.5 text-sm rounded-md transition font-medium uppercase ${activeTab === pane.label
-                                    ? `${pane.color} font-semibold`
-                                    : "text-gray-600 hover:bg-gray-100"
+                                className={`
+                                    flex items-center min-w-max px-3 py-1.5 text-xs sm:text-sm rounded-md
+                                     transition font-medium uppercase ${activeTab === pane.label
+                                        ? `${pane.color} font-semibold`
+                                        : "text-gray-600 hover:bg-gray-100"
                                     }`}
                             >
                                 {pane.icon}
@@ -383,7 +443,7 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 px-6 py-5 overflow-auto bg-gray-50">
+                <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-y-auto bg-gray-50 max-h-[calc(100vh-10.5rem)]">
                     <AnimatePresence mode="wait" initial={false}>
                         <motion.div
                             key={activeTab}
@@ -393,25 +453,17 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                             className="bg-white rounded-xl p-6 shadow-lg"
                         >
-                            {activeTab === "Job Description" ? (
-                                <JDPane jds={allJds || []} />
-                            ) : activeTab === "Videos" ? (
-                                <VideoPane videos={allVideos || []} />
-                            ) : (
-                                activePane?.component({})
-                            )}
+                            {paneProps[activeTab] ?? activePane?.component({})};
                         </motion.div>
                     </AnimatePresence>
                 </div>
 
-
                 {isDownloading && (
                     <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
                         <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
-                        <p className="text-cyan-200 text-lg font-medium animate-pulse">Downloading ...</p>
+                        <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">Downloading ...</p>
                     </div>
                 )}
-
 
             </div>
         </>

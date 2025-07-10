@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/router";
 import { addCompanyToRecentHistory, getRecentCompanies } from "@/utils/recentCompany";
 import CompanySearchDropdownPortal from "@/portals/CompanySearchDropDownPortal";
+import toast from "react-hot-toast";
 
 export interface Company {
     id: number;
@@ -12,25 +13,24 @@ export interface Company {
     company_full: string;
     logo_url?: string;
     domains: { domain: string }[];
+    is_featured: boolean;
+    is_legacy: boolean;
 }
 
 export default function CompanySearchBar({
     onSelect,
     showHint = true,
-    width = "max-w-2xl",
-    redirectOnClick = false,
     placeholder = "Search for a company...",
     autoFocusNext = true,
-    inputExpand = false
+    inputExpand = false,
+    permission
 }: {
     onSelect?: (company: Company) => void;
     showHint?: boolean;
-    width?: string;
-    redirectOnClick?: boolean;
     placeholder?: string;
     autoFocusNext?: boolean;
     inputExpand?: boolean;
-
+    permission: string;
 }) {
     const [search, setSearch] = useState("");
     const [allCompanies, setAllCompanies] = useState<Company[]>([]);
@@ -48,17 +48,32 @@ export default function CompanySearchBar({
     const wasManuallyCleared = useRef(false);
     const inputWrapperRef = useRef<HTMLDivElement>(null);
 
-
     const router = useRouter();
 
     useEffect(() => {
         const fetchCompanies = async () => {
             try {
                 setLoading(true);
-                const res = await axios.get("/api/company");
-                setAllCompanies(res.data.filter((c: Company) => c.id > 0) || []);
+                const res = await axios.get("/api/company", {
+                    headers: {
+                        "x-access-permission": permission
+                    }
+                });
+
+                if (!res.data.success) {
+                    toast.error(res.data.error)
+                    return;
+                }
+
+                const companies = res.data.companies;
+
+                if (Array.isArray(companies)) {
+                    setAllCompanies(companies.filter((c: Company) => c.id > 0));
+                } else {
+                    setAllCompanies([]);
+                }
             } catch (err) {
-                console.error("Failed to fetch companies", err);
+                toast.error("Failed to fetch companies", { duration: 2000, ariaProps: { role: "alert", "aria-live": "assertive" } });
             } finally {
                 setLoading(false);
             }
@@ -87,19 +102,17 @@ export default function CompanySearchBar({
         setRecentSelections(getRecentCompanies());
     };
 
-    useEffect(() => {
-        if (search.trim() === "") {
-            setFiltered([]);
-            setShowDropdown(isFocused && recentSelections.length > 0);
-        } else {
-            const result = allCompanies.filter((c) =>
-                (c.company_name + " " + c.company_full).toLowerCase().includes(search.toLowerCase())
-            );
-            setFiltered(result);
-            setShowDropdown(true);
-        }
-
+    const filteredCompanies = useMemo(() => {
+        if (search.trim() === "") return [];
+        return allCompanies.filter((c) =>
+            (c.company_name + " " + c.company_full).toLowerCase().includes(search.toLowerCase())
+        );
     }, [search, allCompanies]);
+
+    useEffect(() => {
+        setFiltered(filteredCompanies);
+        setShowDropdown(search.trim() !== "" || isFocused);
+    }, [filteredCompanies, search, isFocused]);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -190,7 +203,6 @@ export default function CompanySearchBar({
         }
     };
 
-
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Escape") {
             inputRef.current?.blur();
@@ -233,11 +245,6 @@ export default function CompanySearchBar({
             inputRef.current?.focus();
         }, 10);
     };
-
-    const resultsToShow = showDropdown
-        ? (search.trim() === "" && isFocused ? recentSelections : filtered)
-        : [];
-
 
     return (
         <div

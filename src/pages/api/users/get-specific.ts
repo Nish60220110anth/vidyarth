@@ -1,13 +1,13 @@
 // /pages/api/users/get-specific.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient, USER_ROLE } from "@prisma/client";
-import { getIronSession } from "iron-session";
+import { PrismaClient } from "@prisma/client";
+import { getIronSession, IronSessionData } from "iron-session";
 import { sessionOptions } from "@/lib/session";
 
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const session = await getIronSession(req, res, sessionOptions);
+    const session = await getIronSession<IronSessionData>(req, res, sessionOptions);
 
     if (!session || (session.role !== "ADMIN" && session.role !== "DISHA")) {
         return res.status(403).json({ error: "Unauthorized" });

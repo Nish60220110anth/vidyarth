@@ -63,7 +63,6 @@ import MyCV from "./MyCV";
 import Announcements from "./Announcements";
 import Preferences from "./Preferences";
 import ManageCohort from "./ManageCohort";
-import { RichTextPane } from "./RichTextPane";
 import ManageVideo from "./ManageVideo";
 
 
@@ -153,9 +152,6 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
     const [theme, setTheme] = useState<"light" | "dark">("dark");
 
     const profileButtonRef = useRef<HTMLDivElement | null>(null);
-
-    const [content, setContent] = useState<string>();
-
 
     useEffect(() => {
         const stored = localStorage.getItem("theme") as "light" | null;
@@ -253,7 +249,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
             section: "_generic",
             perm: ACCESS_PERMISSION.ENABLE_MY_SECTION,
             icon: (cls) => <HomeIcon className={cls} />,
-            component: () => <MySection name={name} email={email} role={role} />,
+            component: () => <MySection />,
             shortcut: "M"
         },
         COMPANY_DIRECTORY: {
@@ -366,7 +362,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
             label: "Profile",
             icon: (cls) => <UserIcon className={cls} />,
             perm: ACCESS_PERMISSION.ENABLE_PROFILE,
-            component: () => <Profile name={name} email={email} role={role}/>
+            component: () => <Profile name={name} email={email} role={role} />
         },
         SHORTLISTS: {
             label: "Shortlists",
@@ -395,7 +391,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
     };
 
     const fetchPermissions = async (userRole: string) => {
-        const res = await axios.get(`/api/permissions/${userRole}`);
+        const res = await axios.get(`/api/permissions`);
         const perms: Record<string, boolean> = {};
         const extraPerms = [ACCESS_PERMISSION.ENABLE_NOTIFICATIONS];
 
@@ -411,7 +407,6 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
 
         setPermissions(perms);
     };
-
 
     useEffect(() => {
         if (role) {
@@ -529,12 +524,12 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                                             title=""
                                             onClick={() => {
 
-                                                    if (is_company) {
-                                                        setActiveCompany(null);
-                                                    }
+                                                if (is_company) {
+                                                    setActiveCompany(null);
+                                                }
 
-                                                    setActiveKey(key);
-                                                    setActiveComponent(() => component());
+                                                setActiveKey(key);
+                                                setActiveComponent(() => component());
                                             }}
 
                                         >
@@ -591,7 +586,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
             <main className="flex-1 bg-gray-100 overflow-y-auto">
                 <motion.div className="sticky top-0 z-30 w-full bg-blue-950 border-b border-blue-900 backdrop-blur-md px-4 
                 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-                    
+
                     <div className="w-full sm:w-auto flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-1">
                         <h2 className="text-lg text-white font-semibold hidden md:block">Search Companies</h2>
 
@@ -608,17 +603,16 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                                     },
                                     undefined,
                                     { shallow: true }
-                                  )
+                                )
 
                                 setActiveCompany(id);
                                 setActiveKey(null);
                                 setActiveComponent(null);
                             }}
                             showHint={false}
-                            width="w-full"
-                            redirectOnClick={true}
                             placeholder="Search for companies"
                             inputExpand={true}
+                            permission={ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY}
                         />
                     </div>
 
@@ -674,7 +668,6 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                             )}
                         </div>
 
-
                         {/* Profile icon and dropdown */}
                         <div
                             ref={profileButtonRef}
@@ -689,8 +682,6 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                             <UserCircleIcon className="h-9 w-9 text-white hover:text-cyan-300 transition" />
                             <span className="absolute -top-1.5 -right-1.5 bg-green-500 rounded-full w-3 h-3 border-2 border-blue-950" />
                         </div>
-
-
                         <AnimatePresence>
                             {showProfileMenu && (
                                 <motion.div
@@ -743,14 +734,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                             )}
                         </AnimatePresence>
                     </div>
-
                 </motion.div>
-
-                {/* <pre className="text-gray-900 text-xs">
-                    {JSON.stringify(Object.keys(permissions).filter((k) => permissions[k]), null, 2)}
-                </pre> */}
-
-
                 <AnimatePresence mode="wait">
                     {(activeComponent || is_company) ? (
                         <motion.div
@@ -774,16 +758,10 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                             exit={{ opacity: 0 }}
                             className="text-gray-500 text-center"
                         >
-                             <WelcomePage onGotoDashboard={() => {
+                            <WelcomePage onGotoDashboard={() => {
                                 setActiveComponent(() => <AllCompaniesDirectory onCompanySelected={onCompanySelected} />);
                                 setActiveKey("COMPANY");
-                            }} /> 
-
-                            {/* <RichTextPane OnSetContent={(value: string) => {
-                                setContent(value);
                             }} />
-
-                            {content} */}
                         </motion.div>
                     )}
                 </AnimatePresence>

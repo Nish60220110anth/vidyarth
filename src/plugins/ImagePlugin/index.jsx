@@ -1,10 +1,5 @@
-/**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- */
+"use client";
+
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $wrapNodeInElement, mergeRegister } from "@lexical/utils";
 import {
@@ -26,14 +21,17 @@ import {
 import { useEffect, useRef, useState } from "react";
 import * as React from "react";
 
-import { Box, Button, Grid, TextField } from "@mui/material";
-
-import { CAN_USE_DOM } from "../../../common/utils/canUseDom";
 import {
   $createImageNode,
   $isImageNode,
   ImageNode,
-} from "../../CustomNodes/ImageNode";
+} from "@/plugins/ImageNode";
+import { InlineImageNode } from "../InlineImageNode";
+
+export const CAN_USE_DOM =
+  typeof window !== 'undefined' &&
+  typeof window.document !== 'undefined' &&
+  typeof window.document.createElement !== 'undefined';
 
 const getDOMSelection = (targetWindow) =>
   CAN_USE_DOM ? (targetWindow || window).getSelection() : null;
@@ -48,37 +46,47 @@ export function InsertImageUriDialogBody({ onClick }) {
 
   return (
     <>
-      <TextField
-        label="Image URL"
-        placeholder="i.e. https://source.unsplash.com/random"
-        onChange={(e) => setSrc(e.target.value)}
-        value={src}
-        sx={{ mb: 7, height: 10 }}
-        fullWidth
-      />
-      <TextField
-        label="Alt Text"
-        placeholder="Random unsplash image"
-        onChange={(e) => setAltText(e.target.value)}
-        sx={{ mb: 7, height: 10 }}
-        fullWidth
-        value={altText}
-        data-test-id="image-modal-alt-text-input"
-      />
-      <Grid container justifyContent="flex-end">
-        <Button
+      <div style={{ marginBottom: "1.5rem" }}>
+        <label style={{ display: "block", marginBottom: "0.3rem" }}>Image URL</label>
+        <input
+          type="text"
+          placeholder="i.e. https://source.unsplash.com/random"
+          onChange={(e) => setSrc(e.target.value)}
+          value={src}
+          style={{ width: "100%", padding: "0.5rem" }}
+        />
+      </div>
+
+      <div style={{ marginBottom: "1.5rem" }}>
+        <label style={{ display: "block", marginBottom: "0.3rem" }}>Alt Text</label>
+        <input
+          type="text"
+          placeholder="Random unsplash image"
+          onChange={(e) => setAltText(e.target.value)}
+          value={altText}
+          style={{ width: "100%", padding: "0.5rem" }}
+          data-test-id="image-modal-alt-text-input"
+        />
+      </div>
+
+      <div style={{ textAlign: "right" }}>
+        <button
           data-test-id="image-modal-confirm-btn"
           disabled={isDisabled}
           onClick={() => onClick({ altText, src })}
-          variant="outlined"
+          style={{
+            padding: "0.5rem 1rem",
+            border: "1px solid #ccc",
+            backgroundColor: "#fff",
+            cursor: isDisabled ? "not-allowed" : "pointer",
+          }}
         >
           Confirm
-        </Button>
-      </Grid>
+        </button>
+      </div>
     </>
   );
 }
-
 export function InsertImageUploadedDialogBody({ onClick }) {
   const [src, setSrc] = useState("");
   const [altText, setAltText] = useState("");
@@ -91,7 +99,6 @@ export function InsertImageUploadedDialogBody({ onClick }) {
       if (typeof reader.result === "string") {
         setSrc(reader.result);
       }
-      return "";
     };
     if (files !== null) {
       reader.readAsDataURL(files[0]);
@@ -100,37 +107,43 @@ export function InsertImageUploadedDialogBody({ onClick }) {
 
   return (
     <>
-      <Button fullWidth sx={{ mb: 1 }} variant="contained" component="label">
-        Upload
+      <div style={{ marginBottom: "1rem" }}>
+        <label style={{ display: "block", marginBottom: "0.3rem" }}>Upload</label>
         <input
           onChange={(e) => loadImage(e.target.files)}
-          hidden
           accept="image/*"
           multiple
           type="file"
         />
-      </Button>
+      </div>
 
-      <TextField
-        label="Alt Text"
-        placeholder="Descriptive alternative text"
-        onChange={(e) => setAltText(e.target.value)}
-        value={altText}
-        sx={{ mb: 7, height: 10 }}
-        fullWidth
-        variant="standard"
-        data-test-id="image-modal-alt-text-input"
-      />
-      <Grid container justifyContent="flex-end">
-        <Button
+      <div style={{ marginBottom: "1.5rem" }}>
+        <label style={{ display: "block", marginBottom: "0.3rem" }}>Alt Text</label>
+        <input
+          type="text"
+          placeholder="Descriptive alternative text"
+          onChange={(e) => setAltText(e.target.value)}
+          value={altText}
+          style={{ width: "100%", padding: "0.5rem" }}
+          data-test-id="image-modal-alt-text-input"
+        />
+      </div>
+
+      <div style={{ textAlign: "right" }}>
+        <button
           data-test-id="image-modal-confirm-btn"
           disabled={isDisabled}
           onClick={() => onClick({ altText, src })}
-          variant="outlined"
+          style={{
+            padding: "0.5rem 1rem",
+            border: "1px solid #ccc",
+            backgroundColor: "#fff",
+            cursor: isDisabled ? "not-allowed" : "pointer",
+          }}
         >
           Confirm
-        </Button>
-      </Grid>
+        </button>
+      </div>
     </>
   );
 }
@@ -158,20 +171,22 @@ export function InsertImageDialog({ activeEditor, onClose }) {
   return (
     <>
       {!mode && (
-        <Box>
-          <Button
+        <div style={{ marginBottom: "1rem" }}>
+          <button
             data-test-id="image-modal-option-url"
             onClick={() => setMode("url")}
+            style={{ marginRight: "1rem", padding: "0.5rem 1rem" }}
           >
             URL
-          </Button>
-          <Button
+          </button>
+          <button
             data-test-id="image-modal-option-file"
             onClick={() => setMode("file")}
+            style={{ padding: "0.5rem 1rem" }}
           >
             File
-          </Button>
-        </Box>
+          </button>
+        </div>
       )}
       {mode === "url" && <InsertImageUriDialogBody onClick={onClick} />}
       {mode === "file" && <InsertImageUploadedDialogBody onClick={onClick} />}
@@ -183,7 +198,7 @@ export default function ImagesPlugin({ captionsEnabled }) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    if (!editor.hasNodes([ImageNode])) {
+    if (!editor.hasNodes([InlineImageNode])) {
       throw new Error("ImagesPlugin: ImageNode not registered on editor");
     }
 
@@ -228,10 +243,6 @@ export default function ImagesPlugin({ captionsEnabled }) {
   return null;
 }
 
-const TRANSPARENT_IMAGE =
-  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-const img = document.createElement("img");
-img.src = TRANSPARENT_IMAGE;
 
 function onDragStart(event) {
   const node = getImageNodeInSelection();
@@ -242,6 +253,13 @@ function onDragStart(event) {
   if (!dataTransfer) {
     return false;
   }
+
+  const TRANSPARENT_IMAGE =
+    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+  const img = document.createElement("img");
+  img.src = TRANSPARENT_IMAGE;
+
+  
   dataTransfer.setData("text/plain", "_");
   dataTransfer.setDragImage(img, 0, 0);
   dataTransfer.setData(

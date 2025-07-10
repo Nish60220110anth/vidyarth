@@ -1,13 +1,13 @@
-// components/ManageCompanies.tsx
-import { useCallback, useEffect, useRef, useState } from "react";
+// components/ManageCompaniesList.tsx
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
 import Image from "next/image";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { ChevronUpIcon, ChevronDownIcon, PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { ArrowPathIcon, ArrowUpTrayIcon, CheckIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/solid";
-
+import { ArrowPathIcon, ArrowUpTrayIcon, CheckCircleIcon, CheckIcon, PencilIcon, TrashIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import { debounce } from "lodash";
 
 interface Company {
     id: number;
@@ -17,10 +17,11 @@ interface Company {
     domains: { domain: string }[];
     updated_at?: string;
     created_at?: string;
+    is_featured: boolean;
+    is_legacy: boolean;
 }
 
 type SortKey = "company_name" | "company_full";
-
 
 export const ALL_DOMAINS = ["CONSULTING", "FINANCE", "MARKETING", "PRODMAN", "GENMAN", "OPERATIONS"];
 
@@ -39,12 +40,16 @@ export default function ManageCompanyList() {
 
     const [editId, setEditId] = useState<number | null>(null);
     const [domainMenuOpenId, setDomainMenuOpenId] = useState<number | null>(null);
+    const [editedLogoFile, setEditedLogoFile] = useState<File | null>(null);
+
+    const [originalCompany, setOriginalCompany] = useState<Partial<Company>>({});
     const [editedCompany, setEditedCompany] = useState<Partial<Company>>({});
+
     const [sortKey, setSortKey] = useState<SortKey>("company_name");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
     const router = useRouter();
-    const [uploadingLogoForId, setUploadingLogoForId] = useState<number | null>(null);
     const [editedDomains, setEditedDomains] = useState<string[]>([]);
+    const [updatedCompanyIds, setUpdatedCompanyIds] = useState<Set<number>>(new Set());
 
 
     const inputRef = useRef<HTMLInputElement | null>(null);
@@ -74,55 +79,165 @@ export default function ManageCompanyList() {
     const fetchCompanies = async (domainOverride?: string) => {
         try {
             setIsRefreshing(true);
-            const res = await axios.get("/api/company");
-            const base = res.data.filter((c: Company) => c.id > 0);;
 
+            let res;
+
+            if (updatedCompanyIds.size > 0) {
+                const ids = Array.from(updatedCompanyIds);
+                res = await axios.post("/api/company/fetch-multiple", { ids }, {
+                    headers: {
+                        "x-access-permission": "MANAGE_COMPANY_LIST",
+                    },
+                });
+            } else {
+                res = await axios.get("/api/company", {
+                    headers: {
+                        "x-access-permission": "MANAGE_COMPANY_LIST",
+                    },
+                });
+            }
+
+            const fetchedCompanies = res.data.companies.filter((c: Company) => c.id > 0);
             const domainToUse = domainOverride || selectedDomain;
 
-            setAllCompanies(base);
-            setCompanies(
-                domainToUse === "ALL"
+            setAllCompanies((prev) => {
+                if (updatedCompanyIds.size > 0) {
+                    const map = new Map(prev.map(c => [c.id, c]));
+                    for (const company of fetchedCompanies) {
+                        map.set(company.id, company);
+                    }
+                    return Array.from(map.values());
+                } else {
+                    return fetchedCompanies;
+                }
+            });
+
+            setCompanies((prev) => {
+                const base = updatedCompanyIds.size > 0
+                    ? [...new Set([...prev, ...fetchedCompanies])]
+                    : fetchedCompanies;
+
+                return domainToUse === "ALL"
                     ? base
                     : base.filter((c: Company) =>
                         c.domains.some((d) => d.domain === domainToUse)
-                    )
-            );
-        } catch {
+                    );
+            });
+
+            if (updatedCompanyIds.size > 0) setUpdatedCompanyIds(new Set());
+        } catch (err) {
             toast.error("Failed to load companies");
         } finally {
             setTimeout(() => setIsRefreshing(false), 1000);
         }
     };
-
-
+    
     const handleEdit = (id: number) => {
         setEditId(id);
         const company = companies.find((c) => c.id === id);
-        if (company) { setEditedCompany(company); setEditedDomains(company.domains.map((d) => d.domain)); }
+        if (company) {
+            setEditedCompany(company);
+            setOriginalCompany(company);
+            setEditedDomains(company.domains.map((d) => d.domain));
+        }
     };
 
     const handleSave = useCallback(async () => {
+        if (!editId) return;
+
+        let newLogoUrl = originalCompany.logo_url;
+
         try {
             await axios.put(`/api/company`, {
                 id: editId,
                 company_name: editedCompany.company_name,
                 company_full: editedCompany.company_full,
+                is_legacy: editedCompany.is_legacy,
+                is_featured: editedCompany.is_featured,
+            }, {
+                headers: {
+                    "x-access-permission": "MANAGE_COMPANY_LIST"
+                }
             });
 
             await axios.post("/api/company/set-domain", {
                 company_id: editId,
                 domains: editedDomains,
+            }, {
+                headers: {
+                    "x-access-permission": "MANAGE_COMPANY_LIST"
+                }
             });
 
-            toast.success("Company updated");
+            if (editedLogoFile) {
+                const formData = new FormData();
+                formData.append("logo", editedLogoFile);
+
+                try {
+                    const res = await axios.post(`/api/company/upload-logo/${editId}`, formData, {
+                        headers: {
+                            "x-access-permission": "MANAGE_COMPANY_LIST"
+                        }
+                    });
+
+                    newLogoUrl = res.data.logo_url;
+                } catch {
+                    toast.error("Logo upload failed");
+                }
+            }
+
+            // Local update
+            const updatedCompany: Company = {
+                ...(companies.find(c => c.id === editId)!),
+                company_name: editedCompany.company_name || "",
+                company_full: editedCompany.company_full || "",
+                is_legacy: editedCompany.is_legacy || false,
+                is_featured: editedCompany.is_featured || false,
+                domains: editedDomains.map(domain => ({ domain })),
+                logo_url: newLogoUrl,
+            };
+
+            setCompanies(prev =>
+                prev.map(c => (c.id === editId ? updatedCompany : c))
+            );
+
+            setAllCompanies(prev =>
+                prev.map(c => (c.id === editId ? updatedCompany : c))
+            );
+            setUpdatedCompanyIds((prev) => new Set(prev).add(editId));
+            toast.success("Updated");
             setEditId(null);
             setDomainMenuOpenId(null);
+            setEditedLogoFile(null);
             setEditedDomains([]);
-            fetchCompanies();
         } catch {
             toast.error("Update failed");
         }
-    }, [editId, editedCompany, editedDomains]);
+    }, [editId, editedCompany, editedDomains, companies, originalCompany.logo_url, editedLogoFile]);
+
+
+    const isDisabled = useMemo(() => {
+        return (
+            originalCompany.company_name === editedCompany.company_name &&
+            originalCompany.company_full === editedCompany.company_full &&
+            originalCompany.is_legacy === editedCompany.is_legacy &&
+            originalCompany.is_featured === editedCompany.is_featured &&
+            originalCompany.logo_url === editedCompany.logo_url &&
+            JSON.stringify(originalCompany.domains?.map((d: any) => d.domain).sort()) ===
+            JSON.stringify([...editedDomains].sort())
+        );
+    }, [originalCompany, editedCompany, editedDomains]);
+
+    useEffect(() => {
+        const base =
+            selectedDomain === "ALL"
+                ? allCompanies
+                : allCompanies.filter((c) =>
+                    c.domains.some((d) => d.domain === selectedDomain)
+                );
+
+        setCompanies(base);
+    }, [selectedDomain, allCompanies]);
 
     useEffect(() => {
         const handleShortcutCopyPaste = async (e: KeyboardEvent) => {
@@ -170,9 +285,20 @@ export default function ManageCompanyList() {
 
     const handleDelete = async (id: number) => {
         try {
-            await axios.delete(`/api/company?id=${id}`);
-            toast.success("Company deleted");
-            fetchCompanies();
+            const res = await axios.delete(`/api/company?id=${id}`, {
+                headers: {
+                    "x-access-permission": "MANAGE_COMPANY_LIST"
+                }
+            });
+
+            if (!res.data.success) {
+                toast.error(res.data.error || "Delete failed")
+                return;
+            }
+
+            toast.success("Deleted");
+            setCompanies(prev => prev.filter(c => c.id !== id));
+            setAllCompanies(prev => prev.filter(c => c.id !== id));
         } catch {
             toast.error("Delete failed");
         }
@@ -182,26 +308,50 @@ export default function ManageCompanyList() {
         setEditedCompany({ ...editedCompany, [field]: value });
     };
 
-    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>, id: number) => {
+    const handleCheckboxChange = (field: "is_featured" | "is_legacy", value: boolean) => {
+        setEditedCompany((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
+    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const formData = new FormData();
-        formData.append("logo", file);
-
-        try {
-            setUploadingLogoForId(id);
-            await axios.post(`/api/company/upload-logo/${id}`, formData);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            toast.success("Logo updated");
-            await fetchCompanies();
-        } catch {
-            toast.error("Logo upload failed");
-        } finally {
-            setUploadingLogoForId(null);
-        }
+        setEditedLogoFile(file);
+        setEditedCompany((prev) => ({
+            ...prev,
+            logo_url: URL.createObjectURL(file),
+        }));
     };
 
+    const baseCompanies = useMemo(() => {
+        return selectedDomain === "ALL"
+            ? allCompanies
+            : allCompanies.filter((c) =>
+                c.domains.some((d) => d.domain === selectedDomain)
+            );
+    }, [selectedDomain, allCompanies]);
+
+    const handleSearch = useCallback(
+        debounce((value: string) => {
+            if (!value) {
+                setCompanies(baseCompanies);
+                return;
+            }
+
+            const lower = value.toLowerCase();
+            const filtered = baseCompanies.filter(
+                (c) =>
+                    c.company_name.toLowerCase().includes(lower) ||
+                    c.company_full.toLowerCase().includes(lower)
+            );
+
+            setCompanies(filtered);
+        }, 200),
+        [baseCompanies]
+    );
 
     const toggleSort = (key: SortKey) => {
         if (key === sortKey) {
@@ -212,13 +362,16 @@ export default function ManageCompanyList() {
         }
     };
 
-    const sortedCompanies = [...companies].sort((a, b) => {
-        const valA = a[sortKey]?.toLowerCase();
-        const valB = b[sortKey]?.toLowerCase();
-        if (valA < valB) return sortOrder === "asc" ? -1 : 1;
-        if (valA > valB) return sortOrder === "asc" ? 1 : -1;
-        return 0;
-    });
+    const sortedCompanies = useMemo(() => {
+        return [...companies].sort((a, b) => {
+            const valA = a[sortKey]?.toLowerCase();
+            const valB = b[sortKey]?.toLowerCase();
+            if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+            if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+            return 0;
+        });
+    }, [companies, sortKey, sortOrder]);
+    
 
     return (
         <div className="px-4 py-6 md:px-10 md:py-10 bg-gray-100 min-h-screen">
@@ -247,18 +400,7 @@ export default function ManageCompanyList() {
                         {/* Domain Filter Dropdown */}
                         <select
                             value={selectedDomain}
-                            onChange={(e) => {
-                                const domain = e.target.value;
-                                setSelectedDomain(domain);
-                                if (domain === "ALL") {
-                                    setCompanies(allCompanies);
-                                } else {
-                                    const filtered = allCompanies.filter((c) =>
-                                        c.domains.some((d) => d.domain === domain)
-                                    );
-                                    setCompanies(filtered);
-                                }
-                            }}
+                            onChange={(e) => setSelectedDomain(e.target.value)}
                             className="px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
                         >
                             <option value="ALL">All Domains</option>
@@ -273,29 +415,12 @@ export default function ManageCompanyList() {
                         <motion.input
                             type="text"
                             placeholder="Search companies..."
-                            onChange={(e) => {
-                                const value = e.target.value.toLowerCase();
-                                const base = selectedDomain === "ALL"
-                                    ? allCompanies
-                                    : allCompanies.filter((c) =>
-                                        c.domains.some((d) => d.domain === selectedDomain)
-                                    );
-
-                                if (value === "") {
-                                    setCompanies(base);
-                                } else {
-                                    const filtered = base.filter(
-                                        (c) =>
-                                            c.company_name.toLowerCase().includes(value) ||
-                                            c.company_full.toLowerCase().includes(value)
-                                    );
-                                    setCompanies(filtered);
-                                }
-                            }}
+                            onChange={(e) => handleSearch(e.target.value)}
                             whileFocus={{ scale: 1.05 }}
                             transition={{ type: "spring", stiffness: 300 }}
-                            className="px-4 py-2 border border-gray-300  bg-white rounded-md text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 shadow-sm focus:shadow-lg transition duration-75 w-64"
+                            className="px-4 py-2 border border-gray-300 bg-white rounded-md text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 shadow-sm focus:shadow-lg transition duration-75 w-64"
                         />
+
                         <button
                             onClick={async (e) => {
                                 await fetchCompanies(selectedDomain);
@@ -358,7 +483,7 @@ export default function ManageCompanyList() {
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="hidden md:grid mt-6 grid-cols-12 gap-4 font-semibold text-gray-700 text-sm uppercase tracking-wide"
+                    className="hidden md:grid mt-6 grid-cols-14 gap-4 font-semibold text-gray-700 text-sm uppercase tracking-wide"
                 >
                     <div className="col-span-2">Logo</div>
                     <div className="col-span-3 flex items-center gap-1 cursor-pointer" onClick={() => toggleSort("company_full")}>Full Name
@@ -368,6 +493,8 @@ export default function ManageCompanyList() {
                         {sortKey === "company_name" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
                     </div>
                     <div className="col-span-3">Domains</div>
+                    <div className="col-span-1">Legacy</div>
+                    <div className="col-span-1">Featured</div>
                     <div className="col-span-2">Actions</div>
                 </motion.div>
 
@@ -387,7 +514,7 @@ export default function ManageCompanyList() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.35, ease: "easeOut" }}
-                                className={`mt-4 grid grid-cols-1 md:grid-cols-12 gap-4 md:items-center md:py-3 bg-white shadow-sm rounded-lg px-4 py-3 ${company.id === newCompanyId ? "animate-highlight" : ""
+                                className={`mt-4 grid grid-cols-1 md:grid-cols-14 gap-4 md:items-center md:py-3 bg-white shadow-sm rounded-lg px-4 py-3 ${company.id === newCompanyId ? "animate-highlight" : ""
                                     }`}
                             >
                                 <div className="col-span-2">
@@ -405,24 +532,18 @@ export default function ManageCompanyList() {
                                         )}
 
                                         {isEditing && (
-                                            uploadingLogoForId === company.id ? (
-                                                <span className="text-xs text-gray-500 animate-pulse">Uploading...</span>
-                                            ) : (
-                                                <>
-                                                    <label htmlFor={`logo-${company.id}`} className="text-xs text-cyan-600 cursor-pointer">
-                                                        <ArrowUpTrayIcon className="w-4 h-4" />
-                                                    </label>
-                                                    <input
-                                                        id={`logo-${company.id}`}
-                                                        type="file"
-                                                        className="hidden"
-                                                        onChange={(e) => handleLogoUpload(e, company.id)}
-                                                        disabled={uploadingLogoForId === company.id}
-                                                    />
-                                                </>
-                                            )
+                                            <>
+                                                <label htmlFor={`logo-${company.id}`} className="text-xs text-cyan-600 cursor-pointer">
+                                                    <ArrowUpTrayIcon className="w-4 h-4" />
+                                                </label>
+                                                <input
+                                                    id={`logo-${company.id}`}
+                                                    type="file"
+                                                    className="hidden"
+                                                    onChange={(e) => handleLogoUpload(e, company.id)}
+                                                />
+                                            </>
                                         )}
-
 
                                     </div>
                                 </div>
@@ -512,15 +633,55 @@ export default function ManageCompanyList() {
                                     )}
                                 </div>
 
+
+                                <div className="col-span-1 flex justify-center">
+                                    {isEditing ? (
+                                        <button onClick={() => handleCheckboxChange("is_legacy", !editedCompany.is_legacy)}>
+                                            {editedCompany.is_legacy ? (
+                                                <CheckCircleIcon className="w-5 h-5 text-yellow-500" />
+                                            ) : (
+                                                <XCircleIcon className="w-5 h-5 text-gray-400" />
+                                            )}
+                                        </button>
+                                    ) : (
+                                        company.is_legacy ? (
+                                            <CheckCircleIcon className="w-5 h-5 text-yellow-500" />
+                                        ) : (
+                                            <XCircleIcon className="w-5 h-5 text-gray-400" />
+                                        )
+                                    )}
+                                </div>
+
+                                <div className="col-span-1 flex justify-center">
+                                    {isEditing ? (
+                                        <button onClick={() => handleCheckboxChange("is_featured", !editedCompany.is_featured)}>
+                                            {editedCompany.is_featured ? (
+                                                <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                                            ) : (
+                                                <XCircleIcon className="w-5 h-5 text-gray-400" />
+                                            )}
+                                        </button>
+                                    ) : (
+                                        company.is_featured ? (
+                                            <CheckCircleIcon className="w-5 h-5 text-yellow-500" />
+                                        ) : (
+                                            <XCircleIcon className="w-5 h-5 text-gray-400" />
+                                        )
+                                    )}
+                                </div>
+
                                 <div className="col-span-2 flex items-center gap-3 text-sm">
                                     {isEditing ? (
                                         <>
                                             <button
+                                                disabled={isDisabled}
                                                 onClick={handleSave}
-                                                className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm shadow hover:bg-green-700 transition"
+                                                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm shadow transition
+        ${isDisabled ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"}`}
                                             >
                                                 <CheckIcon className="w-4 h-4" /> Save
                                             </button>
+
                                             <button
                                                 onClick={() => {
                                                     setEditId(null)
@@ -554,13 +715,8 @@ export default function ManageCompanyList() {
                 </AnimatePresence>
             )}
 
-            {uploadingLogoForId !== null && (
-                <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
-                    <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
-                    <p className="text-cyan-200 text-lg font-medium animate-pulse">Uploading Logo...</p>
-                </div>
-            )}
-
         </div>
     );
 }
+
+

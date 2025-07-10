@@ -1,12 +1,8 @@
 import { sessionOptions } from '@/lib/session';
 import { getIronSession, IronSession, IronSessionData } from 'iron-session';
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from "@prisma/client";
 import bcrypt from 'bcryptjs';
-import 'iron-session';
-
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {

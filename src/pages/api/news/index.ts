@@ -1,16 +1,51 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient, DOMAIN, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG } from "@prisma/client";
-import formidable, { IncomingForm, File } from "formidable";
+import { DOMAIN, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG, ACCESS_PERMISSION } from "@prisma/client";
 import { getIronSession, IronSessionData } from "iron-session";
 import { sessionOptions } from "@/lib/session";
-import path from "path";
-import { unlink } from "fs/promises";
-
-const prisma = new PrismaClient();
+import { bucket } from "@/lib/firebase-admin";
+import { prisma } from "@/lib/prisma";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { apiHelpers } from "@/lib/server/responseHelpers";
 
 export const config = {
     api: {
         bodyParser: false,
+    },
+};
+
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    get: {
+        permissions: [
+            ACCESS_PERMISSION.ENABLE_NEWS,
+            ACCESS_PERMISSION.MANAGE_NEWS,
+            ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+        ],
+        filters: {
+            [ACCESS_PERMISSION.MANAGE_NEWS]: {
+                priority: 1,
+                filter: {},
+            },
+            [ACCESS_PERMISSION.ENABLE_NEWS]: {
+                priority: 2,
+                filter: { is_active: true, is_approved: true },
+            },
+            [ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY]: {
+                priority: 2,
+                filter: {
+                    is_approved: true,
+                    is_active: true
+                }
+            }
+        },
+    },
+    put: {
+        permissions: [ACCESS_PERMISSION.MANAGE_NEWS],
+    },
+    delete: {
+        permissions: [ACCESS_PERMISSION.MANAGE_NEWS],
+    },
+    post: {
+        permissions: [ACCESS_PERMISSION.MANAGE_NEWS],
     },
 };
 
@@ -26,24 +61,21 @@ type ExtendedNextApiRequest = NextApiRequest & {
     };
 };
 
-export default async function handler(
+async function handler(
     req: ExtendedNextApiRequest,
     res: NextApiResponse
 ) {
 
     const session: IronSessionData = await getIronSession(req, res, sessionOptions);
 
-    if (!session.email) {
-        return res.status(401).json({ error: "Unauthorized" });
-    }
-
     if (req.method === "GET") {
         try {
-            const { domain, title, from, to, is_active, is_approved, domain_tag, subdomain_tag } = req.query;
+            const { domain, title, from, to, domain_tag, subdomain_tag, cid } = req.query;
 
-            const filters: any = {};
-            if (is_active && is_active !== "ALL") filters.is_active = is_active === "true";
-            if (is_approved && is_approved !== "ALL") filters.is_approved = is_approved === "true";
+            const permissionFilter = (req as any).filter ?? {};
+            const filters: any = {
+                ...permissionFilter,
+            };
 
             if (title) {
                 filters.OR = [
@@ -66,61 +98,86 @@ export default async function handler(
                 filters.subdomain_tag = subdomain_tag as NEWS_SUBDOMAIN_TAG;
             }
 
+            const companyFilter =
+                cid !== undefined
+                    ? {
+                        companies: {
+                            some: {
+                                company_id: parseInt(Array.isArray(cid) ? cid[0] : cid),
+                            },
+                        },
+                    }
+                    : {};
+
             const newsList = await prisma.news.findMany({
                 where: {
                     ...filters,
-                    domains: domain && domain !== "ALL" ? { some: { domain: domain as DOMAIN } } : undefined,
+                    ...(domain && domain !== "ALL" && {
+                        domains: { some: { domain: domain as DOMAIN } },
+                    }),
+                    ...companyFilter
+
                 },
                 include: {
                     domains: true,
-                    companies: { include: { company: true } },
+                    companies: {
+                        include: {
+                            company: true
+                        }
+                    },
                     author: { select: { name: true, email_id: true } },
                 },
                 orderBy: { created_at: "desc" },
             });
 
-            return res.status(200).json({
-                success: true,
-                data: newsList
-            });
-        } catch (err) {
-            console.error("GET /api/news failed:", err);
-            return res.status(500).json({ error: "Internal server error", success: false });
+            apiHelpers.success(res, { newsList })
+            return;
+
+        } catch (err: any) {
+            apiHelpers.error(res, "Failed to fetch news", 500, { error: err })
+            return;
         }
     } else if (req.method === "DELETE") {
         const id = req.query.id;
-        if (!id) return res.status(400).json({ error: "Invalid ID", success: false });
+        const newsId = String(id);
+
+        if (!id) {
+            apiHelpers.badRequest(res, "Invalid ID")
+            return;
+        }
 
         try {
             const existingNews = await prisma.news.findUnique({
-                where: { id: String(id) },
-                select: { path_to_image: true },
+                where: { id: newsId },
+                select: { image_url: true, firebase_path: true },
             });
 
-            await prisma.news_Domain.deleteMany({ where: { news_id: String(id) } });
-            await prisma.news_Company.deleteMany({ where: { news_id: String(id) } });
-
+            await prisma.news_Domain.deleteMany({ where: { news_id: newsId } });
+            await prisma.news_Company.deleteMany({ where: { news_id: newsId } });
 
             await prisma.news.delete({
-                where: { id: String(id) },
+                where: { id: newsId },
             });
 
             if (
-                existingNews?.path_to_image &&
-                !existingNews.path_to_image.includes("default-image.png")
+                existingNews?.image_url &&
+                existingNews?.firebase_path &&
+                !existingNews.firebase_path.includes("default-image.png")
             ) {
-                const imagePath = path.join(process.cwd(), "public", existingNews.path_to_image);
+                const fileRef = bucket.file(existingNews.firebase_path);
                 try {
-                    unlink(imagePath);
-                } catch (e) {
-                    console.warn("Failed to delete image file:", e); // Non-fatal
+                    await fileRef.delete();
+                } catch (err: any) {
+                    console.warn("Failed to delete file from Firebase:", err.message);
                 }
             }
 
-            return res.status(200).json({ success: true });
+            apiHelpers.success(res, {})
+            return;
+
         } catch (err) {
-            console.error("DELETE /api/news failed:", err);
-            return res.status(500).json({ error: "Internal server error", success: false });
+            apiHelpers.error(res, "Internal server error", 500, { error: err })
+            return;
         }
     } else if (req.method === "PUT") {
         try {
@@ -131,7 +188,10 @@ export default async function handler(
 
             const { id, title, content, is_active, is_approved, newsTag, subdomainTag, domains, companies, link_to_source } = parsedBody;
 
-            if (!id) return res.status(400).json({ error: "ID is required", success: false });
+            if (!id) {
+                apiHelpers.badRequest(res, "Invalid ID")
+                return;
+            }
 
             const news = await prisma.news.update({
                 where: { id: String(id) },
@@ -166,13 +226,13 @@ export default async function handler(
                 });
             }
 
-            return res.status(200).json({ success: true, news });
-        } catch (err) {
-            console.error("PUT /api/news failed:", err);
-            return res.status(500).json({ error: "Failed to update news", success: false });
+            apiHelpers.success(res, { news })
+            return;
+        } catch (err: any) {
+            apiHelpers.error(res, "Failed to update news", 500, { error: err })
+            return;
         }
     } else if (req.method === "POST") {
-
         try {
             let is_default = false;
 
@@ -194,29 +254,30 @@ export default async function handler(
 
                 const news = await prisma.news.create({
                     data: {
-                        title: "Untitled News",
-                        content: "This is a default news entry.",
+                        title: "News Title",
+                        content: "Enter your news content here",
                         link_to_source: "",
                         news_tag: "OTHER" as NEWS_DOMAIN_TAG,
                         subdomain_tag: "OTHER" as NEWS_SUBDOMAIN_TAG,
-                        path_to_image: "/news-images/default-image.png",
+                        image_url: "https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/news-images%2Fdefault-image.png?alt=media&token=4732d312-560b-4b3f-91cd-538d6fcd9851",
+                        firebase_path: "news-images/default-image.png",
                         is_active: true,
                         is_approved: false,
                         author_id: user?.id || 0,
                     },
                 });
 
-                return res.status(201).json({ success: true, news });
+                apiHelpers.created(res, { news })
+                return;
             } else {
-                return res.status(400).json({ error: "Under Progress", success: false });
+                apiHelpers.forbidden(res)
+                return;
             }
-        } catch (err) {
-
-            return res.status(500).json({ error: "Internal server error", success: false });
+        } catch (err: any) {
+            apiHelpers.error(res, "Couldn't create news entry", 500, { error: err })
+            return;
         }
     }
-
-    else {
-        return res.status(405).json({ error: "Method not allowed", success: false });
-    }
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

@@ -4,11 +4,11 @@ import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { DocumentIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/solid";
-import { PlusIcon, ArrowPathIcon, ArrowDownTrayIcon, ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, ArrowPathIcon, ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/router";
 import CompanySearchDropdown, { Company } from "./CompanySearchDropDown";
 import PortalWrapper from "./PortableWrapper";
-import { VIDEO_REQ, VIDEO_STREAM_SOURCE } from "@prisma/client";
+import { ACCESS_PERMISSION, VIDEO_REQ, VIDEO_STREAM_SOURCE } from "@prisma/client";
 import axios from "axios";
 import ConfirmRowOverlay from "./ConfirmOverlay";
 import * as Tooltip from "@radix-ui/react-tooltip";
@@ -98,9 +98,13 @@ export default function ManageVideoList() {
     const fetchVideos = async () => {
         setIsRefreshing(true);
         try {
-            const res = await axios.get("/api/video");
+            const res = await axios.get("/api/video", {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.MANAGE_VIDEOS
+                }
+            });
 
-            const transformed = res.data.map((video: any): VideoEntry => ({
+            const transformed = res.data.allVideos.map((video: any): VideoEntry => ({
                 id: video.id,
                 embed_id: video.embed_id,
                 title: video.title,
@@ -152,7 +156,11 @@ export default function ManageVideoList() {
                 name = `${companyName}(${video_title})`
             }
 
-            await axios.delete("/api/video", { params: { id } });
+            await axios.delete("/api/video", {
+                params: { id }, headers: {
+                    "x-access-permission": ACCESS_PERMISSION.MANAGE_VIDEOS
+                }
+            });
 
             toast.success(`${name} deleted`);
             fetchVideos();
@@ -177,7 +185,7 @@ export default function ManageVideoList() {
         const title = editedVideo.title || "";
         const embed_id = editedVideo.embed_id || "";
         const company_id = String(editCompany?.id || "0");
-        const is_featured = String(editedVideo.is_featured || true);
+        const is_featured = String(editedVideo.is_featured ?? true);
 
         const formData = new FormData();
         formData.append("is_default", "false");
@@ -198,11 +206,6 @@ export default function ManageVideoList() {
             formData.append("image_name", image_name)
         }
 
-        // Debug: Log all form data being sent
-        for (const [key, value] of formData.entries()) {
-            console.log(`${key}:`, value);
-        }
-
         if (!ENABLE_PUT_CALL) {
             toast("PUT call skipped (debug mode)");
             setEditId(null);
@@ -217,12 +220,15 @@ export default function ManageVideoList() {
             const res = await axios.put("/api/video/", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
+                    "x-access-permission": ACCESS_PERMISSION.MANAGE_VIDEOS
                 },
             });
             setShowLoadingScreen(false);
-            toast.success("Video updated");
 
-            // Cleanup
+            if (!res.data.success) {
+                toast.error(res.data.error)
+            }
+
             setEditId(null);
             setEditedVideo({ isNewImageUploaded: false });
             setEditCompany(undefined);
@@ -301,6 +307,18 @@ export default function ManageVideoList() {
         );
     }
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Enter" && editId) {
+                e.preventDefault();
+                handleSave();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [editId, editedVideo]);
+
     return (
         <div className="p-6 md:p-8 bg-gray-100 h-full -z-10">
             <div className="sticky top-0 pb-4 z-20">
@@ -376,7 +394,7 @@ export default function ManageVideoList() {
                 </div>
 
                 <div className="flex items-center gap-2 ml-auto">
-{/* 
+                    {/* 
                     <button
                         onClick={() => setShowEmbedSettingsOverlay(true)}
                         className="bg-white text-cyan-700 border border-cyan-400 hover:bg-cyan-50 px-4 py-2 rounded-md text-sm font-medium shadow transition"
@@ -392,7 +410,8 @@ export default function ManageVideoList() {
                                     is_default: true
                                 }, {
                                     headers: {
-                                        "Content-Type": "application/json"
+                                        "Content-Type": "application/json",
+                                        "x-access-permission": ACCESS_PERMISSION.MANAGE_VIDEOS
                                     }
                                 });
                                 toast.success("added new video")
@@ -415,7 +434,7 @@ export default function ManageVideoList() {
                 </p>
             )}
 
-            <div className="grid grid-cols-15 gap-3.5 font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2 text-center mt-4">
+            <div className="grid grid-cols-16 gap-3.5 font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2 text-center mt-4">
                 <div className="col-span-1 ml-5">Logo</div>
 
                 <div
@@ -440,7 +459,7 @@ export default function ManageVideoList() {
                     {sortKey === "stream_source" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
                 </div>
 
-                <div className="col-span-1">Embed ID</div>
+                <div className="col-span-2">Embed ID</div>
 
                 <div className="col-span-4 cursor-pointer flex justify-center items-center gap-1"
                     onClick={() => toggleSort("title")}
@@ -457,7 +476,7 @@ export default function ManageVideoList() {
 
             <AnimatePresence>
                 {filteredList.map((video) => (
-                    <motion.div key={video.id} className="grid grid-cols-15 gap-3.5 items-center bg-white shadow-sm rounded-md px-6 py-3 mb-3"
+                    <motion.div key={video.id} className="grid grid-cols-16 gap-3.5 items-center bg-white shadow-sm rounded-md px-6 py-3 mb-3"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}>
@@ -470,7 +489,6 @@ export default function ManageVideoList() {
                                         setShowCompanyOverlay(true)
                                         setEditedVideo({
                                             ...video,
-                                            title: "",
                                             thumbnail_image_name: "",
                                             video_type: "COMPANY"
                                         })
@@ -517,6 +535,7 @@ export default function ManageVideoList() {
                                                                 setEditCompany(company);
                                                                 setShowCompanyOverlay(false);
                                                             }}
+                                                            permission="MANAGE_COMPANY_LIST"
                                                         />
                                                     </div>
                                                 </motion.div>
@@ -591,7 +610,7 @@ export default function ManageVideoList() {
                         </div>
 
                         {/* Embed ID */}
-                        <div className="col-span-1 text-sm text-gray-800 text-left">
+                        <div className="col-span-2 text-sm text-gray-800 text-left">
                             {editId === video.id ? (
                                 <input
                                     value={editedVideo.embed_id || ""}
@@ -668,7 +687,7 @@ export default function ManageVideoList() {
                                                     className="inline-flex items-center gap-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-medium px-3 py-1.5 rounded shadow-sm transition"
                                                 >
                                                     <DocumentIcon className="w-5 h-5" />
-                                                    <span>Preview Image</span>
+                                                    <span>Preview</span>
                                                 </a>
                                             </Tooltip.Trigger>
                                             <Tooltip.Portal>

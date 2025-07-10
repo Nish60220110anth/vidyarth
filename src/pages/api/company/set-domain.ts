@@ -1,35 +1,44 @@
 // pages/api/company/set-domains.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient, DOMAIN } from "@prisma/client";
+import { DOMAIN, ACCESS_PERMISSION } from "@prisma/client";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
+import { apiHelpers } from "@/lib/server/responseHelpers";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-
-    const { company_id, domains } = req.body;
-
-    if (!company_id || !Array.isArray(domains)) {
-        return res.status(400).json({ error: "Missing or invalid parameters" });
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    post: {
+        permissions: [ACCESS_PERMISSION.MANAGE_COMPANY_LIST],
     }
+};
 
-    try {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
 
-        await prisma.companyDomainMapping.deleteMany({
-            where: { company_id: Number(company_id) },
-        });
+    if (req.method === "POST") {
+        const { company_id, domains } = req.body;
 
-        await prisma.companyDomainMapping.createMany({
-            data: domains.map((domain: DOMAIN) => ({
-                company_id: Number(company_id),
-                domain,
-            })),
-            skipDuplicates: true,
-        });
+        if (!company_id || !Array.isArray(domains)) {
+            return apiHelpers.badRequest(res, "Missing or invalid parameters");
+        }
 
-        return res.status(200).json({ success: true });
-    } catch (error: any) {
-        console.error("Set domains error:", error);
-        return res.status(500).json({ error: "Failed to set domains", details: error.message });
+        try {
+            await prisma.companyDomainMapping.deleteMany({
+                where: { company_id: Number(company_id) },
+            });
+
+            await prisma.companyDomainMapping.createMany({
+                data: domains.map((domain: DOMAIN) => ({
+                    company_id: Number(company_id),
+                    domain,
+                })),
+                skipDuplicates: true,
+            });
+
+            return apiHelpers.success(res, { });
+        } catch (error: any) {
+            return apiHelpers.error(res, error || "Failed to set domains")
+        }
     }
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

@@ -1,11 +1,33 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { getIronSession, IronSessionData } from "iron-session";
+import { sessionOptions } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { ACCESS_PERMISSION } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    get: {
+        permissions: [
+            ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+        ],
+        filters: {
+            [ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY]: {
+                priority: 1,
+                filter: {},
+            }
+        }
+    }
+};
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const { role } = req.query;
+
+    const session: IronSessionData = await getIronSession(req, res, sessionOptions);
+
+    if(session.role !== "ADMIN") {
+        return res.status(403).json({ error: "Access denied" });
+    }
 
     if (typeof role !== "string") {
         return res.status(400).json({ error: "Invalid role format" });
@@ -14,6 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if(!role) {
         return res.status(400).json({ error: "Role cannot be undefined" });
     }
+
 
     if (req.method === "GET") {
         try {
@@ -34,10 +57,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
 
         } catch (error) {
-            console.error("Error fetching permissions:", error);
             return res.status(500).json({ error: "Internal server error" });
         }
     }
 
     return res.status(405).json({ error: "Method not allowed" });
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

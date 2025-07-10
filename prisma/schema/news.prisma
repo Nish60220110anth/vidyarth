@@ -4,13 +4,15 @@ model News {
   title          String
   content        String  @db.Text
   link_to_source String?
-  path_to_image  String?
 
   is_active   Boolean @default(true)
   is_approved Boolean @default(false)
 
   news_tag NEWS_DOMAIN_TAG
   subdomain_tag NEWS_SUBDOMAIN_TAG?
+
+  image_url       String? @db.Text
+  firebase_path        String?
 
   author_id  Int
   created_at DateTime @default(now())

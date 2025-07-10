@@ -1,14 +1,24 @@
 // /pages/api/placement-cycles/[id].ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { ACCESS_PERMISSION } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    put: {
+        permissions: [ACCESS_PERMISSION.MANAGE_PLACEMENT_CYCLE],
+    },
+    delete: {
+        permissions: [ACCESS_PERMISSION.MANAGE_PLACEMENT_CYCLE],
+    }
+};
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
     const { id } = req.query;
 
     if (!id || Array.isArray(id)) {
-        return res.status(400).json({ error: "Invalid ID" });
+        res.status(400).json({ error: "Invalid ID" });
+        return;
     }
 
     try {
@@ -26,7 +36,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 });
 
                 if (existingOpen) {
-                    return res.status(400).json({ error: "Another cycle is already OPEN. Close it before setting this one to OPEN." });
+                    res.status(400).json({
+                        error: "Another cycle is already OPEN. Close it before setting this one to OPEN.",
+                    });
+                    return;
                 }
             }
 
@@ -35,15 +48,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 data: { year, batch_name, placement_type, status },
             });
 
-            return res.status(200).json(updated);
+            res.status(200).json(updated);
+            return;
         }
-        
+
         if (req.method === "DELETE") {
             await prisma.placement_Cycle.delete({
                 where: { id: cycleId },
             });
 
-            return res.status(204).end();
+            res.status(204).end();
+            return;
         }
 
         res.setHeader("Allow", ["PUT", "DELETE"]);
@@ -53,3 +68,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(500).json({ error: "Internal server error" });
     }
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

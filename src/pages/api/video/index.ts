@@ -1,8 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient, DOMAIN } from "@prisma/client";
 import { bucket } from "@/lib/firebase-admin";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export const config = {
     api: {
@@ -12,6 +10,39 @@ export const config = {
 
 import formidable from "formidable";
 import fs from "fs";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { ACCESS_PERMISSION } from "@prisma/client";
+import { apiHelpers } from "@/lib/server/responseHelpers";
+
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    get: {
+        permissions: [
+            ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY,
+            ACCESS_PERMISSION.MANAGE_VIDEOS
+        ],
+        filters: {
+            [ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY]: {
+                priority: 2,
+                filter: {
+                    is_featured: true
+                },
+            },
+            [ACCESS_PERMISSION.MANAGE_VIDEOS]: {
+                priority: 1,
+                filter: {},
+            },
+        },
+    },
+    put: {
+        permissions: [ACCESS_PERMISSION.MANAGE_VIDEOS],
+    },
+    delete: {
+        permissions: [ACCESS_PERMISSION.MANAGE_VIDEOS],
+    },
+    post: {
+        permissions: [ACCESS_PERMISSION.MANAGE_VIDEOS],
+    },
+};
 
 
 const parseForm = async (req: NextApiRequest): Promise<{ fields: any; files: any }> => {
@@ -24,10 +55,10 @@ const parseForm = async (req: NextApiRequest): Promise<{ fields: any; files: any
     });
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === "POST") {
         try {
-            const { fields, files } = await parseForm(req);
+            const { fields } = await parseForm(req);
 
             const is_default = Array.isArray(fields.is_default) ? fields.is_default[0] : fields.is_default
 
@@ -38,7 +69,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const defaultVideo = await prisma.video.create({
                 data: {
                     company_id: 0,
-                    title: "default video title",
+                    title: "Default Video title",
+                    source: "YOUTUBE",
                     thumbnail_url: "https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/thumbnails%2Fdefault-thumbnail.svg?alt=media&token=115891f2-e858-458b-bf7c-8a9d8a05f4be"
                 },
                 include: {
@@ -53,20 +85,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 },
             });
 
-            return res.status(200).json(refreshVideo);
+            apiHelpers.success(res, { refreshVideo })
+            return;
         } catch (error) {
-            console.error("Error creating default video:", error);
-            return res.status(500).json({ error: "Failed to create default video" });
+            apiHelpers.error(res, "Failed to create default video", 500)
+            return;
         }
     }
 
     if (req.method === "PUT") {
         try {
             const { fields, files } = await parseForm(req);
-
-            const {
-                is_default,
-            } = fields;
 
             const id = Array.isArray(fields.id) ? parseInt(fields.id[0]) : parseInt(fields.id);
             const company_id = Array.isArray(fields.company_id) ? parseInt(fields.company_id[0]) : parseInt(fields.company_id);
@@ -77,11 +106,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const image_name = Array.isArray(fields.image_name) ? fields.image_name[0] : fields.image_name;
             const is_featured = Array.isArray(fields.is_featured) ? fields.is_featured[0] === "true" : fields.is_featured === "true";
             const keep_existing_image = Array.isArray(fields.keep_existing_image) ? fields.keep_existing_image[0] === "true" : fields.keep_existing_image === "true";
-            
+
             if (id == null || company_id == null || title == null) {
-                return res.status(400).json({ error: "Missing required fields" });
+                apiHelpers.badRequest(res)
+                return;
             }
-            
+
             let image_path = "";
             let firebase_path = "";
 
@@ -157,28 +187,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 },
             });
 
-            return res.status(200).json(refreshedVideo);
+            apiHelpers.success(res, { refreshedVideo })
+            return;
         } catch (error) {
-            console.error("Error updating video entry:", error);
-            return res.status(500).json({ error: "Failed to update video entry" });
+            apiHelpers.error(res, "Failed to update video entry", 500)
+            return;
         }
     }
 
     if (req.method === "GET") {
 
-        const {cid, is_featured} = req.query;
+        const { cid } = req.query;
 
+        const permissionFilter = (req as any).filter ?? {};
         const filters: any = {
+            ...permissionFilter
         };
 
         if (cid) {
             filters.company_id = parseInt(Array.isArray(cid) ? cid[0] : cid);
         }
-
-        if (is_featured) {
-            filters.is_featured = is_featured === "true";
-        }
-
         try {
             const allVideos = await prisma.video.findMany({
                 where: filters,
@@ -194,24 +222,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 },
             });
 
-            return res.status(200).json(allVideos);
+            apiHelpers.success(res, { allVideos })
+            return;
         } catch (error) {
-            console.error("Error fetching Videos:", error);
-            return res.status(500).json({ error: "Failed to fetch Videos" });
+            apiHelpers.error(res, "Failed to fetch Videos", 500)
+            return;
         }
     }
 
     if (req.method === "DELETE") {
         try {
-            
+
             if (!req.query.id) {
-                return res.status(400).json({ error: "Invalid or missing Video ID" });
+                apiHelpers.badRequest(res, "Invalid or missing Video ID")
+                return;
             };
 
             const videoId = Array.isArray(req.query.id) ? parseInt(req.query.id[0]) : parseInt(req.query.id);
 
             if (!videoId || typeof videoId !== "number") {
-                return res.status(400).json({ error: "Invalid or missing Video ID" });
+                apiHelpers.badRequest(res, "Invalid or missing Video ID")
+                return;
             }
 
             const video = await prisma.video.findUnique({
@@ -219,7 +250,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
 
             if (!video) {
-                return res.status(404).json({ error: "video not found" });
+                apiHelpers.notFound(res, "Video not found")
+                return;
             }
 
             if (video.firebase_path) {
@@ -235,12 +267,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 where: { id: videoId },
             });
 
-            return res.status(200).json({ success: true, message: "Video deleted successfully" });
+            apiHelpers.success(res, {})
+            return;
         } catch (err) {
-            console.error("Error deleting Video:", err);
-            return res.status(500).json({ error: "Failed to delete video" });
+            apiHelpers.error(res, "Failed to delete video", 500);
+            return;
         }
     }
-
-    return res.status(405).json({ error: "Method not allowed" });
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

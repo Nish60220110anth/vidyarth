@@ -1,10 +1,5 @@
+import { VideoPaneProps } from "@/types/panes";
 import React, { useState } from "react";
-import { VideoEntry } from "../Company";
-
-interface VideoPaneProps {
-    videos: Partial<VideoEntry>[];
-    title?: string;
-}
 
 const EMBED_CONFIG: Record<
     string,
@@ -63,9 +58,10 @@ const EMBED_CONFIG: Record<
 
 
 const VideoPane: React.FC<VideoPaneProps> = ({
-    videos,
-    title = "📺 Recommended Videos",
+    props
 }) => {
+    const { videos } = props;
+
     if (!videos?.length) {
         return (
             <div className="flex flex-col items-center justify-center text-center text-cyan-300 p-10 rounded-xl border border-blue-900 bg-gradient-to-b from-[#0d1b24] to-[#0a141d] shadow-[0_0_20px_rgba(0,255,255,0.1)] backdrop-blur-sm">
@@ -98,13 +94,7 @@ const VideoPane: React.FC<VideoPaneProps> = ({
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-800 dark:text-cyan-100">
-                    {title}
-                </h2>
-            </div>
-
+        <div className="w-full flex flex-col gap-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
                 {videos.map((video, idx) => {
@@ -119,9 +109,9 @@ const VideoPane: React.FC<VideoPaneProps> = ({
                     const [autoplayUrl, setAutoplayUrl] = useState("");
 
                     const handlePlay = () => {
-                        if(!video.embed_id) return;
+                        if (!video.embed_id) return;
                         const url = new URL(config.baseUrl(video.embed_id));
-                        url.searchParams.set("autoplay", "1"); 
+                        url.searchParams.set("autoplay", "1");
                         setAutoplayUrl(url.toString());
                         setShowIframe(true);
                     };

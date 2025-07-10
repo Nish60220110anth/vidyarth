@@ -37,38 +37,40 @@ const features = [
     },
 ];
 
-export default function WelcomePage({onGotoDashboard}: { onGotoDashboard?: () => void }) {
+export default function WelcomePage({ onGotoDashboard }: { onGotoDashboard?: () => void }) {
     const router = useRouter();
 
     return (
-        <div className="min-h-screen bg-gray-50 font-[Urbanist] px-6 py-6 flex flex-col items-center justify-center">
+        <div className="min-h-screen bg-gray-50 font-[Urbanist] px-4 py-8 md:px-6 flex flex-col items-center justify-center">
             <motion.div
                 className="text-center mb-10"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
             >
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
                     Welcome to <span className="text-cyan-600">Vidyarth</span> 🎓
                 </h1>
-                <p className="text-gray-600 text-lg max-w-xl mx-auto">
+                <p className="text-gray-600 text-base sm:text-lg max-w-xl mx-auto">
                     Your all-in-one portal to navigate placements confidently.
                 </p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl w-full px-2">
                 {features.map((feature, idx) => (
                     <motion.div
                         key={idx}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: idx * 0.1 + 0.3 }}
-                        className="bg-white rounded-xl shadow p-5 flex items-start gap-4 hover:shadow-md transition"
+                        className="bg-white rounded-xl shadow p-5 flex items-start gap-4 hover:shadow-md hover:-translate-y-1 transition-all duration-200"
                     >
-                        <div className="p-2 rounded-full bg-cyan-100">{feature.icon}</div>
+                        <div className="p-2 rounded-full bg-cyan-100 flex items-center justify-center shrink-0">
+                            {feature.icon}
+                        </div>
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-800">{feature.title}</h3>
-                            <p className="text-sm text-gray-600">{feature.description}</p>
+                            <h3 className="text-base font-semibold text-gray-800">{feature.title}</h3>
+                            <p className="text-sm text-gray-600 mt-1">{feature.description}</p>
                         </div>
                     </motion.div>
                 ))}
@@ -80,11 +82,7 @@ export default function WelcomePage({onGotoDashboard}: { onGotoDashboard?: () =>
                 transition={{ delay: 0.6, duration: 0.4 }}
                 className="mt-10"
             >
-                <PrimaryButton onClick={() => {
-                    if(onGotoDashboard) {
-                        onGotoDashboard();
-                    }
-                }}>
+                <PrimaryButton onClick={() => onGotoDashboard?.()}>
                     Go to Dashboard
                 </PrimaryButton>
             </motion.div>

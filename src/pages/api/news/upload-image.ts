@@ -1,11 +1,14 @@
 // /pages/api/news/upload-image.ts
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { IncomingForm, File } from "formidable";
-import { promises as fs } from "fs";
+import { IncomingForm } from "formidable";
 import path from "path";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { ACCESS_PERMISSION } from "@prisma/client";
+import { apiHelpers } from "@/lib/server/responseHelpers";
+import { bucket } from "@/lib/firebase-admin";
+import fs from "fs";
 
 export const config = {
     api: {
@@ -13,63 +16,88 @@ export const config = {
     },
 };
 
-const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-    if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method Not Allowed" });
-    }
-
-
-    const uploadDir = path.join(process.cwd(), "public", "news-images");
-    await fs.mkdir(uploadDir, { recursive: true });
-
-    const form = new IncomingForm({
-        keepExtensions: true,
-        uploadDir,
-        multiples: false,
-    });
-
-    form.parse(req, async (err, fields, files) => {
-        if (err) {
-            console.error("Parsing error:", err);
-            return res.status(500).json({ error: "Parsing error" });
-        }
-
-        const newsId = Array.isArray(fields.id) ? fields.id[0] : fields.id;
-        const file = Array.isArray(files.file) ? files.file[0] : files.file;
-
-        if (!newsId || !file || !file.filepath) {
-            return res.status(400).json({ error: "Missing news ID or file" });
-        }
-
-        try {
-            const ext = path.extname(file.originalFilename || ".png");
-            const newFilename = `${newsId}${ext}`;
-            const newPath = path.join(uploadDir, newFilename);
-
-            // Remove older versions of the file for this ID
-            const existingFiles = await fs.readdir(uploadDir);
-            for (const existing of existingFiles) {
-                if (existing.startsWith(`news-${newsId}`) && existing !== newFilename) {
-                    await fs.unlink(path.join(uploadDir, existing));
-                }
-            }
-
-            await fs.copyFile(file.filepath, newPath);
-            await fs.unlink(file.filepath);
-
-            const publicUrl = `/news-images/${newFilename}`;
-
-            await prisma.news.update({
-                where: { id: newsId },
-                data: { path_to_image: publicUrl },
-            });
-
-            return res.status(200).json({ success: true, url: publicUrl });
-        } catch (e) {
-            console.error("File processing error:", e);
-            return res.status(500).json({ error: "Failed to process file" });
-        }
-    });
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    post: {
+        permissions: [ACCESS_PERMISSION.MANAGE_NEWS],
+    },
 };
 
-export default handler;
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
+    if (req.method === "POST") {
+
+        const form = new IncomingForm({
+            keepExtensions: true,
+            multiples: false,
+        });
+
+        form.parse(req, async (err, fields, files) => {
+            if (err) {
+                apiHelpers.error(res, "Server couldn't read request", 500, { error: err })
+                return;
+            }
+
+            const newsId = Array.isArray(fields.id) ? fields.id[0] : fields.id;
+            const file = Array.isArray(files.file) ? files.file[0] : files.file;
+
+            if (!newsId || !file || !file.filepath) {
+                apiHelpers.badRequest(res, "Missing news ID or file")
+                return;
+            }
+
+            if (!fs.existsSync(file.filepath) || fs.statSync(file.filepath).size === 0) {
+                apiHelpers.badRequest(res, "Invalid or empty file");
+                return;
+            }
+
+            try {
+                const ext = path.extname(file.originalFilename || ".png");
+                const newFilename = `${newsId}${ext}`;
+
+                const oldFileNews = await prisma.news.findUnique({
+                    where: {
+                        id: newsId
+                    }, select: {
+                        firebase_path: true
+                    }
+                })
+
+                if (oldFileNews && oldFileNews.firebase_path && (!oldFileNews.firebase_path.includes("default-image.png"))) {
+                    const oldFileRef = bucket.file(oldFileNews?.firebase_path)
+                    await oldFileRef.delete();
+                }
+
+                const fileBuffer = fs.readFileSync(file.filepath);
+                const firebasePath = `news-images/${newFilename}`;
+
+                const fileRef = bucket.file(firebasePath);
+
+                await fileRef.save(fileBuffer, {
+                    metadata: {
+                        contentType: file.mimetype || "image/png",
+                        cacheControl: "public, max-age=31536000",
+                    },
+                });
+
+                const [signedUrl] = await fileRef.getSignedUrl({
+                    action: "read",
+                    expires: "03-01-2030",
+                });
+
+
+                await prisma.news.update({
+                    where: { id: newsId },
+                    data: { image_url: signedUrl, firebase_path: firebasePath },
+                });
+
+                apiHelpers.created(res, {})
+                return
+
+            } catch (e) {
+                console.error("File processing error:", e);
+                return res.status(500).json({ error: "Failed to process file" });
+            }
+        });
+    }
+};
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);
