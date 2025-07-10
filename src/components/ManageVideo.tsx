@@ -323,7 +323,7 @@ export default function ManageVideoList() {
         <div className="p-6 md:p-8 bg-gray-100 h-full -z-10">
             <div className="sticky top-0 pb-4 z-20">
                 <div className="text-sm text-gray-600 flex gap-2 mb-2">
-                    <span onClick={() => router.push("/dashboard")} className="cursor-pointer hover:text-cyan-600">Dashboard</span>
+                    <span onClick={() => router.push("/")} className="cursor-pointer hover:text-cyan-600">Dashboard</span>
                     <span>/</span>
                     <span className="text-gray-900 font-semibold">Manage Videos</span>
                 </div>

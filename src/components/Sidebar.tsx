@@ -37,7 +37,8 @@ import {
     WrenchScrewdriverIcon,
     SparklesIcon,
     ChartBarSquareIcon,
-    UserCircleIcon
+    UserCircleIcon,
+    Squares2X2Icon
 } from "@heroicons/react/24/solid";
 import AllCompaniesDirectory from "./AllCompaniesDirectory";
 import { addCompanyToRecentHistory } from "@/utils/recentCompany";
@@ -133,19 +134,15 @@ export const roleIcons: Record<
 
 export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
 
-
     const router = useRouter();
-    const keyFromRouter = router.query.key as string | undefined;
 
     const [collapsed, setCollapsed] = useState(false);
-    const [activeComponent, setActiveComponent] = useState<JSX.Element | null>(null);
     const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+
     const [activeKey, setActiveKey] = useState<string | null>(null);
+    const [activeComponent, setActiveComponent] = useState<JSX.Element | null>(null);
+
     const [showProfileMenu, setShowProfileMenu] = useState(false);
-
-    const [activeCompany, setActiveCompany] = useState<Company | null>(null);
-    const is_company = activeCompany !== null && activeCompany.id !== null && activeCompany.id !== undefined && activeCompany.id !== 0;
-
     const profileMenuRef = useRef<HTMLDivElement>(null);
     const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
 
@@ -167,15 +164,12 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
         setTheme((prev) => (prev === "dark" ? "light" : "dark"));
     };
 
-
     const toggleSidebar = () => setCollapsed((prev) => !prev);
 
     const onCompanySelected = (company: Company) => {
         addCompanyToRecentHistory(company);
-
-        setActiveCompany(company);
-        setActiveKey(null);
-        setActiveComponent(null);
+        router.push({ query: { key: btoa("company"), cid: company.id } }, undefined, { shallow: true });
+        setShowProfileMenu(false);
     };
 
     useEffect(() => {
@@ -218,7 +212,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                     e.preventDefault();
                     if (highlightedIndex !== null) {
                         const [, item] = items[highlightedIndex];
-                        setActiveComponent(item.component());
+                        router.push({ query: { key: btoa(item.label) } }, undefined, { shallow: true });
                         setShowProfileMenu(false);
                     }
                     break;
@@ -245,6 +239,15 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
             shortcut: string;
         }
     > = {
+        DASHBOARD: {
+            section: "_generic",
+            perm: ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY,
+            icon: (cls) => <Squares2X2Icon className={cls} />,
+            component: () => <WelcomePage onGotoDashboard={() => {
+                router.push({ query: { key: btoa("dashboard") } }, undefined, { shallow: true });
+            }} />,
+            shortcut: "D"
+        },
         MY_SECTION: {
             section: "_generic",
             perm: ACCESS_PERMISSION.ENABLE_MY_SECTION,
@@ -425,14 +428,43 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
     }, []);
 
     useEffect(() => {
-        if (!keyFromRouter) return;
-
-        const section = sections_permissions[keyFromRouter];
-        if (section && permissions[section.perm]) {
-            setActiveKey(keyFromRouter);
-            setActiveComponent(() => section.component());
+        if (!activeKey) {
+            setActiveComponent(null);
+            return;
         }
-    }, [permissions, keyFromRouter]);
+
+        const section = sections_permissions[activeKey];
+        if (section && permissions[section.perm]) {
+            setActiveComponent(() => section.component());
+        } else if (activeKey === "COMPANY") {
+            setActiveComponent(<CompanyPage />)
+        } else {
+            setActiveComponent(null);
+        }
+    }, [activeKey, permissions]);
+
+    useEffect(() => {
+        const key = router.query.key as string | undefined;
+        if (!key) {
+            setActiveKey("DASHBOARD");
+            setShowProfileMenu(false);
+            return;
+        };
+        if (!permissions || Object.keys(permissions).length === 0) return;
+
+        const decodedKey = atob(key);
+        const actualKey = decodedKey.replaceAll(" ", "_").toUpperCase();
+
+        const section = sections_permissions[actualKey];
+        if (section && permissions[section.perm]) {
+            setActiveKey(actualKey);
+        } else if (actualKey === "COMPANY") {
+            setActiveKey("COMPANY")
+        } else {
+            setActiveKey("DASHBOARD")
+        }
+
+    }, [router.query.key, router.query.cid, permissions]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -523,13 +555,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
         `}
                                             title=""
                                             onClick={() => {
-
-                                                if (is_company) {
-                                                    setActiveCompany(null);
-                                                }
-
-                                                setActiveKey(key);
-                                                setActiveComponent(() => component());
+                                                router.push({ query: { key: btoa(key) } }, undefined, { shallow: true });
                                             }}
 
                                         >
@@ -604,10 +630,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                                     undefined,
                                     { shallow: true }
                                 )
-
-                                setActiveCompany(id);
-                                setActiveKey(null);
-                                setActiveComponent(null);
+                                router.push({ query: { key: btoa("company"), cid: id.id } }, undefined, { shallow: true });
                             }}
                             showHint={false}
                             placeholder="Search for companies"
@@ -736,7 +759,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                     </div>
                 </motion.div>
                 <AnimatePresence mode="wait">
-                    {(activeComponent || is_company) ? (
+                    {(activeComponent) ? (
                         <motion.div
                             key={activeKey}
                             initial={{ opacity: 0, y: 10 }}
@@ -744,11 +767,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.25 }}
                         >
-                            {is_company ? (
-                                <CompanyPage id={activeCompany.id || 0} company={activeCompany} />
-                            ) : (
-                                activeComponent
-                            )}
+                            {activeComponent}
                         </motion.div>
                     ) : (
                         <motion.div
@@ -760,7 +779,6 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                         >
                             <WelcomePage onGotoDashboard={() => {
                                 setActiveComponent(() => <AllCompaniesDirectory onCompanySelected={onCompanySelected} />);
-                                setActiveKey("COMPANY");
                             }} />
                         </motion.div>
                     )}

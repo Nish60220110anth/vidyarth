@@ -50,11 +50,9 @@ export interface NewsEntry {
 }
 
 export interface OverviewEntry {
-    company_id: number,
-    company: Company
+    company_id: number
 }
 
 export interface CompendiumEntry {
-    company_id: number,
-    company: Company
+    company_id: number
 }

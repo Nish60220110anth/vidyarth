@@ -27,6 +27,7 @@ import NewsPane from "./content/NewsPane";
 import OverviewPane from "./content/OverviewPane";
 import CompendiumPane from "./content/CompendiumPane";
 import { ACCESS_PERMISSION } from "@prisma/client";
+import { useRouter } from "next/router";
 
 
 type PaneComponentProps = Record<string, any>;
@@ -49,8 +50,7 @@ export const PANE_CONFIG: {
         {
             label: "Overview",
             icon: <DocumentTextIcon className="w-4 h-4 mr-1" />,
-            component: ({ company, company_id }) => <OverviewPane props={{
-                company: company,
+            component: ({ company_id }) => <OverviewPane props={{
                 company_id: company_id,
             }} />,
             color: "bg-purple-100 text-purple-800",
@@ -74,8 +74,7 @@ export const PANE_CONFIG: {
         {
             label: "Compendium",
             icon: <BookOpenIcon className="w-4 h-4 mr-1" />,
-            component: ({ company, company_id }) => <CompendiumPane props={{
-                company: company,
+            component: ({ company_id }) => <CompendiumPane props={{
                 company_id: company_id,
             }} />,
             color: "bg-red-100 text-red-800",
@@ -96,8 +95,38 @@ export const PANE_CONFIG: {
         },
     ];
 
-export default function CompanyPage({ id, company }: { id: number; company: Company }) {
-    const companyId = Array.isArray(id) ? id[0] : id;
+export default function CompanyPage() {
+    const router = useRouter();
+
+    const idParam = Array.isArray(router.query.cid) ? router.query.cid[0] : router.query.cid;
+    const companyId = idParam ? parseInt(idParam, 10) : 0;
+    const [company, setCompany] = useState<Company>();
+
+    useEffect(() => {
+        if (!companyId || isNaN(companyId)) return;
+
+        const fetchCompany = async () => {
+            try {
+                const res = await axios.get(`/api/company?cid=${companyId}`, {
+                    headers: {
+                        "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY,
+                    },
+                });
+
+                if (!res.data.success) {
+                    toast.error("Failed to fetch company");
+                    return;
+                }
+
+                setCompany(res.data.companies[0]);
+            } catch (err: any) {
+                toast.error(err?.response?.data?.error || "Error fetching company");
+            }
+        };
+
+        fetchCompany();
+    }, [companyId]);
+    
     const [activeTab, setActiveTab] = useState(PANE_CONFIG[0].label);
     const activePane = PANE_CONFIG.find((p) => p.label === activeTab);
 
@@ -118,12 +147,11 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
         "Job Description": <JDPane props={{ jds: allJds || [] }} />,
         "Videos": <VideoPane props={{ videos: allVideos || [] }} />,
         "News": <NewsPane props={{ news: allNews || [] }} />,
-        "Overview": <OverviewPane props={{ company, company_id: id }} />,
+        "Overview": <OverviewPane props={{ company_id: companyId}} />,
         "Summary": <SummaryPane />,
-        "Compendium": <CompendiumPane props={{ company, company_id: id }} />,
+        "Compendium": <CompendiumPane props={{ company_id: companyId }} />,
         "Alum Exp": <AlumExpPane />,
     };
-
 
     const handleDownloadJDs = async () => {
         setIsDownloading(true);
@@ -308,7 +336,7 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                             transition={{ duration: 0.3, delay: 0.1 }}
                         >
                             <Image
-                                src={company.logo_url || "/placeholder-logo.png"}
+                                src={company?.logo_url || "/placeholder-logo.png"}
                                 alt="Logo"
                                 width={64}
                                 height={64}
@@ -323,11 +351,11 @@ export default function CompanyPage({ id, company }: { id: number; company: Comp
                                 transition={{ delay: 0.2 }}
                                 className="text-xl font-bold text-gray-800"
                             >
-                                {company.company_full}
+                                {company?.company_full}
                             </motion.h1>
 
                             <div className="flex flex-wrap gap-1 sm:gap-2 mt-1 justify-center sm:justify-start">
-                                {company.domains?.map((d, i) => {
+                                {company?.domains?.map((d, i) => {
                                     const color = DOMAIN_COLORS[d.domain?.toUpperCase()] || {
                                         bg: "bg-gray-100",
                                         text: "text-gray-800",

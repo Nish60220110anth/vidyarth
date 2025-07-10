@@ -45,6 +45,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === "GET") {
         const whereClause = (req as any).filter ?? {};
 
+        const { cid } = req.query;
+
+        if (cid && cid > "0") {
+            whereClause.id = Number(cid);
+        }
+        
         const companies = await prisma.company.findMany({
             where: whereClause,
             include: {
