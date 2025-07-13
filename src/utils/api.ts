@@ -13,7 +13,6 @@ async function fetchSession() {
     try {
         const response = await axios.get('/api/auth/user');
         const data = response.data;
-        console.log('Session Info:', data);
         return {
             success: true,
             data: data,

@@ -25,14 +25,39 @@ type SortKey = "company_name" | "company_full";
 
 export const ALL_DOMAINS = ["CONSULTING", "FINANCE", "MARKETING", "PRODMAN", "GENMAN", "OPERATIONS"];
 
-export const DOMAIN_COLORS: Record<string, { bg: string; text: string }> = {
-    FINANCE: { bg: "bg-red-100", text: "text-red-800" },
-    CONSULT: { bg: "bg-blue-100", text: "text-blue-800" },
-    MARKETING: { bg: "bg-teal-100", text: "text-teal-800" },
-    PRODMAN: { bg: "bg-yellow-100", text: "text-yellow-800" },
-    GENMAN: { bg: "bg-cyan-100", text: "text-cyan-800" },
-    OPERATIONS: { bg: "bg-green-100", text: "text-green-800" },
+export const DOMAIN_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+    FINANCE: {
+        bg: "bg-green-100",
+        text: "text-green-800",
+        border: "border-green-300",
+    },
+    MARKETING: {
+        bg: "bg-pink-100",
+        text: "text-pink-800",
+        border: "border-pink-300",
+    },
+    CONSULTING: {
+        bg: "bg-blue-100",
+        text: "text-blue-800",
+        border: "border-blue-300",
+    },
+    PRODMAN: {
+        bg: "bg-purple-100",
+        text: "text-purple-800",
+        border: "border-purple-300",
+    },
+    OPERATIONS: {
+        bg: "bg-yellow-100",
+        text: "text-yellow-800",
+        border: "border-yellow-300",
+    },
+    GENMAN: {
+        bg: "bg-orange-100",
+        text: "text-orange-800",
+        border: "border-orange-300",
+    },
 };
+
 
 export default function ManageCompanyList() {
     const [companies, setCompanies] = useState<Company[]>([]);
@@ -584,7 +609,7 @@ export default function ManageCompanyList() {
                                             <motion.div
                                                 key={i}
                                                 whileHover={{ scale: 1.05 }}
-                                                className={`inline-flex items-center gap-1 ${color.bg} ${color.text} text-xs px-2 py-0.5 rounded transition duration-200`}
+                                                className={`inline-flex items-center gap-1 ${color.bg} ${color.text} ${color.border} text-xs px-2 py-0.5 rounded transition duration-200`}
                                             >
                                                 <span>{domain}</span>
                                                 {isEditing && (

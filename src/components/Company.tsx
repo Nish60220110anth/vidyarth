@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Image from "next/image";
-import { JSX, useEffect, useState } from "react";
+import { JSX, useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { Company } from "./CompanySearchDropDown";
@@ -28,6 +28,7 @@ import OverviewPane from "./content/OverviewPane";
 import CompendiumPane from "./content/CompendiumPane";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import { useRouter } from "next/router";
+import { decodeSecureURL } from "@/utils/secureUrlApi";
 
 
 type PaneComponentProps = Record<string, any>;
@@ -97,9 +98,99 @@ export const PANE_CONFIG: {
 
 export default function CompanyPage() {
     const router = useRouter();
+    const [companyId, setCompanyId] = useState<number>(0);
+    const [activeTab, setActiveTab] = useState(PANE_CONFIG[0].label);
+    const activePane = PANE_CONFIG.find((p) => p.label === activeTab);
 
-    const idParam = Array.isArray(router.query.cid) ? router.query.cid[0] : router.query.cid;
-    const companyId = idParam ? parseInt(idParam, 10) : 0;
+    const [prevTabIndex, setPrevTabIndex] = useState(0);
+    const [direction, setDirection] = useState(0);
+    const [isPageReady, setIsPageReady] = useState(false);
+
+    const currentTabIndex = PANE_CONFIG.findIndex((p) => p.label === activeTab);
+
+    const [allJds, setAllJDS] = useState<Partial<JDEntry>[]>();
+    const [allVideos, setAllVideos] = useState<Partial<VideoEntry>[]>();
+    const [allNews, setAllNews] = useState<Partial<NewsEntry>[]>();
+
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const hasValidJDs = (allJds ?? []).some(jd => jd?.jd_pdf_path);
+
+    const paneProps = useMemo(() => ({
+        "Job Description": <JDPane props={{ jds: allJds || [] }} />,
+        "Videos": <VideoPane props={{ videos: allVideos || [] }} />,
+        "News": <NewsPane props={{ news: allNews || [] }} />,
+        "Overview": <OverviewPane props={{ company_id: companyId }} />,
+        "Summary": <SummaryPane />,
+        "Compendium": <CompendiumPane props={{ company_id: companyId }} />,
+        "Alum Exp": <AlumExpPane />,
+    }), [allJds, allVideos, allNews, companyId]);
+
+    useEffect(() => {
+        if (!router.isReady) return;
+
+        const run = async () => {
+            const auth = router.query.auth as string | undefined;
+
+            if (!auth) {
+                setCompanyId(0);
+                return;
+            }
+
+            try {
+                const decrypted = await decodeSecureURL(decodeURIComponent(auth));
+                const valid =
+                    decrypted.success &&
+                    decrypted.key.toUpperCase() === "COMPANY" &&
+                    typeof decrypted.id === "number";
+
+                setCompanyId(valid ? decrypted.id : 0);
+            } catch (err) {
+                console.error("Failed to decode URL", err);
+                setCompanyId(0);
+            }
+        };
+
+        run();
+    }, [router.isReady, router.query.auth]);
+
+    useEffect(() => {
+        if (companyId > 0) {
+            const timeout = setTimeout(() => {
+                setIsPageReady(true);
+            }, 300);
+
+            return () => clearTimeout(timeout);
+        } else {
+            setIsPageReady(false);
+        }
+    }, [companyId]);
+
+    useEffect(() => {
+        if (!router.isReady) return;
+
+        const tabParam = (router.query.tab as string | undefined)?.toLowerCase();
+        const validTab = PANE_CONFIG.find((p) => p.label.toLowerCase() === tabParam);
+
+        if (validTab) {
+            setActiveTab(validTab.label);
+        } else {
+            const defaultTab = PANE_CONFIG[0].label;
+            setActiveTab(defaultTab);
+
+            if (tabParam) {
+                router.replace(
+                    {
+                        pathname: router.pathname,
+                        query: { ...router.query, tab: defaultTab },
+                    },
+                    undefined,
+                    { shallow: true }
+                );
+            }
+        }
+    }, [router.isReady, router.query.tab]);
+
     const [company, setCompany] = useState<Company>();
 
     useEffect(() => {
@@ -107,7 +198,7 @@ export default function CompanyPage() {
 
         const fetchCompany = async () => {
             try {
-                const res = await axios.get(`/api/company?cid=${companyId}`, {
+                const res = await axios.get(`/api/company/specific/?cid=${companyId}`, {
                     headers: {
                         "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY,
                     },
@@ -125,39 +216,17 @@ export default function CompanyPage() {
         };
 
         fetchCompany();
+        fetchJDs();
+        fetchVideos();
+        fetchNews();
     }, [companyId]);
-    
-    const [activeTab, setActiveTab] = useState(PANE_CONFIG[0].label);
-    const activePane = PANE_CONFIG.find((p) => p.label === activeTab);
-
-    const [prevTabIndex, setPrevTabIndex] = useState(0);
-    const [direction, setDirection] = useState(0);
-
-    const currentTabIndex = PANE_CONFIG.findIndex((p) => p.label === activeTab);
-
-    const [allJds, setAllJDS] = useState<Partial<JDEntry>[]>();
-    const [allVideos, setAllVideos] = useState<Partial<VideoEntry>[]>();
-    const [allNews, setAllNews] = useState<Partial<NewsEntry>[]>();
-
-    const [isDownloading, setIsDownloading] = useState(false);
-
-    const hasValidJDs = (allJds ?? []).some(jd => jd?.jd_pdf_path);
-
-    const paneProps: Record<string, JSX.Element> = {
-        "Job Description": <JDPane props={{ jds: allJds || [] }} />,
-        "Videos": <VideoPane props={{ videos: allVideos || [] }} />,
-        "News": <NewsPane props={{ news: allNews || [] }} />,
-        "Overview": <OverviewPane props={{ company_id: companyId}} />,
-        "Summary": <SummaryPane />,
-        "Compendium": <CompendiumPane props={{ company_id: companyId }} />,
-        "Alum Exp": <AlumExpPane />,
-    };
 
     const handleDownloadJDs = async () => {
         setIsDownloading(true);
         const jdEntries = allJds;
 
         if (!Array.isArray(jdEntries) || jdEntries.length === 0) {
+            setIsDownloading(false);
             toast.error("No JDs available to download.");
             return;
         }
@@ -171,6 +240,7 @@ export default function CompanyPage() {
             const jd = jdEntries[0];
 
             if (!jd.jd_pdf_path) {
+                setIsDownloading(false);
                 toast.error("File path missing");
                 return;
             }
@@ -210,7 +280,6 @@ export default function CompanyPage() {
 
                 zip.file(filename, response.data);
             } catch (err) {
-                console.error(`Failed to fetch: ${jd.jd_pdf_path}`, err);
                 toast.error(`Failed to fetch file: ${jd.company}`);
                 setIsDownloading(false);
             }
@@ -219,9 +288,7 @@ export default function CompanyPage() {
         const content = await zip.generateAsync({ type: "blob" });
         setIsDownloading(false);
         saveAs(content, "All_JDs.zip");
-        toast.success("Downloaded all JDs");
     };
-
 
     const fetchJDs = async () => {
         try {
@@ -308,11 +375,39 @@ export default function CompanyPage() {
         }
     }
 
-    useEffect(() => {
-        fetchJDs();
-        fetchVideos();
-        fetchNews();
-    }, [companyId]);
+    if (!isPageReady) {
+        return (
+            <div className="min-h-screen flex flex-col bg-gray-100 font-[Urbanist]">
+                <div className="sticky top-0 z-40 w-full px-4 sm:px-6 py-4 bg-white shadow-sm flex gap-4 items-center">
+                    {/* Logo Skeleton */}
+                    <div className="w-16 h-16 rounded-md bg-gray-200 animate-pulse" />
+
+                    {/* Name + Domain Skeleton */}
+                    <div className="flex flex-col gap-2">
+                        <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
+                        <div className="flex gap-2 flex-wrap">
+                            <div className="h-4 w-16 bg-gray-200 rounded-full animate-pulse" />
+                            <div className="h-4 w-20 bg-gray-200 rounded-full animate-pulse" />
+                            <div className="h-4 w-14 bg-gray-200 rounded-full animate-pulse" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tabs + Content Placeholder */}
+                <div className="w-full px-6 py-2 bg-white shadow">
+                    <div className="h-6 w-1/2 bg-gray-200 rounded animate-pulse" />
+                </div>
+                <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-y-auto bg-gray-50">
+                    <div className="bg-white rounded-xl p-6 shadow-md space-y-4">
+                        <div className="h-6 w-3/4 bg-gray-200 animate-pulse rounded" />
+                        <div className="h-4 w-full bg-gray-100 animate-pulse rounded" />
+                        <div className="h-4 w-full bg-gray-100 animate-pulse rounded" />
+                        <div className="h-4 w-2/3 bg-gray-100 animate-pulse rounded" />
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>
@@ -320,7 +415,11 @@ export default function CompanyPage() {
                 <title>Company Page</title>
             </Head>
 
-            <div className="min-h-screen flex flex-col bg-gray-100 font-[Urbanist] scroll-smooth">
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4 }}
+                className="min-h-screen flex flex-col bg-gray-100 font-[Urbanist] scroll-smooth">
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
@@ -333,10 +432,9 @@ export default function CompanyPage() {
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.3, delay: 0.1 }}
-                        >
+                            transition={{ duration: 0.3, delay: 0.1 }}>
                             <Image
-                                src={company?.logo_url || "/placeholder-logo.png"}
+                                src={company?.logo_url || "/company-logo/0.png"}
                                 alt="Logo"
                                 width={64}
                                 height={64}
@@ -454,14 +552,23 @@ export default function CompanyPage() {
                                     setDirection(newIndex > currentTabIndex ? 1 : -1);
                                     setPrevTabIndex(currentTabIndex);
                                     setActiveTab(pane.label);
+
+                                    router.replace(
+                                        {
+                                            pathname: router.pathname,
+                                            query: { ...router.query, tab: pane.label },
+                                        },
+                                        undefined,
+                                        { shallow: true }
+                                    );
                                 }}
 
-                                className={`
-                                    flex items-center min-w-max px-3 py-1.5 text-xs sm:text-sm rounded-md
-                                     transition font-medium uppercase ${activeTab === pane.label
-                                        ? `${pane.color} font-semibold`
+                                className={`relative flex items-center min-w-max px-3 py-1.5 text-xs sm:text-sm rounded-md
+  transition font-medium uppercase ${activeTab === pane.label
+                                        ? `${pane.color} font-semibold after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-current`
                                         : "text-gray-600 hover:bg-gray-100"
                                     }`}
+
                             >
                                 {pane.icon}
                                 {pane.label}
@@ -493,7 +600,7 @@ export default function CompanyPage() {
                     </div>
                 )}
 
-            </div>
+            </motion.div>
         </>
     );
 }

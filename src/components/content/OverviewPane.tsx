@@ -28,7 +28,9 @@ export default function Overview({ props }: { props: OverviewEntry }) {
     };
 
     const fetchPermissions = async () => {
-        const res = await axios.get(`/api/permissions`);
+        const res = await axios.get(`/api/permissions`, {
+
+        });
         setPermissions(res.data.permissions);
     };
 
@@ -36,10 +38,21 @@ export default function Overview({ props }: { props: OverviewEntry }) {
         try {
             const res = await axios.get(`/api/overview`, {
                 params: { companyId: props.company_id },
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+                }
             });
+
+            if (!res.data.success) {
+                toast.error(res.data.error)
+                return;
+            }
+
             setContent(res.data.content);
             setOriginalContent(res.data.content);
-        } catch (err) {
+
+        } catch (err: any) {
+            toast.error(err)
             setContent("");
             setOriginalContent("");
         }
@@ -47,12 +60,21 @@ export default function Overview({ props }: { props: OverviewEntry }) {
 
     const saveOverviewContent = async () => {
         try {
-            await axios.put(`/api/overview`, {
+            const res = await axios.put(`/api/overview`, {
                 companyId: props.company_id,
                 content,
+            }, {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.EDIT_COMPANY_INFO
+                }
             });
+
+            if (!res.data.success) {
+                toast.error(res.data.error)
+                return;
+            }
+
             setOriginalContent(content);
-            toast.success("Overview saved");
             setIsEditing(false);
         } catch (err) {
             toast.error("Failed to save overview");
@@ -116,9 +138,9 @@ export default function Overview({ props }: { props: OverviewEntry }) {
     }
 
     return (
-        <div className="bg-gray-100 border border-gray-200 rounded-lg shadow-md px-4 sm:px-6 py-5 space-y-4 w-full">
+        <div className="bg-gray-100 border border-gray-200 rounded-lg shadow-md w-full overflow-hidden">
             {isEditor && (
-                <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center border-b border-gray-300 pb-3 gap-2">
+                <div className="sticky top-0 z-10 bg-gray-100 px-4 sm:px-6 pt-5 pb-3 border-b border-gray-300 flex flex-col sm:flex-row justify-end items-start sm:items-center gap-2">
                     {!isEditing ? (
                         <button
                             onClick={() => setIsEditing(true)}
@@ -148,18 +170,24 @@ export default function Overview({ props }: { props: OverviewEntry }) {
                 </div>
             )}
 
-            <RichTextPane
-                editable={isEditing}
-                lexicalState={
-                    !isEditing
-                        ? isMobile
-                            ? convertListsToParagraphs(content)
-                            : content
-                        : undefined
-                }
-                OnSetContent={(f: string) => setContent(f)}
-                placeholder={isEditor ? "Enter content here..." : "Content not available yet"}
-            />
+            <div
+                className={`px-4 sm:px-6 py-5 ${isEditing ? "max-h-[500px] overflow-y-auto" : ""
+                    }`}
+            >
+                <RichTextPane
+                    editable={isEditing}
+                    lexicalState={
+                        !isEditing
+                            ? isMobile
+                                ? convertListsToParagraphs(content)
+                                : content
+                            : undefined
+                    }
+                    OnSetContent={(f: string) => setContent(f)}
+                    placeholder={isEditor ? "Enter content here..." : "Content not available yet"}
+                />
+            </div>
         </div>
     );
+
 }

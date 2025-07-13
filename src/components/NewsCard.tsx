@@ -54,10 +54,10 @@ const TAG_STYLES: Record<string, { icon: JSX.Element; color: string }> = {
 };
 
 
-export default function NewsCard({ news, fetchNews, search,
+export default function NewsCard({ news, fetchAllNews, fetchNewsOnId, search,
     is_read = false
 }: {
-    news: any; fetchNews: () => void; search?: string,
+        news: any; fetchAllNews: () => void; fetchNewsOnId: (id: string) => void, search?: string,
     is_read: boolean,
 }) {
 
@@ -167,17 +167,22 @@ export default function NewsCard({ news, fetchNews, search,
             });
 
             if (imageFormData) {
-                await axios.post("/api/news/upload-image", imageFormData, {
+                const res = await axios.post("/api/news/upload-image", imageFormData, {
                     headers: {
-                        "Content-Type": "multipart/form-data",
                         "x-access-permission": ACCESS_PERMISSION.MANAGE_NEWS
                     },
                 });
+
+                if(!res.data.success) {
+                    toast.error(res.data.error)
+                    return;
+                }
+
                 setImageFormData(null);
             }
 
             setEditMode(false);
-            fetchNews();
+            fetchNewsOnId(news.id);
         } catch {
             toast.error("Update failed");
         } finally {
@@ -381,7 +386,7 @@ export default function NewsCard({ news, fetchNews, search,
                             }}
                         >
                             <img
-                                src={previewImageUrl || news.image_url}
+                                src={previewImageUrl || `${news.image_url}`}
                                 alt="News Visual"
                                 className={`w-full h-full object-cover transition-opacity duration-300 ${editMode ? "opacity-50" : "opacity-100"}`}
                             />
@@ -590,7 +595,7 @@ export default function NewsCard({ news, fetchNews, search,
                                                 }
                                             });
                                             toast.success("News deleted");
-                                            fetchNews();
+                                            fetchAllNews();
                                             setShowDeleteConfirm(false);
                                         } catch {
                                             toast.error("Delete failed");

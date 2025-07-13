@@ -65,6 +65,7 @@ import Announcements from "./Announcements";
 import Preferences from "./Preferences";
 import ManageCohort from "./ManageCohort";
 import ManageVideo from "./ManageVideo";
+import { decodeSecureURL, generateSecureURL } from "@/utils/secureUrlApi";
 
 
 interface SidebarProps {
@@ -149,6 +150,9 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
     const [theme, setTheme] = useState<"light" | "dark">("dark");
 
     const profileButtonRef = useRef<HTMLDivElement | null>(null);
+    const lastActiveKeyIndex = useRef<number>(-1);
+    const [activeKeyIndex, setActiveKeyIndex] = useState<number>(0);
+
 
     useEffect(() => {
         const stored = localStorage.getItem("theme") as "light" | null;
@@ -166,9 +170,15 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
 
     const toggleSidebar = () => setCollapsed((prev) => !prev);
 
-    const onCompanySelected = (company: Company) => {
+    const onCompanySelected = async (company: Company) => {
         addCompanyToRecentHistory(company);
-        router.push({ query: { key: btoa("company"), cid: company.id } }, undefined, { shallow: true });
+
+        const authResp = await generateSecureURL("COMPANY", company.id);
+        if (!authResp.success) {
+            toast.error(authResp.error)
+            return;
+        }
+        router.push({ query: { auth: encodeURIComponent(authResp.url) } }, undefined, { shallow: true });
         setShowProfileMenu(false);
     };
 
@@ -186,7 +196,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
     }, []);
 
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
+        const handleKeyDown = async (e: KeyboardEvent) => {
             if (!showProfileMenu) return;
 
             const items = Object.entries(profile_dropdown_items).filter(([_, item]) =>
@@ -212,7 +222,14 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                     e.preventDefault();
                     if (highlightedIndex !== null) {
                         const [, item] = items[highlightedIndex];
-                        router.push({ query: { key: btoa(item.label) } }, undefined, { shallow: true });
+                        const encUrl = await generateSecureURL(item.label, 0);
+
+                        if (!encUrl.success) {
+                            toast.error(encUrl.error);
+                            return;
+                        }
+
+                        router.push({ query: { auth: encodeURIComponent(encUrl.url) } }, undefined, { shallow: true });
                         setShowProfileMenu(false);
                     }
                     break;
@@ -227,7 +244,8 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [showProfileMenu, permissions, highlightedIndex]);
+    }, [showProfileMenu, highlightedIndex, permissions, router]);
+
 
     const sections_permissions: Record<
         string,
@@ -243,8 +261,15 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
             section: "_generic",
             perm: ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY,
             icon: (cls) => <Squares2X2Icon className={cls} />,
-            component: () => <WelcomePage onGotoDashboard={() => {
-                router.push({ query: { key: btoa("dashboard") } }, undefined, { shallow: true });
+            component: () => <WelcomePage onGotoDashboard={async () => {
+                const res = await generateSecureURL("COMPANY DIRECTORY", 0);
+
+                if (!res.success) {
+                    toast.error(res.error)
+                    return;
+                }
+
+                router.push({ query: { auth: encodeURIComponent(res.url) } }, undefined, { shallow: false });
             }} />,
             shortcut: "D"
         },
@@ -444,27 +469,38 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
     }, [activeKey, permissions]);
 
     useEffect(() => {
-        const key = router.query.key as string | undefined;
-        if (!key) {
-            setActiveKey("DASHBOARD");
-            setShowProfileMenu(false);
-            return;
+        const run = async () => {
+            const auth = router.query.auth as string | undefined;
+            if (!auth) {
+                setActiveKey("DASHBOARD");
+                setShowProfileMenu(false);
+                return;
+            }
+
+            if (!permissions || Object.keys(permissions).length === 0) return;
+            const decodedAuth = await decodeSecureURL(decodeURIComponent(auth));
+
+            if (!decodedAuth.success) {
+                toast.error(`${decodedAuth.error}`);
+                return;
+            }
+
+            const key = decodedAuth.key;
+            const actualKey = key.replaceAll(" ", "_").toUpperCase();
+            const section = sections_permissions[actualKey];
+
+            const fallbackKey = actualKey === "COMPANY" ? "COMPANY" : "DASHBOARD";
+
+            const sectionKeys = Object.keys(sections_permissions);
+            const newIndex = sectionKeys.findIndex((k) => k === actualKey);
+            setActiveKey(section && permissions[section.perm] ? actualKey : fallbackKey);
+            setActiveKeyIndex(section && permissions[section.perm] ? newIndex : 0);
+
         };
-        if (!permissions || Object.keys(permissions).length === 0) return;
 
-        const decodedKey = atob(key);
-        const actualKey = decodedKey.replaceAll(" ", "_").toUpperCase();
+        run();
+    }, [router.query.auth, permissions]);
 
-        const section = sections_permissions[actualKey];
-        if (section && permissions[section.perm]) {
-            setActiveKey(actualKey);
-        } else if (actualKey === "COMPANY") {
-            setActiveKey("COMPANY")
-        } else {
-            setActiveKey("DASHBOARD")
-        }
-
-    }, [router.query.key, router.query.cid, permissions]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -498,6 +534,8 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
         }
     });
 
+    const direction = activeKeyIndex > lastActiveKeyIndex.current ? 1 : -1;
+    lastActiveKeyIndex.current = activeKeyIndex;
 
     return (
         <div className="flex h-screen">
@@ -554,10 +592,21 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                                                     : "hover:bg-white/10 pl-4"}
         `}
                                             title=""
-                                            onClick={() => {
-                                                router.push({ query: { key: btoa(key) } }, undefined, { shallow: true });
-                                            }}
+                                            onClick={async () => {
 
+                                                const encrypted = await generateSecureURL(key, 0);
+
+                                                if (!encrypted.success) {
+                                                    toast.error(encrypted.error)
+                                                    return;
+                                                }
+
+                                                router.push(
+                                                    { query: { auth: encodeURIComponent(encrypted.url) } },
+                                                    undefined,
+                                                    { shallow: true }
+                                                );
+                                            }}
                                         >
                                             <div className="flex items-center gap-4">
                                                 {icon("h-5 w-5")}
@@ -617,7 +666,7 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                         <h2 className="text-lg text-white font-semibold hidden md:block">Search Companies</h2>
 
                         <CompanySearchBar
-                            onSelect={(id) => {
+                            onSelect={async (id) => {
                                 router.push(
                                     {
                                         pathname: router.pathname,
@@ -630,7 +679,16 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                                     undefined,
                                     { shallow: true }
                                 )
-                                router.push({ query: { key: btoa("company"), cid: id.id } }, undefined, { shallow: true });
+                                const encrypted = await generateSecureURL("company", id.id);
+                                if (!encrypted.success) {
+                                    toast.error(encrypted.error)
+                                    return;
+                                }
+                                router.push(
+                                    { query: { auth: encodeURIComponent(encrypted.url) } },
+                                    undefined,
+                                    { shallow: true }
+                                );
                             }}
                             showHint={false}
                             placeholder="Search for companies"
@@ -758,14 +816,16 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                         </AnimatePresence>
                     </div>
                 </motion.div>
-                <AnimatePresence mode="wait">
-                    {(activeComponent) ? (
+                <AnimatePresence mode="wait" custom={direction}>
+                    {activeComponent ? (
                         <motion.div
                             key={activeKey}
-                            initial={{ opacity: 0, y: 10 }}
+                            custom={direction}
+                            initial={{ opacity: 0, y: direction > 0 ? 20 : -20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.25 }}
+                            exit={{ opacity: 0, y: direction > 0 ? -20 : 20 }}
+                            transition={{ duration: 0.25, ease: "easeOut" }}
+                            className="h-full w-full"
                         >
                             {activeComponent}
                         </motion.div>
@@ -775,14 +835,21 @@ export default function Sidebar({ email, role, onLogout, name }: SidebarProps) {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
+                            transition={{ duration: 0.25 }}
                             className="text-gray-500 text-center"
                         >
-                            <WelcomePage onGotoDashboard={() => {
-                                setActiveComponent(() => <AllCompaniesDirectory onCompanySelected={onCompanySelected} />);
+                            <WelcomePage onGotoDashboard={async () => {
+                                const res = await generateSecureURL("COMPANY DIRECTORY", 0);
+                                if (!res.success) {
+                                    toast.error(res.error);
+                                    return;
+                                }
+                                router.push({ query: { auth: encodeURIComponent(res.url) } }, undefined, { shallow: false });
                             }} />
                         </motion.div>
                     )}
                 </AnimatePresence>
+
             </main>
 
 

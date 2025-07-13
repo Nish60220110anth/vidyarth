@@ -56,6 +56,44 @@ export default function ManageNews() {
         }
     };
 
+    const fetchNewsOnId = async (id: string) => {
+        try {
+            setIsRefreshing(true);
+
+            const query = new URLSearchParams();
+
+            if (selectedDomain !== "ALL") query.append("domain", selectedDomain);
+            if (search.trim()) query.append("title", search);
+            if (dateRange.from) query.append("from", dateRange.from);
+            if (dateRange.to) query.append("to", dateRange.to);
+            if (newsDomainTag !== "ALL") query.append("domain_tag", newsDomainTag);
+            if (newsSubdomainTag !== "ALL") query.append("subdomain_tag", newsSubdomainTag);
+
+            const res = await axios.get(`/api/news?id=${id}`, {
+                params: query,
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-access-permission": "MANAGE_NEWS"
+                },
+            });
+
+            const { news } = res.data;
+
+            if (news) {
+                setNewsList((prevList) =>
+                    prevList.map((item) =>
+                        item.id === news.id ? news : item
+                    )
+                );
+            }
+
+        } catch {
+            toast.error("Failed to load news");
+        } finally {
+            setTimeout(() => setIsRefreshing(false), 400);
+        }
+    };
+
     useEffect(() => {
         const timeout = setTimeout(() => {
             fetchNews();
@@ -234,7 +272,8 @@ export default function ManageNews() {
                                     <div key={`${news.id}-${news.updated_at}`}>
                                         <NewsCard
                                             news={news}
-                                            fetchNews={fetchNews}
+                                            fetchAllNews={fetchNews}
+                                            fetchNewsOnId={fetchNewsOnId}
                                             search={search}
                                             is_read={true}
                                         />

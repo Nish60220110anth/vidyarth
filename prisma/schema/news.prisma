@@ -3,7 +3,7 @@ model News {
 
   title          String
   content        String  @db.Text
-  link_to_source String?
+  link_to_source String? @db.Text
 
   is_active   Boolean @default(true)
   is_approved Boolean @default(false)

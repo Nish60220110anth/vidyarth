@@ -114,21 +114,8 @@
     position: relative;
     tab-size: 1;
     outline: 0;
-    padding: 0.5rem;
+    padding: 15px 10px;
     caret-color: #444;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    word-wrap: break-word;
-    word-break: break-word;
-    min-width: 0;
-}
-
-.editor-inner,
-.editor-input {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
 }
 
 .editor-placeholder {
@@ -136,13 +123,19 @@
     overflow: hidden;
     position: absolute;
     text-overflow: ellipsis;
-    top: 1rem;
-    left: 0.625rem;
+    top: 15px;
+    left: 10px;
     font-size: 15px;
     user-select: none;
     display: inline-block;
     pointer-events: none;
-    max-width: 90%;
+}
+
+.editor-inner,
+.editor-input {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .editor-text-bold {
@@ -584,8 +577,8 @@ i.chevron-down {
 }
 
 .dropdown .item {
-    /* margin: 0 8px 0 8px; */
-    /* padding: 8px; */
+    margin: 0 8px 0 8px;
+    padding: 8px;
     color: #050505;
     cursor: pointer;
     line-height: 16px;
@@ -598,11 +591,7 @@ i.chevron-down {
     background-color: #fff;
     border-radius: 8px;
     border: 0;
-    min-width: 0;
-    width: 100%;
-    max-width: 100%;
-    margin: 0 4px;
-    padding: 6px;
+    min-width: 268px;
 }
 
 .dropdown .item .active {

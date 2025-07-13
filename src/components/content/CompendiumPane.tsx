@@ -38,7 +38,7 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
     const [uploadPercent, setUploadPercent] = useState<number>(0);
     const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
     const [uploadMode, setUploadMode] = useState<"uploading" | "deleting" | "done">("done");
-
+    const [showDocs, setShowDocs] = useState(true);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const visiblePDFs = originalValue.pdfs.filter((pdf) => !deletedPdfs.includes(pdf.id));
@@ -250,258 +250,294 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
     }
 
     return (
-        <div className="flex flex-col sm:flex-row gap-3 w-full items-start">
-            {/* Left: Overview Editor */}
-            <div className="w-full sm:flex-1 min-w-0 rounded-xl bg-white border 
-            border-gray-200 shadow-[0_2px_10px_rgba(0,0,0,0.05)] px-2 sm:px-2 py-3 space-y-4 ring-1 ring-inset 
-            ring-gray-100 backdrop-blur-sm transition-all duration-300 ease-in-out">
-                {isEditor && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="col-span-full flex flex-col sm:flex-row justify-end items-start sm:items-center border-b border-gray-300 pb-3 gap-2"
-                    >
-                        {!isEditing ? (
-                            <button
-                                onClick={() => setIsEditing(true)}
-                                className="w-full sm:w-auto px-4 py-1.5 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 hover:shadow-sm active:scale-95 transition-all"
-                            >
-                                Edit
-                            </button>
-                        ) : (
-                            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                                <button
-                                    onClick={() => {
-                                        setIsEditing(false);
-
-                                        if (uploadedFiles.length > 0) {
-                                            setUploadedFiles([]);
-                                            setUploadedNames([]);
-                                        }
-
-                                        if (deletedPdfs.length > 0) {
-                                            setDeletedPdfs([]);
-                                        }
-
-                                        if (content !== originalValue.content) {
-                                            setContent(originalValue.content);
-                                        }
-                                    }}
-                                    className="px-4 py-1.5 text-sm rounded-md border border-red-200 text-red-600
-                                     hover:bg-red-50 hover:shadow-sm active:scale-95 transition-all w-full sm:w-auto"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={async () => {
-                                        const result = await saveCompendium();
-
-                                        if (result?.success === true) {
-                                            await fetchCompendium(props.company_id);
-                                            setUploadedFiles([]);
-                                            setUploadedNames([]);
-                                            setDeletedPdfs([]);
-                                        } else if (result?.success === false) {
-                                            toast.error(result.error || "Failed to save compendium");
-                                        }
-
-                                        setIsEditing(false);
-                                    }}
-                                    className="px-4 py-1.5 text-sm rounded-md bg-cyan-600 text-white hover:bg-cyan-700 
-                                    hover:shadow-md active:scale-95 transition-all w-full sm:w-auto"
-                                >
-                                    Save
-                                </button>
-                            </div>
-                        )}
-                    </motion.div>
-                )}
-
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                    className="rounded-lg bg-gray-50 border border-gray-200 p-3"
+        <div className="w-full">
+            {/* Toggle button */}
+            <div className="w-full flex justify-end mb-3">
+                <button
+                    onClick={() => setShowDocs((prev) => !prev)}
+                    className="flex items-center gap-1 text-sm px-3 py-1 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 transition-all"
                 >
-                    <RichTextPane
-                        editable={isEditing}
-                        lexicalState={
-                            !isEditing
-                                ? isMobile
-                                    ? convertListsToParagraphs(content)
-                                    : content
-                                : undefined
-                        }
-                        OnSetContent={(f: string) => {
-                            setContent(f);
-                        }}
-                        placeholder={isEditor ? "Enter content here..." : "Content not available yet"}
-                    />
-                </motion.div>
-            </div>
-
-            {/* Right: PDF Upload Panel */}
-            <div className="w-full sm:w-80 bg-white border border-gray-300 rounded-xl shadow relative overflow-hidden">
-                {/* Floating Action Bar */}
-                {isEditing && (
-                    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 flex items-center justify-between gap-2 px-4 py-2">
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="p-2 rounded-lg hover:bg-cyan-50 transition group w-full sm:w-auto"
-                            title="Upload PDF"
-                        >
-                            <PlusIcon className="w-5 h-5 text-cyan-600 group-hover:scale-110 group-hover:text-cyan-800 transition-transform" />
-                        </button>
-                        <button
-                            disabled={allDeleted}
-                            onClick={() => {
-                                const remainingIds = originalValue.pdfs
-                                    .filter((pdf) => !deletedPdfs.includes(pdf.id))
-                                    .map((pdf) => pdf.id);
-                                setDeletedPdfs((prev) => [...prev, ...remainingIds]);
-                            }}
-                            className="p-2 rounded-lg hover:bg-red-50 transition group w-full sm:w-auto"
-                            title="Delete All PDFs"
-                        >
-                            <TrashIcon className="w-5 h-5 text-red-500 group-hover:scale-110 group-hover:text-red-700 transition-transform" />
-                        </button>
-                        <input
-                            type="file"
-                            accept="application/pdf"
-                            ref={fileInputRef}
-                            multiple
-                            className="hidden"
-                            onChange={(e) => {
-                                const newFiles = Array.from(e.target.files || []);
-                                const getBaseName = (name: string) => name.replace(/\.pdf$/i, "");
-                                setUploadedFiles((prev) => [...prev, ...newFiles]);
-                                setUploadedNames((prev) => [
-                                    ...prev,
-                                    ...newFiles.map((f) => getBaseName(f.name)),
-                                ]);
-                            }}
-                        />
-                    </div>
-                )}
-
-                {/* Header */}
-                <div className="px-4 pt-4 pb-2 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
-                </div>
-
-                {/* Scrollable PDF List */}
-                <div className="space-y-2 max-h-[300px] px-4 py-3 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-500">
-                    {visiblePDFs.length === 0 && uploadedFiles.length === 0 && (
-                        <div className="flex flex-col items-center justify-center text-gray-400 text-sm text-center py-8">
-                            <DocumentArrowUpIcon className="w-8 h-8 mb-2" />
-                            <p>No documents available.</p>
-                        </div>
-                    )}
-
-                    {/* Existing PDFs */}
-                    {originalValue.pdfs.map((pdf) => {
-                        const isDeleted = deletedPdfs.includes(pdf.id);
-                        return (
-                            <div
-                                key={pdf.id}
-                                className={`flex justify-between items-center px-3 py-2 rounded-md text-sm transition group 
-            ${isDeleted
-                                        ? "bg-red-50 border border-red-200 text-red-400 line-through"
-                                        : "bg-gray-50 text-gray-800 hover:shadow"
-                                    }`}
-                            >
-                                <span className="truncate w-4/5">{pdf.pdf_name}</span>
-                                <div className="flex gap-2 items-center">
-                                    {!isDeleted && (
-                                        <EyeIcon
-                                            onClick={() => window.open(pdf.pdf_path, "_blank")}
-                                            className="w-5 h-5 text-cyan-600 hover:text-cyan-800 hover:scale-110 transition-transform cursor-pointer"
-                                            title="Preview PDF"
-                                        />
-                                    )}
-                                    {isEditing && (
-                                        <TrashIcon
-                                            onClick={() => deletePdf(pdf.id)}
-                                            className={`w-5 h-5 hover:scale-110 transition-transform cursor-pointer ${isDeleted
-                                                ? "text-gray-400"
-                                                : "text-red-500 hover:text-red-700"
-                                                }`}
-                                            title="Delete PDF"
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
-
-                    {/* New Uploads */}
-                    {isEditing &&
-                        uploadedFiles.map((f, idx) => (
-                            <div
-                                key={idx}
-                                className="flex justify-between items-center px-3 py-2 rounded-md bg-cyan-50 text-cyan-900 border border-cyan-200 text-xs transition group"
-                            >
-                                <span className="truncate w-4/5">{f.name.replace(".pdf", "")}</span>
-                                <TrashIcon
-                                    onClick={() => deletePdf(undefined, f.name.replace(".pdf", ""))}
-                                    className="w-4 h-4 text-red-500 hover:text-red-700 hover:scale-110 transition-transform 
-                                    cursor-pointer"
-                                    title="Remove this file"
-                                />
-                            </div>
-                        ))}
-                </div>
-            </div>
-
-
-            {isUploading && (
-                <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in text-center px-6">
-                    <div className="relative w-16 h-16 mb-4">
-                        {!(uploadMode === "deleting") ? (
-                            <div
-                                className="absolute inset-0 rounded-full animate-spin"
-                                style={{
-                                    background: `conic-gradient(rgba(0,255,255,0.9) ${uploadPercent}%, rgba(0,255,255,0.1) ${uploadPercent}%)`,
-                                    maskImage: 'radial-gradient(circle at center, transparent 65%, black 66%)',
-                                    WebkitMaskImage: 'radial-gradient(circle at center, transparent 60%, black 60%)',
-                                    boxShadow: '0 0 12px rgba(0,255,255,0.5)',
-                                }}
-                            />
-                        ) : (
-                            <div
-                                className="absolute inset-1.5 rounded-full border-[3px] border-red-400 animate-spin"
-                                style={{
-                                    boxShadow: '0 0 10px rgba(255, 100, 100, 0.5)',
-                                }}
-                            />
-                        )}
-                    </div>
-
-                    {/* Status text */}
-                    {uploadMode === "uploading" ? (
+                    {showDocs ? (
                         <>
-                            <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
-                                Uploading file {currentFileIndex + 1} of {uploadedFiles.length}
-                            </p>
-                            <p className="text-cyan-300 text-sm">{uploadPercent}% completed</p>
-                        </>
-                    ) : uploadMode === "deleting" && uploadedFiles.length === 0 ? (
-                        <>
-                            <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
-                                Deleting {deletedPdfs.length} file{deletedPdfs.length > 1 ? "s" : ""}...
-                            </p>
+                            <span>Hide Documents</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
                         </>
                     ) : (
                         <>
-                            <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
-                                Finalizing...
-                            </p>
+                            <span>Show Documents</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
                         </>
                     )}
+                </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 w-full items-start">
+                {/* Left: Overview Editor */}
+
+                <div className="w-full sm:flex-1 min-w-0 rounded-xl bg-white border 
+            border-gray-200 shadow-[0_2px_10px_rgba(0,0,0,0.05)] px-2 sm:px-2 py-3 space-y-4 ring-1 ring-inset 
+            ring-gray-100 backdrop-blur-sm transition-all duration-300 ease-in-out">
+                    {isEditor && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="col-span-full flex flex-col sm:flex-row justify-end items-start sm:items-center border-b border-gray-300 pb-3 gap-2"
+                        >
+                            {!isEditing ? (
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="w-full sm:w-auto px-4 py-1.5 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 hover:shadow-sm active:scale-95 transition-all"
+                                >
+                                    Edit
+                                </button>
+                            ) : (
+                                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                    <button
+                                        onClick={() => {
+                                            setIsEditing(false);
+
+                                            if (uploadedFiles.length > 0) {
+                                                setUploadedFiles([]);
+                                                setUploadedNames([]);
+                                            }
+
+                                            if (deletedPdfs.length > 0) {
+                                                setDeletedPdfs([]);
+                                            }
+
+                                            if (content !== originalValue.content) {
+                                                setContent(originalValue.content);
+                                            }
+                                        }}
+                                        className="px-4 py-1.5 text-sm rounded-md border border-red-200 text-red-600
+                                     hover:bg-red-50 hover:shadow-sm active:scale-95 transition-all w-full sm:w-auto"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            const result = await saveCompendium();
+
+                                            if (result?.success === true) {
+                                                await fetchCompendium(props.company_id);
+                                                setUploadedFiles([]);
+                                                setUploadedNames([]);
+                                                setDeletedPdfs([]);
+                                            } else if (result?.success === false) {
+                                                toast.error(result.error || "Failed to save compendium");
+                                            }
+
+                                            setIsEditing(false);
+                                        }}
+                                        className="px-4 py-1.5 text-sm rounded-md bg-cyan-600 text-white hover:bg-cyan-700 
+                                    hover:shadow-md active:scale-95 transition-all w-full sm:w-auto"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+
+
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="rounded-lg bg-gray-50 border border-gray-200 p-3"
+                    >
+                        <RichTextPane
+                            editable={isEditing}
+                            lexicalState={
+                                !isEditing
+                                    ? isMobile
+                                        ? convertListsToParagraphs(content)
+                                        : content
+                                    : undefined
+                            }
+                            OnSetContent={(f: string) => {
+                                setContent(f);
+                            }}
+                            placeholder={isEditor ? "Enter content here..." : "Content not available yet"}
+                        />
+                    </motion.div>
                 </div>
 
-            )}
+                {showDocs && (
+                    <motion.div
+                        initial={{ opacity: 0, x: 30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 30 }}
+                        transition={{ duration: 0.3 }}
+                        className="w-full sm:w-80 bg-white border border-gray-300 rounded-xl shadow relative overflow-hidden"
+                    >
+                        {/* Floating Action Bar */}
+                        {isEditing && (
+                            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 flex items-center justify-between gap-2 px-4 py-2">
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="p-2 rounded-lg hover:bg-cyan-50 transition group w-full sm:w-auto"
+                                    title="Upload PDF"
+                                >
+                                    <PlusIcon className="w-5 h-5 text-cyan-600 group-hover:scale-110 group-hover:text-cyan-800 transition-transform" />
+                                </button>
+                                <button
+                                    disabled={allDeleted}
+                                    onClick={() => {
+                                        const remainingIds = originalValue.pdfs
+                                            .filter((pdf) => !deletedPdfs.includes(pdf.id))
+                                            .map((pdf) => pdf.id);
+                                        setDeletedPdfs((prev) => [...prev, ...remainingIds]);
+                                    }}
+                                    className="p-2 rounded-lg hover:bg-red-50 transition group w-full sm:w-auto"
+                                    title="Delete All PDFs"
+                                >
+                                    <TrashIcon className="w-5 h-5 text-red-500 group-hover:scale-110 group-hover:text-red-700 transition-transform" />
+                                </button>
+                                <input
+                                    type="file"
+                                    accept="application/pdf"
+                                    ref={fileInputRef}
+                                    multiple
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const newFiles = Array.from(e.target.files || []);
+                                        const getBaseName = (name: string) => name.replace(/\.pdf$/i, "");
+                                        setUploadedFiles((prev) => [...prev, ...newFiles]);
+                                        setUploadedNames((prev) => [
+                                            ...prev,
+                                            ...newFiles.map((f) => getBaseName(f.name)),
+                                        ]);
+                                    }}
+                                />
+                            </div>
+                        )}
+
+                        {/* Header */}
+                        <div className="px-4 pt-4 pb-2 border-b border-gray-200">
+                            <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
+                        </div>
+
+                        {/* Scrollable PDF List */}
+                        <div className="space-y-2 max-h-[300px] px-4 py-3 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-500">
+                            {visiblePDFs.length === 0 && uploadedFiles.length === 0 && (
+                                <div className="flex flex-col items-center justify-center text-gray-400 text-sm text-center py-8">
+                                    <DocumentArrowUpIcon className="w-8 h-8 mb-2" />
+                                    <p>No documents available.</p>
+                                </div>
+                            )}
+
+                            {/* Existing PDFs */}
+                            {originalValue.pdfs.map((pdf) => {
+                                const isDeleted = deletedPdfs.includes(pdf.id);
+                                return (
+                                    <div
+                                        key={pdf.id}
+                                        className={`flex justify-between items-center px-3 py-2 rounded-md text-sm transition group 
+            ${isDeleted
+                                                ? "bg-red-50 border border-red-200 text-red-400 line-through"
+                                                : "bg-gray-50 text-gray-800 hover:shadow"
+                                            }`}
+                                    >
+                                        <span className="truncate w-4/5">{pdf.pdf_name}</span>
+                                        <div className="flex gap-2 items-center">
+                                            {!isDeleted && (
+                                                <EyeIcon
+                                                    onClick={() => window.open(pdf.pdf_path, "_blank")}
+                                                    className="w-5 h-5 text-cyan-600 hover:text-cyan-800 hover:scale-110 transition-transform cursor-pointer"
+                                                    title="Preview PDF"
+                                                />
+                                            )}
+                                            {isEditing && (
+                                                <TrashIcon
+                                                    onClick={() => deletePdf(pdf.id)}
+                                                    className={`w-5 h-5 hover:scale-110 transition-transform cursor-pointer ${isDeleted
+                                                        ? "text-gray-400"
+                                                        : "text-red-500 hover:text-red-700"
+                                                        }`}
+                                                    title="Delete PDF"
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            {/* New Uploads */}
+                            {isEditing &&
+                                uploadedFiles.map((f, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="flex justify-between items-center px-3 py-2 rounded-md bg-cyan-50 text-cyan-900 border border-cyan-200 text-xs transition group"
+                                    >
+                                        <span className="truncate w-4/5">{f.name.replace(".pdf", "")}</span>
+                                        <TrashIcon
+                                            onClick={() => deletePdf(undefined, f.name.replace(".pdf", ""))}
+                                            className="w-4 h-4 text-red-500 hover:text-red-700 hover:scale-110 transition-transform 
+                                    cursor-pointer"
+                                            title="Remove this file"
+                                        />
+                                    </div>
+                                ))}
+                        </div>
+
+                        
+                    </motion.div>
+                )}
+
+                {isUploading && (
+                    <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in text-center px-6">
+                        <div className="relative w-16 h-16 mb-4">
+                            {!(uploadMode === "deleting") ? (
+                                <div
+                                    className="absolute inset-0 rounded-full animate-spin"
+                                    style={{
+                                        background: `conic-gradient(rgba(0,255,255,0.9) ${uploadPercent}%, rgba(0,255,255,0.1) ${uploadPercent}%)`,
+                                        maskImage: 'radial-gradient(circle at center, transparent 65%, black 66%)',
+                                        WebkitMaskImage: 'radial-gradient(circle at center, transparent 60%, black 60%)',
+                                        boxShadow: '0 0 12px rgba(0,255,255,0.5)',
+                                    }}
+                                />
+                            ) : (
+                                <div
+                                    className="absolute inset-1.5 rounded-full border-[3px] border-red-400 animate-spin"
+                                    style={{
+                                        boxShadow: '0 0 10px rgba(255, 100, 100, 0.5)',
+                                    }}
+                                />
+                            )}
+                        </div>
+
+                        {/* Status text */}
+                        {uploadMode === "uploading" ? (
+                            <>
+                                <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
+                                    Uploading file {currentFileIndex + 1} of {uploadedFiles.length}
+                                </p>
+                                <p className="text-cyan-300 text-sm">{uploadPercent}% completed</p>
+                            </>
+                        ) : uploadMode === "deleting" && uploadedFiles.length === 0 ? (
+                            <>
+                                <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
+                                    Deleting {deletedPdfs.length} file{deletedPdfs.length > 1 ? "s" : ""}...
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
+                                    Finalizing...
+                                </p>
+                            </>
+                        )}
+                    </div>
+
+                )}
+            </div>
         </div>
     );
 

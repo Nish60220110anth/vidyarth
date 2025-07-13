@@ -1,142 +1,217 @@
-import { useState } from "react";
+import { fetchSession, SessionInfo } from "@/utils/api";
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import { RichTextPane } from "./RichTextPane";
+import axios from "axios";
+import { ACCESS_PERMISSION, DOMAIN } from "@prisma/client";
+import { useIsMobile } from "@/hooks/useMobile";
+import { convertListsToParagraphs } from "@/utils/convertListToPara";
 import { motion } from "framer-motion";
-import { SparklesIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon, PencilSquareIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import { DOMAIN_COLORS } from "./ManageCompanyList";
 
-const DOMAIN_TIPS: Record<string, { title: string; description: string }[]> = {
-    Consulting: [
-        {
-            title: "Show Structured Thinking",
-            description: "Highlight case-solving frameworks or strategic planning experiences."
-        },
-        {
-            title: "Quantify Impact",
-            description: "E.g., 'Led team of 5 to reduce processing time by 30%'."
-        },
-        {
-            title: "Demonstrate Leadership",
-            description: "PoRs and team initiatives carry strong weight."
-        }
-    ],
-    Finance: [
-        {
-            title: "Emphasize Financial Tools",
-            description: "Mention Excel modeling, Bloomberg Terminal, CFA, or accounting tools."
-        },
-        {
-            title: "Highlight Quant Skills",
-            description: "Quantify metrics like ROI, portfolio returns, or valuation improvements."
-        },
-        {
-            title: "Mention Relevant Competitions",
-            description: "CFA Research Challenge, Stock pitch contests, or corporate finance case wins."
-        }
-    ],
-    ProdMan: [
-        {
-            title: "Showcase Product Thinking",
-            description: "Mention product lifecycle, roadmap ownership, or user-centric design."
-        },
-        {
-            title: "Emphasize Tech + Business Blend",
-            description: "Highlight tools (Jira, Figma, SQL) and metrics (user growth, retention)."
-        },
-        {
-            title: "Display Cross-functional Experience",
-            description: "Worked with tech, marketing, and design teams? Add it."
-        }
-    ],
-    Marketing: [
-        {
-            title: "Highlight Campaigns & Creativity",
-            description: "E.g., 'Designed Instagram strategy, resulting in 40% follower growth'."
-        },
-        {
-            title: "Include Analytics Tools",
-            description: "Google Analytics, Meta Ads, SEO/SEM keywords show practical experience."
-        },
-        {
-            title: "Mention Brand or Market Research",
-            description: "Include survey projects, market sizing, positioning exercises."
-        }
-    ],
-    Operations: [
-        {
-            title: "Focus on Efficiency & Process",
-            description: "E.g., 'Reduced procurement cycle by 25% via automation'."
-        },
-        {
-            title: "Use Ops Lingo",
-            description: "Words like TAT, SLA, lean ops, Kaizen, six sigma add credibility."
-        },
-        {
-            title: "Quantify Operational Impact",
-            description: "Time saved, cost reduced, process uptime — always give numbers."
-        }
-    ],
-    GenMan: [
-        {
-            title: "Demonstrate Versatility",
-            description: "Highlight a mix of leadership, creativity, and initiative."
-        },
-        {
-            title: "Show Execution at Scale",
-            description: "E.g., 'Managed 50+ member fest team with ₹5L+ budget'."
-        },
-        {
-            title: "Balance Academic + PoRs",
-            description: "Good grades, strong PoRs, and well-rounded experience matter."
-        }
-    ]
-};
+export default function HowToPrepareCV() {
+    const isMobile = useIsMobile();
 
-const DOMAIN_LIST = Object.keys(DOMAIN_TIPS);
+    const [session, setSession] = useState<SessionInfo | null>(null);
+    const [permissions, setPermissions] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedDomain, setSelectedDomain] = useState<DOMAIN>(DOMAIN.CONSULTING);
 
-export default function DomainCVPrepGuide() {
-    const [activeDomain, setActiveDomain] = useState("Consulting");
+    const [originalContent, setOriginalContent] = useState<string>("");
+    const [content, setContent] = useState<string>("");
 
-    const tips = DOMAIN_TIPS[activeDomain];
+    const [isEditing, setIsEditing] = useState(false);
+
+    const loadSession = async () => {
+        const data = await fetchSession();
+        if (!data.success) {
+            toast.error("Failed to load session");
+            return;
+        }
+        setSession(data.data);
+    };
+
+    const fetchPermissions = async () => {
+        const res = await axios.get(`/api/permissions`);
+        setPermissions(res.data.permissions);
+    };
+
+    const fetchOverviewContent = async () => {
+        try {
+
+            const res = await axios.get(`/api/prep/?rType=domain&d=${selectedDomain}&t=${Date.now()}`, {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+                }
+            });
+            
+            if (!res.data.success) {
+                toast.error(res.data.error);
+                return;
+            }
+            
+            setContent(res.data.content);
+            setOriginalContent(res.data.content);
+        } catch (err: any) {
+            toast.error("Error loading content");
+            setContent("");
+            setOriginalContent("");
+        }
+    };
+
+    const saveOverviewContent = async () => {
+        try {
+            const res = await axios.put(`/api/prep`, {
+                content,
+                rType: "domain",
+                d: selectedDomain
+            }, {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.EDIT_COMPANY_INFO,
+                }
+            });
+
+            if (!res.data.success) {
+                toast.error(res.data.error);
+                return;
+            }
+
+            setOriginalContent(content);
+            setIsEditing(false);
+        } catch (err) {
+            toast.error("Failed to save content");
+        }
+    };
+
+    useEffect(() => {
+        const init = async () => {
+            setLoading(true);
+            await loadSession();
+            await fetchPermissions();
+            setLoading(false);
+        };
+        init();
+    }, []);
+
+    useEffect(() => {
+        if (session) {
+            fetchOverviewContent();
+        }
+    }, [selectedDomain, session]);
+
+    const isEditor =
+        session?.role && permissions.includes(ACCESS_PERMISSION.EDIT_COMPANY_INFO);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[150px] bg-gray-50 border border-cyan-100 rounded-md text-sm text-cyan-600 font-medium gap-2 px-4 py-3 shadow-sm">
+                <svg className="w-4 h-4 animate-spin text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v4m0 8v4m8-8h4M4 12H0m16.24-6.24l2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83" />
+                </svg>
+                Loading content...
+            </div>
+        );
+    }
+
+    if (!session) {
+        return (
+            <div className="flex items-center justify-center min-h-[150px] bg-red-50 border border-red-200 rounded-md text-sm text-red-600 font-medium gap-2 px-4 py-3 shadow-sm">
+                <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z" />
+                </svg>
+                Unable to load content. Please try again.
+            </div>
+        );
+    }
 
     return (
-        <section className="max-w-4xl mx-auto px-6 py-10 text-white">
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                    <SparklesIcon className="w-7 h-7 text-cyan-400" />
-                    Domain-wise CV Preparation Guide
-                </h1>
-                <p className="text-gray-400 text-sm mt-1">
-                    Choose a domain to see customized tips for CV building.
-                </p>
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="max-h-[calc(100vh-5.5rem)]"
+        >
+            {/* Tabs for domain selection */}
+            <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-2 sm:px-6 py-3 overflow-x-auto whitespace-nowrap flex gap-2 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+                {Object.values(DOMAIN).map((dom) => {
+                    const color = DOMAIN_COLORS[dom] ?? { bg: "bg-gray-100", text: "text-gray-800" };
+                    const isSelected = selectedDomain === dom;
+
+                    return (
+                        <button
+                            key={dom}
+                            onClick={() => {
+                                setIsEditing(false);
+                                setSelectedDomain(dom);
+                            }}
+                            className={`
+                    text-sm px-4 py-1.5 rounded-full font-medium border transition-all duration-200
+                    ${isSelected
+                                    ? `${color.bg} ${color.text} ${color.border} border-transparent shadow-sm`
+                                    : `bg-white text-gray-700 border-gray-300 hover:${color.bg} hover:${color.text} hover:${color.border}`}
+                `}
+                        >
+                            {dom}
+                        </button>
+                    );
+                })}
             </div>
 
-            <div className="flex flex-wrap gap-2 mb-6">
-                {DOMAIN_LIST.map((domain) => (
-                    <button
-                        key={domain}
-                        onClick={() => setActiveDomain(domain)}
-                        className={`px-4 py-2 text-sm rounded-full font-medium transition ${activeDomain === domain
-                                ? "bg-cyan-600 text-white"
-                                : "bg-gray-800 hover:bg-gray-700 text-gray-300"
-                            }`}
-                    >
-                        {domain}
-                    </button>
-                ))}
-            </div>
+            {/* Content editor section */}
+            <div className="group bg-white border border-gray-200 rounded-2xl shadow-lg px-4 sm:px-8 py-0 space-y-4 w-full transition-all duration-300 ease-in-out h-full overflow-hidden">
+                <div className="h-full overflow-y-auto">
+                    {isEditor && (
+                        <div className="sticky top-0 z-10 border-b border-gray-300 py-3 flex flex-col sm:flex-row justify-end items-start sm:items-center gap-2">
+                            {!isEditing ? (
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="w-full sm:w-auto px-4 py-1.5 text-sm rounded-md border border-cyan-500 text-cyan-700 bg-white hover:bg-cyan-50 hover:shadow-md transition-all duration-200 ease-in-out font-medium flex items-center gap-2"
+                                >
+                                    <PencilSquareIcon className="w-4 h-4" />
+                                    Edit
+                                </button>
+                            ) : (
+                                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                    <button
+                                        onClick={() => {
+                                            setContent(originalContent);
+                                            setIsEditing(false);
+                                        }}
+                                        className="px-4 py-1.5 text-sm rounded-md border border-red-400 text-red-600 bg-white hover:bg-red-50 hover:shadow transition-all duration-200 w-full sm:w-auto font-medium flex items-center gap-2"
+                                    >
+                                        <XCircleIcon className="w-4 h-4" />
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={saveOverviewContent}
+                                        className="px-4 py-1.5 text-sm rounded-md bg-cyan-600 text-white hover:bg-cyan-700 shadow-sm hover:shadow-md transition-all duration-200 w-full sm:w-auto font-semibold flex items-center gap-2"
+                                    >
+                                        <CheckCircleIcon className="w-4 h-4 text-white" />
+                                        Save
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
-            <div className="space-y-4">
-                {tips.map((tip, i) => (
-                    <motion.div
-                        key={i}
-                        className="bg-gray-900 p-5 rounded-xl shadow-md border border-gray-700"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.1 }}
-                    >
-                        <h3 className="text-lg font-semibold mb-1">{tip.title}</h3>
-                        <p className="text-sm text-gray-300">{tip.description}</p>
-                    </motion.div>
-                ))}
+                    <div className="pb-6">
+                        <RichTextPane
+                            key={selectedDomain}
+                            editable={isEditing}
+                            lexicalState={
+                                !isEditing
+                                    ? isMobile
+                                        ? convertListsToParagraphs(content)
+                                        : content
+                                    : content
+                            }
+                            OnSetContent={(f: string) => setContent(f)}
+                            placeholder={isEditor ? "Enter content here..." : "Content not available yet"}
+                        />
+                    </div>
+                </div>
             </div>
-        </section>
+        </motion.div>
     );
 }

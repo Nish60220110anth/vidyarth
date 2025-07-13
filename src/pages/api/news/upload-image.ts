@@ -57,7 +57,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                     where: {
                         id: newsId
                     }, select: {
-                        firebase_path: true
+                        firebase_path: true,
+                        updated_at: true
                     }
                 })
 
@@ -67,7 +68,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 }
 
                 const fileBuffer = fs.readFileSync(file.filepath);
-                const firebasePath = `news-images/${newFilename}`;
+                const firebasePath = `news-images/${newFilename}-${oldFileNews?.updated_at}`;
 
                 const fileRef = bucket.file(firebasePath);
 
@@ -83,14 +84,13 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                     expires: "03-01-2030",
                 });
 
-
                 await prisma.news.update({
                     where: { id: newsId },
                     data: { image_url: signedUrl, firebase_path: firebasePath },
                 });
 
                 apiHelpers.created(res, {})
-                return
+                return;
 
             } catch (e) {
                 console.error("File processing error:", e);

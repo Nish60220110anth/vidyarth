@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ALL_DOMAINS } from "./ManageCompanyList";
 import { ArrowPathIcon, Bars3Icon, Squares2X2Icon } from "@heroicons/react/24/solid";
 import { ACCESS_PERMISSION } from "@prisma/client";
+import toast from "react-hot-toast";
 function groupByFirstLetter(companies: Company[]): Record<string, Company[]> {
     const grouped: Record<string, Company[]> = {};
 
@@ -89,9 +90,11 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                 }
             });
 
+            // console.log("res", res.data.companies)
+
             setAllCompanies(res.data.companies.filter((c: Company) => c.id > 0) || []);
         } catch (error) {
-            console.error("Failed to load companies", error);
+            toast.error("Failed to load companies");
         }
         finally {
             setTimeout(() => setIsRefreshing(false), 1000);
@@ -257,7 +260,11 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                         </motion.button>
 
                         <button
-                            onClick={fetchData}
+                            onClick={() => {
+                                fetchData();
+
+                                // console.log(allCompanies)
+                            }}
                             className="p-2 rounded-md border border-gray-300 text-gray-600 hover:text-cyan-600 hover:border-cyan-500 transition shadow-sm hover:shadow-md"
                             title="Refresh"
                         >

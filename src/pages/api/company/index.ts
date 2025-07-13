@@ -43,6 +43,7 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
 async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     if (req.method === "GET") {
+
         const whereClause = (req as any).filter ?? {};
 
         const { cid } = req.query;

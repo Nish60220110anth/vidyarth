@@ -1,23 +1,30 @@
 // /pages/api/users/[id].ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { ACCESS_PERMISSION, PrismaClient } from '@prisma/client';
 import { getIronSession, IronSessionData } from 'iron-session';
 import { sessionOptions } from '@/lib/session';
+import { prisma } from '@/lib/prisma';
+import { MethodConfig, withPermissionCheck } from '@/lib/server/withPermissionCheck';
 
-const prisma = new PrismaClient();
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    get: {
+        permissions: [ACCESS_PERMISSION.ENABLE_PROFILE],
+    },
+    patch: {
+        permissions: [ACCESS_PERMISSION.ADMIN],
+    },
+    delete: {
+        permissions: [ACCESS_PERMISSION.ADMIN],
+    }
+};
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
     const userId = parseInt(req.query.id as string);
-
     if (isNaN(userId)) {
         return res.status(400).json({ success: false, error: "Invalid user ID" });
     }
 
-    const session = await getIronSession<IronSessionData>(req, res, sessionOptions);
-
-    // if (!session || !session.name || !session.email) {
-    //     return res.status(401).json({ success: false, error: "Unauthorized or session invalid" });
-    // }
+    // const session = await getIronSession<IronSessionData>(req, res, sessionOptions);
 
     if (req.method === 'GET') {
         try {
@@ -27,6 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     disha_profile: {
                         include: {
                             mentor: true,
+                            placement_cycle: true
                         },
                     },
                     shadow_as_user2: {
@@ -41,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     },
                     disha_mentees: {
                         include: {
-                            user: true,
+                            user: true
                         },
                     },
                 },
@@ -50,7 +58,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (!user) {
                 return res.status(404).json({ success: false, error: "User not found" });
             }
-
             // const isSelf = user.name === session.name && user.email_id === session.email;
 
             // if (!isSelf) {
@@ -74,6 +81,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         email_id: user.disha_profile.mentor.email_id,
                     }
                     : null;
+
+                result.placement_cycle = {
+                    cycle_type: user.disha_profile?.placement_cycle.placement_type,
+                    year: user.disha_profile?.placement_cycle.year,
+                    status: user.disha_profile?.placement_cycle.status,
+                    batch_name: user.disha_profile?.placement_cycle.batch_name
+                }
 
                 if (user.shadow_as_user2?.user1) {
                     result.shadow = {
@@ -109,9 +123,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 
     if (req.method === 'PATCH') {
-        if (session.role !== "ADMIN") {
-            return res.status(403).json({ success: false, error: "Access denied" });
-        }
 
         const { role, is_active, is_verified } = req.body;
 
@@ -132,9 +143,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'DELETE') {
-        if (session.role !== "ADMIN") {
-            return res.status(403).json({ success: false, error: "Access denied" });
-        }
+
         try {
             await prisma.user.delete({
                 where: { id: userId },
@@ -145,5 +154,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
 }
+
+// export default withPermissionCheck(METHOD_PERMISSIONS)(handler);
+export default handler;

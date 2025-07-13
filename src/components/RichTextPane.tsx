@@ -109,10 +109,9 @@ function LoadLexicalStatePlugin({
                 const parsed = JSON.parse(lexicalState);
                 const newEditorState = editor.parseEditorState(parsed);
                 editor.setEditorState(newEditorState);
-                console.log('Lexical state loaded.');
             } catch (err) {
+                console.log(err)
                 toast.error('Failed to load lexical content');
-                console.error(err);
             }
         }
     }, [editor, lexicalState, editable]);

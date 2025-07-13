@@ -24,11 +24,59 @@ type UserDetail = {
     disha_mentor?: MentorInfo | null;
     shadow?: MentorInfo | null;
     mentees?: MentorInfo[];
+    placement_cycle: {
+        year: string,
+        cycle_type: string,
+        batch_name: string,
+        status: string
+    }
 };
+
+function toTitleCase(name: string): string {
+    return name
+        .toLowerCase()
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+}
+
 
 export default function Profile({ name, email, role }: Props) {
     const [user, setUser] = useState<UserDetail | null>(null);
     const { icon, color } = roleIcons[role as USER_ROLE];
+
+    const [hasUserImage, setHasUserImage] = useState(false);
+    const [userImageSrc, setUserImageSrc] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const tryExtensions = async () => {
+            const extensions = ["png", "jpg", "jpeg"];
+
+            for (const ext of extensions) {
+                const path = `/user-images/${user.id}.${ext}`;
+                const img = new Image();
+                img.src = path;
+
+                const result = await new Promise<boolean>((resolve) => {
+                    img.onload = () => resolve(true);
+                    img.onerror = () => resolve(false);
+                });
+
+                if (result) {
+                    setUserImageSrc(path);
+                    setHasUserImage(true);
+                    return;
+                }
+            }
+
+            setUserImageSrc(null);
+            setHasUserImage(false);
+        };
+
+        tryExtensions();
+    }, [user?.id]);
 
     useEffect(() => {
         const fetchUserInfo = async () => {
@@ -57,18 +105,47 @@ export default function Profile({ name, email, role }: Props) {
 
         fetchUserInfo();
     }, [name, email, role]);
+    
 
-    const displayRow = (label: string, value: string | null | undefined) => (
-        <div className="flex justify-between items-center border-b border-gray-800 py-2">
-            <span className="text-gray-400">{label}</span>
-            <span className="text-white font-medium text-right">
-                {value || "Not assigned"}
-            </span>
-        </div>
-    );
+    const displayRow = (
+        label: string,
+        value: string | null | undefined,
+        isEmail = false,
+        emailSubject?: string,
+        emailBody?: string
+    ) => {
+        const email = isEmail ? value?.match(/<(.+)>/)?.[1] ?? value : null;
+
+        const mailtoLink = email
+            ? `mailto:${email}?subject=${encodeURIComponent(emailSubject || "")}&body=${encodeURIComponent(emailBody || "")}`
+            : "";
+
+        return (
+            <div className="flex justify-between items-center border-b border-gray-800 py-2">
+                <span className="text-gray-400">{label}</span>
+                <span className="text-white font-medium text-right">
+                    {value ? (
+                        isEmail && email ? (
+                            <a
+                                href={mailtoLink}
+                                className="text-cyan-400 hover:underline break-all"
+                            >
+                                {value}
+                            </a>
+                        ) : (
+                            value
+                        )
+                    ) : (
+                        "Not assigned"
+                    )}
+                </span>
+            </div>
+        );
+    };
+
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-b from-gray-950 to-gray-900 px-4">
+        <div className="w-full h-full flex justify-center items-center bg-gradient-to-b from-gray-950 to-gray-900 px-4 overflow-hidden">
             <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -76,13 +153,23 @@ export default function Profile({ name, email, role }: Props) {
                 className="w-full max-w-xl p-8 bg-gray-900 text-white rounded-3xl shadow-2xl font-[Urbanist] border border-gray-800"
             >
                 <div className="flex flex-col items-center mb-6 space-y-2">
-                    <div
-                        className={`w-20 h-20 rounded-full bg-gray-800 flex items-center justify-center border-4 ${color}`}
-                    >
-                        {icon("w-10 h-10")}
+
+                    <div className={`w-20 h-20 rounded-full border-4 ${color} overflow-hidden`}>
+                        {hasUserImage && userImageSrc ? (
+                            <img
+                                src={userImageSrc}
+                                alt="User avatar"
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                                {icon("w-10 h-10")}
+                            </div>
+                        )}
                     </div>
+
                     <h1 className="text-2xl font-bold text-center mt-2">
-                        Hi {user?.pcomid || "PCOM ID"} – {user?.name || name}
+                        Hi {user?.pcomid} {user?.pcomid? "-":""} {toTitleCase(user?.name || name)}
                     </h1>
                 </div>
 
@@ -97,9 +184,17 @@ export default function Profile({ name, email, role }: Props) {
                                     exit={{ opacity: 0, y: 10 }}
                                     transition={{ duration: 0.3 }}
                                 >
+                                    {user.placement_cycle && displayRow(
+                                        "Enrolled Cycle",
+                                        `${user.placement_cycle.cycle_type}-${user.placement_cycle.year}`
+                                    )}
+                                    {displayRow('PGP ID', user.pgpid)}
                                     {displayRow(
                                         "DISHA Mentor",
-                                        `${user.disha_mentor.name} (${user.disha_mentor.email_id})`
+                                        `${toTitleCase(user.disha_mentor.name)} (${user.disha_mentor.email_id})`,
+                                        true,
+                                        `DISHA Mentee ${user.pcomid} - ${toTitleCase(user.name)} Query`,
+                                        `Hi ${toTitleCase(user.disha_mentor.name)},\n\nI am ${toTitleCase(user.name)}, from your cohort. I mailed you to resolve a query pertaining to current ${user.placement_cycle.cycle_type} process.\n\nThanks,\n${toTitleCase(user.name)}`
                                     )}
                                 </m.div>
                             )}
@@ -114,7 +209,10 @@ export default function Profile({ name, email, role }: Props) {
                                 >
                                     {displayRow(
                                         "Shadow",
-                                        `${user.shadow.name} (${user.shadow.email_id})`
+                                        `${toTitleCase(user.shadow.name)} (${user.shadow.email_id})`,
+                                        true,
+                                        `Cohort Shadow ${toTitleCase(user.name)}`,
+                                        `Hi ${toTitleCase(user.shadow.name)} bro,\n\nI am ${toTitleCase(user.name)}, from ${toTitleCase(user.disha_mentor?.name || "")}'s cohort. I mailed you to resolve a query pertaining to current ${user.placement_cycle.cycle_type} process.\n\nThanks,\n${toTitleCase(user.name)}`
                                     )}
                                 </m.div>
                             )}
@@ -139,12 +237,6 @@ export default function Profile({ name, email, role }: Props) {
                         </m.div>
                     ) : null}
                 </AnimatePresence>
-
-                <div className="mt-6 flex justify-center">
-                    <button className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 transition-all rounded-lg text-sm font-medium shadow-md">
-                        Edit Profile
-                    </button>
-                </div>
             </motion.div>
         </div>
     );
