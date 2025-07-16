@@ -1,0 +1,15 @@
+model announcements {
+  id Int @id @default(autoincrement())
+
+  userId Int
+  user   user @relation(fields: [userId], references: [id])
+
+  title         String @db.Text
+  brief         String @db.Text
+  where_to_look String @db.Text
+  link_name String
+  is_link       Boolean
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}

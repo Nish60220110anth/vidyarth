@@ -76,13 +76,11 @@ export default function ManageCompanyList() {
     const [editedDomains, setEditedDomains] = useState<string[]>([]);
     const [updatedCompanyIds, setUpdatedCompanyIds] = useState<Set<number>>(new Set());
 
-
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [newCompanyId, setNewCompanyId] = useState<number | null>(null);
 
     const [selectedDomain, setSelectedDomain] = useState<string>("ALL");
     const [isRefreshing, setIsRefreshing] = useState(false);
-
 
     useEffect(() => {
         if (editId === newCompanyId && inputRef.current) {
@@ -156,7 +154,7 @@ export default function ManageCompanyList() {
             setTimeout(() => setIsRefreshing(false), 1000);
         }
     };
-    
+
     const handleEdit = (id: number) => {
         setEditId(id);
         const company = companies.find((c) => c.id === id);
@@ -211,7 +209,6 @@ export default function ManageCompanyList() {
                 }
             }
 
-            // Local update
             const updatedCompany: Company = {
                 ...(companies.find(c => c.id === editId)!),
                 company_name: editedCompany.company_name || "",
@@ -396,7 +393,10 @@ export default function ManageCompanyList() {
             return 0;
         });
     }, [companies, sortKey, sortOrder]);
-    
+
+    if(editedCompany.is_legacy) {
+        editedCompany.is_featured = true
+    }
 
     return (
         <div className="px-4 py-6 md:px-10 md:py-10 bg-gray-100 min-h-screen">
@@ -661,7 +661,10 @@ export default function ManageCompanyList() {
 
                                 <div className="col-span-1 flex justify-center">
                                     {isEditing ? (
-                                        <button onClick={() => handleCheckboxChange("is_legacy", !editedCompany.is_legacy)}>
+                                        <button onClick={() => {
+                                            const curr = editedCompany.is_legacy;
+                                            handleCheckboxChange("is_legacy", !editedCompany.is_legacy)
+                                        }}>
                                             {editedCompany.is_legacy ? (
                                                 <CheckCircleIcon className="w-5 h-5 text-yellow-500" />
                                             ) : (

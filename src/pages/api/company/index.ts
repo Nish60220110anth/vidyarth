@@ -1,8 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { ACCESS_PERMISSION } from "@prisma/client";
+import { ACCESS_PERMISSION, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@prisma/client";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { prisma } from "@/lib/prisma";
 import { apiHelpers } from "@/lib/server/responseHelpers";
+import { createNotification } from "@/lib/server/notificationSink";
+import { generateSecureURL } from "@/utils/shared/secureUrlApi";
+import { baseUrl } from "@/pages/_app";
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
@@ -51,7 +54,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         if (cid && cid > "0") {
             whereClause.id = Number(cid);
         }
-        
+
         const companies = await prisma.company.findMany({
             where: whereClause,
             include: {
@@ -89,10 +92,42 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     if (req.method === "PUT") {
-        const { id, company_name, company_full, is_featured, is_legacy } = req.body;
+        const { id, company_name, company_full } = req.body;
+        let { is_featured, is_legacy } = req.body;
 
         const company_id = parseInt(id as string);
         if (isNaN(company_id)) return res.status(400).json({ error: "Invalid ID", success: false });
+
+        if (is_legacy) {
+            is_featured = true;
+        }
+
+        const oldRes = await prisma.company.findUnique({
+            where: {
+                id
+            },
+            select: {
+                is_featured: true
+            }
+        })
+
+        if (!oldRes?.is_featured && is_featured) {
+            const secureUrlResp = await generateSecureURL("COMPANY", company_id)
+
+            if (secureUrlResp.success) {
+                createNotification({
+                    type: NOTIFICATION_TYPE.COMPANY,
+                    subtype: NOTIFICATION_SUBTYPE.ADDED,
+                    companyId: company_id,
+                    links: [{
+                        link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Overview`,
+                        link_name: "company_link"
+                    }]
+                });
+            } else {
+                console.error(secureUrlResp.error)
+            }
+        }
 
         await prisma.company.update({
             where: { id: company_id },

@@ -1,4 +1,4 @@
-// File: /pages/api/compendium/index.ts
+// /pages/api/compendium/index.ts
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import fs from 'fs';
@@ -7,9 +7,12 @@ import formidable from 'formidable';
 import { bucket } from "@/lib/firebase-admin";
 import { prisma } from "@/lib/prisma";
 import { MethodConfig, withPermissionCheck } from '@/lib/server/withPermissionCheck';
-import { ACCESS_PERMISSION } from '@prisma/client';
+import { ACCESS_PERMISSION, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from '@prisma/client';
 import { getFieldValue } from '@/utils/parseApiField';
 import { apiHelpers } from '@/lib/server/responseHelpers';
+import { createNotification } from '@/lib/server/notificationSink';
+import { baseUrl } from '@/pages/_app';
+import { generateSecureURL } from '@/utils/shared/secureUrlApi';
 
 export const config = {
     api: {
@@ -67,7 +70,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             }
 
             try {
-                const compendium = await prisma.company_Compendium.findUnique({
+                const compendium = await prisma.company_compendium.findUnique({
                     where: { company_id: companyId },
                     include: {
                         compedium_pdf: true,
@@ -82,7 +85,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     return;
                 } else {
 
-                    const compe = await prisma.company_Compendium.create({
+                    const compe = await prisma.company_compendium.create({
                         data: { company_id: companyId },
                         include: {
                             compedium_pdf: true,
@@ -121,7 +124,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 const txtPath = path.join(COMPENDIUM_DIR, `${companyId}.txt`);
                 fs.writeFileSync(txtPath, content);
 
-                const compendium = await prisma.company_Compendium.upsert({
+                const compendium = await prisma.company_compendium.upsert({
                     where: { company_id: companyId },
                     update: {},
                     create: { company_id: companyId },
@@ -138,7 +141,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 }
 
                 if (deletePdfIds.length > 0) {
-                    const deletePdfs = await prisma.company_Compendium_Pdf_Path.findMany({
+                    const deletePdfs = await prisma.company_compendium_pdf_path.findMany({
                         where: { compendium_id: compendium.id, id: { in: deletePdfIds } },
                     });
 
@@ -155,14 +158,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         })
                     );
 
-                    await prisma.company_Compendium_Pdf_Path.deleteMany({
+                    await prisma.company_compendium_pdf_path.deleteMany({
                         where: {
                             compendium_id: compendium.id,
                             id: { in: deletePdfIds },
                         },
                     });
                 }
-
 
                 // Insert new files
                 for (let i = 1; i <= totalNewEntries; i++) {
@@ -198,7 +200,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     const ext = path.extname(file.originalFilename ?? ".pdf");
                     const filename = `${companyId}-${Date.now()}-${i}${ext}`;
                     const firebasePath = `compendium/${sanitizedCompanyName}/${filename}`;
-                      
+
                     try {
                         await bucket.upload(file.filepath, {
                             destination: firebasePath,
@@ -228,7 +230,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         });
 
 
-                        await prisma.company_Compendium_Pdf_Path.create({
+                        await prisma.company_compendium_pdf_path.create({
                             data: {
                                 compendium_id: compendium.id,
                                 pdf_path: url,
@@ -236,10 +238,27 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                                 firebase_path: firebasePath,
                             },
                         });
+
                     } catch (err) {
                         console.error(`Failed to upload file ${file.originalFilename}:`, err);
                         continue;
                     }
+                }
+
+                const secureUrlResp = await generateSecureURL("COMPANY", companyId)
+
+                if (secureUrlResp.success) {
+                    createNotification({
+                        type: NOTIFICATION_TYPE.CONTENT,
+                        subtype: NOTIFICATION_SUBTYPE.UPDATED,
+                        companyId: companyId,
+                        links: [{
+                            link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Compendium`,
+                            link_name: "Compendium"
+                        }]
+                    });
+                } else {
+                    console.error(secureUrlResp.error)
                 }
 
                 return res.status(200).json({ message: 'Saved successfully', success: true });

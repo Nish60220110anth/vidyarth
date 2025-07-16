@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { decrypt } from "@/utils/secureKey";
+import { decrypt } from "@/utils/shared/secureKey";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "GET") {

@@ -23,40 +23,40 @@ export type MethodConfig = {
 
 type PermissionMap = Record<string, MethodConfig>;
 
-const redis = new Redis({
-    host: "127.0.0.1",          // or use your Redis host/IP
-    port: 6379,                 // default Redis port
-    password: "nishanth@9344905119",               // add password if your Redis is secured
-    db: 0,                      // Redis DB index (0–15)
-    name: "vidyarth-backend",   // optional: client name (visible in CLIENT LIST)
-    lazyConnect: false,         // immediately connect
-    connectTimeout: 10000,      // ms before connection fails
-    maxRetriesPerRequest: 2,    // max retry attempts
-    enableReadyCheck: true,     // ensure server is ready before use
-    enableOfflineQueue: true,   // queue commands while connecting
-    tls: undefined              // add TLS config if using secure Redis
-});
+// const redis = new Redis({
+//     host: "127.0.0.1",          // or use your Redis host/IP
+//     port: 6379,                 // default Redis port
+//     password: "nishanth@9344905119",               // add password if your Redis is secured
+//     db: 0,                      // Redis DB index (0–15)
+//     name: "vidyarth-backend",   // client name
+//     lazyConnect: false,         // immediately connect
+//     connectTimeout: 10000,      // ms before connection fails
+//     maxRetriesPerRequest: 2,    // max retry attempts
+//     enableReadyCheck: true,     // ensure server is ready before use
+//     enableOfflineQueue: true,   // queue commands while connecting
+//     tls: undefined              // add TLS config if using secure Redis
+// });
   
 
-const rateLimiter = new RateLimiterRedis({
-    storeClient: redis,
-    keyPrefix: "api",
-    points: 100, // max requests
-    duration: 60, // per 60 seconds
-});
+// const rateLimiter = new RateLimiterRedis({
+//     storeClient: redis,
+//     keyPrefix: "api",
+//     points: 100, // max requests
+//     duration: 60, // per 60 seconds
+// });
 
-async function checkRateLimit(req: NextApiRequest, res: NextApiResponse) {
-    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+// async function checkRateLimit(req: NextApiRequest, res: NextApiResponse) {
+//     const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
-    try {
-        await rateLimiter.consume(ip as string);
-    } catch {
-        res.status(429).json({ error: "Too many requests" });
-        return true;
-    }
+//     try {
+//         await rateLimiter.consume(ip as string);
+//     } catch {
+//         res.status(429).json({ error: "Too many requests" });
+//         return true;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
 const logUnauthorizedAccess = (details: Record<string, any>) => {
     const logDir = path.join(process.cwd(), "logs");
@@ -81,7 +81,7 @@ const logUnauthorizedAccess = (details: Record<string, any>) => {
 export function withPermissionCheck(METHOD_PERMISSIONS: PermissionMap) {
     return function wrap(handler: Handler) {
         return async function wrappedHandler(req: NextApiRequest, res: NextApiResponse) {
-            if (await checkRateLimit(req, res)) return;
+            // if (await checkRateLimit(req, res)) return;
 
             const session: IronSessionData = await getIronSession(req, res, sessionOptions);
             const role: USER_ROLE = (session?.role as USER_ROLE) ?? USER_ROLE.STUDENT;

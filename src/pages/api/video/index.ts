@@ -11,8 +11,11 @@ export const config = {
 import formidable from "formidable";
 import fs from "fs";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
-import { ACCESS_PERMISSION } from "@prisma/client";
+import { ACCESS_PERMISSION, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@prisma/client";
 import { apiHelpers } from "@/lib/server/responseHelpers";
+import { createNotification } from "@/lib/server/notificationSink";
+import { generateSecureURL } from "@/utils/shared/secureUrlApi";
+import { baseUrl } from "@/pages/_app";
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
@@ -141,6 +144,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 image_path = signedUrl;
             }
 
+            const oldVideo = await prisma.video.findUnique({
+                where: {
+                    id
+                },
+                select: {
+                    is_featured: true
+                }
+            })
+
             if (keep_existing_image) {
                 await prisma.video.update({
                     where: { id },
@@ -153,6 +165,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         is_featured,
                     },
                 });
+
+                if (!oldVideo?.is_featured && is_featured) {
+                    const secureUrlResp = await generateSecureURL("COMPANY", company_id)
+
+                    if (secureUrlResp.success) {
+                        createNotification({
+                            type: NOTIFICATION_TYPE.CONTENT,
+                            subtype: NOTIFICATION_SUBTYPE.UPDATED,
+                            companyId: company_id,
+                            links: [{
+                                link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Videos`,
+                                link_name: "Recorded Videos"
+                            }]
+                        });
+                    } else {
+                        console.error(secureUrlResp.error)
+                    }
+                }
+
             } else {
                 // delete existing thumbnail if exists
                 const existingVideo = await prisma.video.findUnique({
@@ -178,6 +209,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         firebase_path
                     },
                 });
+
+                if (!oldVideo?.is_featured && is_featured) {
+                    const secureUrlResp = await generateSecureURL("COMPANY", company_id)
+
+                    if (secureUrlResp.success) {
+                        createNotification({
+                            type: NOTIFICATION_TYPE.CONTENT,
+                            subtype: NOTIFICATION_SUBTYPE.UPDATED,
+                            companyId: company_id,
+                            links: [{
+                                link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Videos`,
+                                link_name: "Recorded Videos"
+                            }]
+                        });
+                    } else {
+                        console.error(secureUrlResp.error)
+                    }
+                }
+
             }
 
             const refreshedVideo = await prisma.video.findUnique({

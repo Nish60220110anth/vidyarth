@@ -1,12 +1,12 @@
 // pages/api/sink-shortlist.ts
-
 import type { NextApiRequest, NextApiResponse } from "next";
 import Cors from "cors";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma"
+import { createNotification } from "@/lib/server/notificationSink";
+import { NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@prisma/client";
+import { generateSecureURL } from "@/utils/shared/secureUrlApi";
+import { baseUrl, chitraguptaUrl } from "../_app";
 
-const prisma = new PrismaClient();
-
-// Init middleware
 const cors = Cors({
     origin: "http://localhost:5173",
     methods: ["POST", "OPTIONS"],
@@ -26,6 +26,8 @@ type InsertedShortlist = {
     company_name: string;
     pcom_id: number;
     role: string;
+    sl_type: string;
+    company_id: number;
 };
 
 type SkippedShortlist = {
@@ -69,16 +71,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         await prisma.shortlist.deleteMany({
             where: {
-                // company_id: company.id,
-                // round_details,
-                // shortlist_type,
-                // round_type,
-                // day,
-                // role: company_role,
                 shortlist_id: shortlist_id ? shortlist_id : undefined,
             },
         });
-
 
         for (const entry of data) {
             const {
@@ -90,7 +85,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 updated_at,
                 company_name,
                 company_role,
-                name,
                 pcom_id,
             } = entry;
 
@@ -147,7 +141,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     id: shortlist.id,
                     company_name,
                     pcom_id,
+                    sl_type: shortlist.shortlist_type,
                     role: company_role,
+                    company_id: company.id
                 });
             } catch (err: any) {
                 results.errors.push({
@@ -155,6 +151,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     company_name,
                     error: err.message,
                 });
+            }
+        }
+
+        for (const entry of results.inserted) {
+            const secureUrlRespMySection = await generateSecureURL("MY_SECTION", 0)
+            const secureUrlRespCompany = await generateSecureURL("COMPANY", entry.company_id)
+
+            if (secureUrlRespMySection.success && secureUrlRespCompany.success) {
+                createNotification({
+                    type: NOTIFICATION_TYPE.SHORTLIST,
+                    subtype: entry.sl_type === "SL" ? NOTIFICATION_SUBTYPE.SL : NOTIFICATION_SUBTYPE.ESL,
+                    shortlistId: entry.id,
+                    links: [{
+                        link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlRespMySection.url)}&tab=My+Section`,
+                        link_name: "my_section_link"
+                    }, {
+                        link: `${chitraguptaUrl}/my-shortlists`,
+                        link_name: "chitragupta_link"
+                    }, {
+                        link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlRespCompany.url)}&tab=Summary`,
+                        link_name: "company_link"
+                    }]
+                });
+            } else {
+                if (!secureUrlRespCompany.success) {
+                    console.log(secureUrlRespCompany.error)
+                }
+                if (!secureUrlRespMySection.success) {
+                    console.log(secureUrlRespMySection.error)
+                }
             }
         }
 

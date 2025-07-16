@@ -1,0 +1,35 @@
+model notification {
+  id      Int                  @id @default(autoincrement())
+  type    NOTIFICATION_TYPE
+  subtype NOTIFICATION_SUBTYPE
+
+  shortlistId Int?
+  shortlist   shortlist? @relation(fields: [shortlistId], references: [id])
+
+  companyId Int?
+  company   company? @relation(fields: [companyId], references: [id])
+
+  domain DOMAIN?
+  links  notification_link[]
+
+  is_handled Boolean
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model notification_link {
+  id             Int          @id @default(autoincrement())
+  link           String       @db.Text
+  link_name      String
+  notificationId Int
+  notification   notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+}
+
+model notification_properties {
+  type            NOTIFICATION_TYPE @id
+  send_email      Boolean
+  delay           Int
+  only_for_target Boolean
+  role            USER_ROLE?
+}

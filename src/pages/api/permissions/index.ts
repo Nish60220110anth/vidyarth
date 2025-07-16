@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === "GET" && role) {
         try {
-            const rolePerm = await prisma.role_Permission.findUnique({
+            const rolePerm = await prisma.role_permission.findUnique({
                 where: { role },
                 include: {
                     permissions: {

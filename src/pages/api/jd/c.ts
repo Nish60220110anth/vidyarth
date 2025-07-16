@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(400).json({ error: "Invalid request. Use PUT for main update." });
             }
 
-            const defaultJD = await prisma.company_JD.create({
+            const defaultJD = await prisma.company_jd.create({
                 data: {
                     company_id: 1, // Replace later
                     placement_cycle_id: 5, // Replace later
@@ -47,14 +47,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 },
             });
 
-            await prisma.companyJD_Domain.create({
+            await prisma.companyjd_domain.create({
                 data: {
                     company_jd_id: defaultJD.id,
                     domain: "FINANCE",
                 },
             });
 
-            const refreshedJD = await prisma.company_JD.findUnique({
+            const refreshedJD = await prisma.company_jd.findUnique({
                 where: { id: defaultJD.id },
                 include: {
                     company: true,
@@ -103,7 +103,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
 
             if (keep_existing_pdf) {
-               await prisma.company_JD.update({
+               await prisma.company_jd.update({
                     where: { id },
                     data: {
                         company_id,
@@ -113,7 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     },
                 });
             } else {
-                await prisma.company_JD.update({
+                await prisma.company_jd.update({
                     where: { id },
                     data: {
                         company_id,
@@ -126,12 +126,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
 
             // Update domains
-            await prisma.companyJD_Domain.deleteMany({
+            await prisma.companyjd_domain.deleteMany({
                 where: { company_jd_id: id },
             });
 
             const domainList: DOMAIN[] = JSON.parse(domains);
-            await prisma.companyJD_Domain.createMany({
+            await prisma.companyjd_domain.createMany({
                 data: domainList.map((d) => ({
                     company_jd_id: id,
                     domain: d,
@@ -139,7 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 skipDuplicates: true,
             });
 
-            const refreshedJD = await prisma.company_JD.findUnique({
+            const refreshedJD = await prisma.company_jd.findUnique({
                 where: { id },
                 include: {
                     company: true,
@@ -157,7 +157,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === "GET") {
         try {
-            const allJDs = await prisma.company_JD.findMany({
+            const allJDs = await prisma.company_jd.findMany({
                 include: {
                     company: {
                         include: {

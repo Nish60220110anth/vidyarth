@@ -1,5 +1,7 @@
 // utils/secureUrlApi.ts
 
+import { baseUrl } from "@/pages/_app";
+
 type GenerateUrlResponse = {
     success: true;
     url: string;
@@ -19,7 +21,7 @@ type DecryptResponse = {
 
 export async function generateSecureURL(key: string, id: number): Promise<GenerateUrlResponse> {
     try {
-        const res = await fetch("/api/auth/encryption/generate-encrypt", {
+        const res = await fetch(`${baseUrl}/api/auth/encryption/generate-encrypt`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ key, id }),
@@ -27,13 +29,14 @@ export async function generateSecureURL(key: string, id: number): Promise<Genera
 
         return await res.json();
     } catch (err) {
+        console.log(err)
         return { success: false, error: "Failed to connect to encryption API" };
     }
 }
 
 export async function decodeSecureURL(auth: string): Promise<DecryptResponse> {
     try {
-        const res = await fetch(`/api/auth/encryption/decode-encrypt?auth=${encodeURIComponent(auth)}`, {
+        const res = await fetch(`${baseUrl}/api/auth/encryption/decode-encrypt?auth=${encodeURIComponent(auth)}`, {
             method: "GET",
         });
 
@@ -42,4 +45,3 @@ export async function decodeSecureURL(auth: string): Promise<DecryptResponse> {
         return { success: false, error: "Failed to connect to decryption API" };
     }
 }
-  

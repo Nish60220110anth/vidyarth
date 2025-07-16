@@ -1,11 +1,14 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { DOMAIN, ACCESS_PERMISSION } from "@prisma/client";
+import { DOMAIN, ACCESS_PERMISSION, NOTIFICATION_TYPE, NOTIFICATION_SUBTYPE } from "@prisma/client";
 import { bucket } from "@/lib/firebase-admin";
 import { prisma } from "@/lib/prisma";
 import formidable from "formidable";
 import fs from "fs";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { apiHelpers } from "@/lib/server/responseHelpers";
+import { createNotification } from "@/lib/server/notificationSink";
+import { generateSecureURL } from "@/utils/shared/secureUrlApi";
+import { baseUrl } from "@/pages/_app";
 
 export const config = {
     api: {
@@ -67,7 +70,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 return;
             }
 
-            const defaultJD = await prisma.company_JD.create({
+            const defaultJD = await prisma.company_jd.create({
                 data: {
                     company_id: 0,
                     placement_cycle_id: 5,
@@ -82,14 +85,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 },
             });
 
-            await prisma.companyJD_Domain.create({
+            await prisma.companyjd_domain.create({
                 data: {
                     company_jd_id: defaultJD.id,
                     domain: "FINANCE",
                 },
             });
 
-            const refreshedJD = await prisma.company_JD.findUnique({
+            const refreshedJD = await prisma.company_jd.findUnique({
                 where: { id: defaultJD.id },
                 include: {
                     company: true,
@@ -118,12 +121,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             const id = Array.isArray(fields.id) ? fields.id[0] : fields.id;
             const role = Array.isArray(fields.role) ? fields.role[0] : fields.role;
             const pdf_name = Array.isArray(fields.pdf_name) ? fields.pdf_name[0] : fields.pdf_name;
-            const company_id = Array.isArray(fields.company_id) ? parseInt(fields.company_id[0]) : parseInt(fields.company_id);
+            const companyId = Array.isArray(fields.company_id) ? parseInt(fields.company_id[0]) : parseInt(fields.company_id);
             const placement_cycle_id = Array.isArray(fields.placement_cycle_id) ? parseInt(fields.placement_cycle_id[0]) : parseInt(fields.placement_cycle_id);
             const is_active = Array.isArray(fields.is_active) ? fields.is_active[0] === "true" : fields.is_active === "true";
             const keep_existing_pdf = Array.isArray(fields.keep_existing_pdf) ? fields.keep_existing_pdf[0] === "true" : fields.keep_existing_pdf === "true";
 
-            if (!id || !company_id || !placement_cycle_id || !role) {
+            if (!id || !companyId || !placement_cycle_id || !role) {
                 apiHelpers.badRequest(res)
                 return;
             }
@@ -158,20 +161,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             }
 
             if (keep_existing_pdf) {
-                await prisma.company_JD.update({
+                await prisma.company_jd.update({
                     where: { id },
                     data: {
-                        company_id,
+                        company_id: companyId,
                         placement_cycle_id,
                         role,
                         is_active
                     },
                 });
             } else {
-                await prisma.company_JD.update({
+                await prisma.company_jd.update({
                     where: { id },
                     data: {
-                        company_id,
+                        company_id: companyId,
                         placement_cycle_id,
                         role,
                         pdf_path,
@@ -183,12 +186,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             }
 
             // Update domains
-            await prisma.companyJD_Domain.deleteMany({
+            await prisma.companyjd_domain.deleteMany({
                 where: { company_jd_id: id },
             });
 
             const domainList: DOMAIN[] = JSON.parse(domains);
-            await prisma.companyJD_Domain.createMany({
+            await prisma.companyjd_domain.createMany({
                 data: domainList.map((d) => ({
                     company_jd_id: id,
                     domain: d,
@@ -196,7 +199,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 skipDuplicates: true,
             });
 
-            const refreshedJD = await prisma.company_JD.findUnique({
+            const refreshedJD = await prisma.company_jd.findUnique({
                 where: { id },
                 include: {
                     company: true,
@@ -204,6 +207,22 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     domains: true,
                 },
             });
+
+            const secureUrlResp = await generateSecureURL("COMPANY", companyId)
+
+            if (secureUrlResp.success) {
+                        createNotification({
+                            type: NOTIFICATION_TYPE.CONTENT,
+                            subtype: NOTIFICATION_SUBTYPE.UPDATED,
+                            companyId: companyId,
+                            links: [{
+                                link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Job+Description`,
+                                link_name: "Job Description"
+                            }]
+                        });
+            } else {
+                console.error(secureUrlResp.error)
+            }
 
             apiHelpers.success(res, { refreshedJD })
             return;
@@ -226,7 +245,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 filters.company_id = parseInt(Array.isArray(cid) ? cid[0] : cid);
             }
 
-            const allJDs = await prisma.company_JD.findMany({
+            const allJDs = await prisma.company_jd.findMany({
                 where: filters,
                 include: {
                     company: {
@@ -260,7 +279,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 return;
             }
 
-            const jd = await prisma.company_JD.findUnique({
+            const jd = await prisma.company_jd.findUnique({
                 where: { id: jdId },
             });
 
@@ -278,11 +297,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 }
             }
 
-            await prisma.companyJD_Domain.deleteMany({
+            await prisma.companyjd_domain.deleteMany({
                 where: { company_jd_id: jdId },
             });
 
-            await prisma.company_JD.delete({
+            await prisma.company_jd.delete({
                 where: { id: jdId },
             });
 

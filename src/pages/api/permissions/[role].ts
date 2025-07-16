@@ -40,7 +40,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     if (req.method === "GET") {
         try {
-            const rolePerm = await prisma.role_Permission.findUnique({
+            const rolePerm = await prisma.role_permission.findUnique({
                 where: { role },
                 include: {
                     permissions: {

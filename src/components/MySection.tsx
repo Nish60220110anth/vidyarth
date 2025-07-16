@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
+import { useRouter } from "next/router";
 
 const DOMAIN_COLORS: Record<string, { bg: string; text: string }> = {
     FINANCE: { bg: "bg-green-100", text: "text-green-800" },
@@ -36,6 +37,7 @@ type NewsEntry = {
 };
 
 export default function MySection() {
+    const router = useRouter();
     const [shortlists, setShortlists] = useState<Shortlist[]>([]);
     const [news, setNews] = useState<NewsEntry[]>([]);
     const [loadingNews, setLoadingNews] = useState(true);
@@ -75,7 +77,7 @@ export default function MySection() {
                 if (!data.success) return;
                 const transformed = data.data.map((news: any): NewsEntry => ({
                     title: news.title,
-                    source_link: news.source_link,
+                    source_link: news.link_to_source,
                     content: news.content,
                     company_name: news.company_name,
                     company_id: news.company_id,
@@ -98,9 +100,9 @@ export default function MySection() {
     }, [shortlists]);
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 p-4 sm:p-6 w-full max-w-full">
+        <div className="flex flex-col lg:flex-row gap-6 p-4 sm:p-6 w-full max-w-full h-[calc(100vh-5rem)]">
             {/* Left Pane */}
-            <motion.div className="lg:w-5/12 w-full md:w-1/2" initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4 }}>
+            <motion.div className="lg:w-5/12 w-full md:w-1/2 flex-grow overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-cyan-500/40" initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4 }}>
                 <div className="bg-blue-950 rounded-lg p-4 shadow-md border border-blue-800">
                     <h3 className="text-xl font-semibold text-cyan-300 mb-3">My Shortlists</h3>
                     {shortlists.length === 0 ? (
@@ -120,111 +122,136 @@ export default function MySection() {
             </motion.div>
 
             {/* Right Pane */}
-            <motion.div className="flex-grow w-full" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4 }}>
-                {!news?.length ? (
-                    <div className="flex flex-col items-center justify-center text-center text-cyan-300 p-10 rounded-xl border border-blue-900 bg-gradient-to-b from-[#0d1b24] to-[#0a141d] shadow-[0_0_20px_rgba(0,255,255,0.1)] backdrop-blur-sm">
-                        <div className="w-14 h-14 flex items-center justify-center rounded-full bg-[#112531] border border-blue-800 mb-4">
-                            <svg className="w-8 h-8 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 12h-15m12 4.5l3-3-3-3M4.5 16.5l-3-3 3-3" />
-                            </svg>
+            <div className="flex flex-col lg:flex-row gap-6 p-4 sm:p-6 w-full max-w-full h-[calc(100vh-5rem)]">
+                <motion.div
+                    className="flex-grow w-full overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-cyan-500/40"
+                    initial={{ x: 20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.4 }}
+                >
+                    {!news?.length ? (
+                        <div className="flex flex-col items-center justify-center text-center text-cyan-300 p-10 rounded-xl border border-blue-900 bg-gradient-to-b from-[#0d1b24] to-[#0a141d] shadow-[0_0_20px_rgba(0,255,255,0.1)] backdrop-blur-sm">
+                            <div className="w-14 h-14 flex items-center justify-center rounded-full bg-[#112531] border border-blue-800 mb-4">
+                                <svg className="w-8 h-8 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 12h-15m12 4.5l3-3-3-3M4.5 16.5l-3-3 3-3" />
+                                </svg>
+                            </div>
+                            <p className="text-base font-semibold text-cyan-100">No news entries available</p>
+                            <p className="text-sm text-gray-400 mt-1">Please check back later.</p>
                         </div>
-                        <p className="text-base font-semibold text-cyan-100">No news entries available</p>
-                        <p className="text-sm text-gray-400 mt-1">Please check back later.</p>
-                    </div>
-                ) : (
+                    ) : (
                         <div className="grid grid-cols-1 gap-6 w-full">
-                        {news.map((entry, idx) => {
-                            const isExpanded = expandedIndices.has(idx);
-                            return (
-                                <motion.a
-                                    key={idx}
-                                    href={entry.source_link || "#"}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.3, delay: idx * 0.05 }}
-                                    className="group relative flex flex-row rounded-xl border border-cyan-900/40 bg-gradient-to-br from-[#0a161f] to-[#0e1e2b] shadow-[0_0_25px_rgba(0,255,255,0.1)] hover:shadow-[0_0_40px_rgba(0,255,255,0.25)] transition-all duration-300 p-4 overflow-hidden hover:-translate-y-1"
-                                >
-                                    {/* Image section on the left */}
-                                    <div className="w-32 h-32 min-w-[8rem] rounded-lg overflow-hidden bg-black/30 flex items-center justify-center">
-                                        {entry.image_url ? (
-                                            <img
-                                                src={entry.image_url}
-                                                alt={entry.title}
-                                                className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
-                                            />
-                                        ) : (
-                                            <div className="text-xs text-gray-400">No Image</div>
-                                        )}
-                                    </div>
+                            <motion.div
+                                className="group flex-grow w-full overflow-y-auto pr-2"
+                                initial={{ x: 20, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ duration: 0.4 }}
+                            >
+                                <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-500 scrollbar-track-transparent scrollbar-thumb-transparent group-hover:scrollbar-thumb-cyan-400 transition-all duration-300">
+                                    {news.map((entry, idx) => {
+                                        const isExpanded = expandedIndices.has(idx);
+                                        return (
+                                            <motion.a
+                                                key={idx}
+                                                href={entry.source_link || "#"}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ duration: 0.3, delay: idx * 0.05 }}
+                                                className="group relative flex flex-row rounded-xl border border-cyan-900/40 bg-gradient-to-br from-[#0a161f] to-[#0e1e2b] hover:shadow-[0_0_40px_rgba(0,255,255,0.25)] transition-all duration-300 p-4 overflow-hidden hover:-translate-y-1"
+                                            >
+                                                {/* Image section on the left */}
+                                                <div className="w-32 h-32 min-w-[8rem] rounded-lg overflow-hidden bg-black/30 flex items-center justify-center">
+                                                    {entry.image_url ? (
+                                                        <img
+                                                            src={entry.image_url}
+                                                            alt={entry.title}
+                                                            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                                                        />
+                                                    ) : (
+                                                        <div className="text-xs text-gray-400">No Image</div>
+                                                    )}
+                                                </div>
 
-                                    {/* Content section on the right */}
-                                    <div className="flex-1 flex flex-col ml-4">
-                                        <h3 className="text-lg font-semibold text-cyan-100 leading-snug mb-1">{entry.title}</h3>
+                                                {/* Content section on the right */}
+                                                <div className="flex-1 flex flex-col ml-4">
+                                                    <h3 className="text-lg font-semibold text-cyan-100 leading-snug mb-1">{entry.title}</h3>
 
-                                        <div className="flex flex-wrap gap-2 mb-2">
-                                            {entry.domains?.map((domain, i) => {
-                                                const color = DOMAIN_COLORS[domain.toUpperCase()] || {
-                                                    bg: "bg-gray-800",
-                                                    text: "text-gray-300",
-                                                };
-                                                return (
-                                                    <span
-                                                        key={i}
-                                                        className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${color.bg} ${color.text}`}
-                                                    >
-                                                        {domain}
-                                                    </span>
-                                                );
-                                            })}
-                                            {entry.subdomain_tag && (
-                                                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full border border-blue-400 text-blue-300 bg-blue-500/10">
-                                                    {entry.subdomain_tag}
-                                                </span>
-                                            )}
-                                            {entry.news_tag && (
-                                                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full border border-purple-400 text-purple-300 bg-purple-500/10">
-                                                    {entry.news_tag}
-                                                </span>
-                                            )}
-                                        </div>
+                                                    <div className="flex flex-wrap gap-2 mb-2">
+                                                        {entry.domains?.map((domain, i) => {
+                                                            const color = DOMAIN_COLORS[domain.toUpperCase()] || {
+                                                                bg: "bg-gray-800",
+                                                                text: "text-gray-300",
+                                                            };
+                                                            return (
+                                                                <span
+                                                                    key={i}
+                                                                    className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${color.bg} ${color.text}`}
+                                                                >
+                                                                    {domain}
+                                                                </span>
+                                                            );
+                                                        })}
+                                                        {entry.subdomain_tag && (
+                                                            <span className="px-2 py-0.5 text-[10px] font-medium rounded-full border border-blue-400 text-blue-300 bg-blue-500/10">
+                                                                {entry.subdomain_tag}
+                                                            </span>
+                                                        )}
+                                                        {entry.news_tag && (
+                                                            <span className="px-2 py-0.5 text-[10px] font-medium rounded-full border border-purple-400 text-purple-300 bg-purple-500/10">
+                                                                {entry.news_tag}
+                                                            </span>
+                                                        )}
+                                                    </div>
 
-                                        <p className={`text-sm text-gray-300 mb-2 ${isExpanded ? "" : "line-clamp-3"}`}>{entry.content}</p>
+                                                    <p className={`text-sm text-gray-300 mb-2 ${isExpanded ? "" : "line-clamp-3"}`}>{entry.content}</p>
 
-                                        {entry.content.length > 120 && (
-                                            <div className="flex justify-end">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        toggleExpanded(idx);
-                                                    }}
-                                                    className="text-xs text-cyan-400 font-medium hover:underline"
-                                                >
-                                                    {isExpanded ? "Show Less" : "Read More"}
-                                                </button>
-                                            </div>
-                                        )}
+                                                    {entry.content.length > 120 && (
+                                                        <div className="flex justify-end">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    toggleExpanded(idx);
+                                                                }}
+                                                                className="text-xs text-cyan-400 font-medium hover:underline"
+                                                            >
+                                                                {isExpanded ? "Show Less" : "Read More"}
+                                                            </button>
+                                                        </div>
+                                                    )}
 
-                                        <div className="flex items-center justify-between text-[11px] text-gray-400 mt-auto pt-2 border-t border-gray-700/50">
-                                            <span>
-                                                {entry.created_at
-                                                    ? new Date(entry.created_at).toLocaleDateString(undefined, {
-                                                        year: "numeric",
-                                                        month: "short",
-                                                        day: "numeric",
-                                                    })
-                                                    : "Unknown"}
-                                            </span>
-                                            <ArrowTopRightOnSquareIcon className="w-4 h-4 text-cyan-400 opacity-80 group-hover:opacity-100 transition-opacity" />
-                                        </div>
-                                    </div>
-                                </motion.a>
-                            );
-                        })}
-                    </div>
-                )}
-            </motion.div>
+                                                    <div className="flex items-center justify-between text-[11px] text-gray-400 mt-auto pt-2 border-t border-gray-700/50">
+                                                        <span>
+                                                            {entry.created_at
+                                                                ? new Date(entry.created_at).toLocaleDateString(undefined, {
+                                                                    year: "numeric",
+                                                                    month: "short",
+                                                                    day: "numeric",
+                                                                })
+                                                                : "Unknown"}
+                                                        </span>
+                                                        {entry.source_link && <a
+                                                            href={entry.source_link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                        >
+                                                            <ArrowTopRightOnSquareIcon
+                                                                className="w-4 h-4 text-cyan-400 opacity-80 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                                            />
+                                                        </a>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </motion.a>
+                                        );
+                                    })}
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </motion.div>
+            </div>
         </div>
     );
 }

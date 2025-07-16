@@ -41,7 +41,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         try {
-            const mappings = await prisma.companyDomainMapping.findMany({
+            const mappings = await prisma.companydomainmapping.findMany({
                 where: { company_id: company_id },
                 select: { domain: true },
             });

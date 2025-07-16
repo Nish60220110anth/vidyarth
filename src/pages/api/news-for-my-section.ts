@@ -1,9 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient, DOMAIN, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { getIronSession, IronSessionData } from "iron-session";
 import { sessionOptions } from "@/lib/session";
-import path from "path";
-import { unlink } from "fs/promises";
 
 const prisma = new PrismaClient();
 

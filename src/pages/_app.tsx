@@ -19,6 +19,8 @@ import { useRouter } from 'next/router';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Metadata } from 'next';
 
+export const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+export const chitraguptaUrl = process.env.NEXT_PUBLIC_CHITRAGUPTA_URL;
 
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), {
   ssr: false,

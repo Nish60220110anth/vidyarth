@@ -1,12 +1,12 @@
-model UserDomainPreference {
-  id         Int    @id @default(autoincrement())
+model userdomainpreference {
+  id Int @id @default(autoincrement())
 
-  user_id    Int    @unique
-  user       User   @relation("UserDomain", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user_id Int  @unique
+  user    user @relation("userdomain", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  domain_1   DOMAIN
-  domain_2   DOMAIN
-  domain_3   DOMAIN
+  domain_1 DOMAIN
+  domain_2 DOMAIN
+  domain_3 DOMAIN
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt

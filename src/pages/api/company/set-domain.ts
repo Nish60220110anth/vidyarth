@@ -22,11 +22,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         try {
-            await prisma.companyDomainMapping.deleteMany({
+            await prisma.companydomainmapping.deleteMany({
                 where: { company_id: Number(company_id) },
             });
 
-            await prisma.companyDomainMapping.createMany({
+            await prisma.companydomainmapping.createMany({
                 data: domains.map((domain: DOMAIN) => ({
                     company_id: Number(company_id),
                     domain,

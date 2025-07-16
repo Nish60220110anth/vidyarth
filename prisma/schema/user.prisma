@@ -1,79 +1,78 @@
-model User {
-  id         Int        @id @default(autoincrement())
+model user {
+  id Int @id @default(autoincrement())
 
-  name       String
-  pgpid      String?    @unique
-  pcomid     String?
-  email_id   String     @unique
+  name     String
+  pgpid    String? @unique
+  pcomid   String?
+  email_id String  @unique
 
-  password   String
-  role       USER_ROLE
+  password String
+  role     USER_ROLE
 
-  is_active  Boolean    @default(false)
-  is_verified Boolean    @default(false)
+  is_active   Boolean @default(false)
+  is_verified Boolean @default(false)
 
-  created_at DateTime   @default(now())
-  updated_at DateTime   @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-  last_login        DateTime?
+  last_login DateTime?
 
-  alum_experiences Company_Alum_Exp[]
-  authored_news    News[]
+  alum_experiences company_alum_exp[]
+  authored_news    news[]
 
-  shadow_as_user1 ShadowPair? @relation("ShadowUser1")
-  shadow_as_user2 ShadowPair? @relation("ShadowUser2")
+  shadow_as_user1 shadowpair? @relation("shadowuser1")
+  shadow_as_user2 shadowpair? @relation("shadowuser2")
 
   // DISHA relation (1-to-1)
-  disha_profile    DishaMentee? @relation("DishaProfile")
+  disha_profile dishamentee? @relation("dishaprofile")
 
   // DISHA mentorship role (1-to-many)
-  disha_mentees    DishaMentee[] @relation("DishaMentor")
+  disha_mentees dishamentee[] @relation("dishamentor")
 
-  domain_preference UserDomainPreference? @relation("UserDomain")
-  known_languages  UserLanguage[] @relation("LanguagesKnown")
-  shortlists Shortlist[] @relation("ShortlistUsers")
+  domain_preference userdomainpreference? @relation("userdomain")
+  known_languages   userlanguage[]        @relation("languagesknown")
+  shortlists        shortlist[]           @relation("shortlistusers")
+  announcements     announcements[]
 
   @@unique([pgpid, pcomid])
 }
 
+model dishamentee {
+  id Int @id @default(autoincrement())
 
-model DishaMentee {
-  id             Int     @id @default(autoincrement())
+  user_id Int  @unique
+  user    user @relation("dishaprofile", fields: [user_id], references: [id])
 
-  user_id        Int     @unique
-  user           User    @relation("DishaProfile", fields: [user_id], references: [id])
-
-  mentor_id      Int?    
-  mentor         User?    @relation("DishaMentor", fields: [mentor_id], references: [id])
+  mentor_id Int?
+  mentor    user? @relation("dishamentor", fields: [mentor_id], references: [id])
 
   placement_cycle_id Int
-  placement_cycle     Placement_Cycle @relation(fields: [placement_cycle_id], references: [id])
+  placement_cycle    placement_cycle @relation(fields: [placement_cycle_id], references: [id])
 
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
+model shadowpair {
+  id Int @id @default(autoincrement())
 
-model ShadowPair {
-  id        Int  @id @default(autoincrement())
-
-  user1     User @relation("ShadowUser1", fields: [user1Id], references: [id])
-  user1Id   Int  @unique
-  user2     User @relation("ShadowUser2", fields: [user2Id], references: [id])
-  user2Id   Int  @unique
+  user1   user @relation("shadowuser1", fields: [user1Id], references: [id])
+  user1Id Int  @unique
+  user2   user @relation("shadowuser2", fields: [user2Id], references: [id])
+  user2Id Int  @unique
 }
 
-model UserLanguage {
-  id           Int       @id @default(autoincrement())
+model userlanguage {
+  id Int @id @default(autoincrement())
 
-  user_id      Int
-  user         User      @relation("LanguagesKnown",fields: [user_id], references: [id])
+  user_id Int
+  user    user @relation("languagesknown", fields: [user_id], references: [id])
 
-  language     LANGUAGE
-  proficiency  PROFICIENCY
+  language    LANGUAGE
+  proficiency PROFICIENCY
 
-  created_at   DateTime  @default(now())
-  updated_at   DateTime  @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-  @@unique([user_id, language]) // prevent duplicates per user
+  @@unique([user_id, language])
 }

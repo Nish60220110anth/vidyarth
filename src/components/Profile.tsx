@@ -32,7 +32,7 @@ type UserDetail = {
     }
 };
 
-function toTitleCase(name: string): string {
+export function toTitleCase(name: string): string {
     return name
         .toLowerCase()
         .split(" ")

@@ -1,4 +1,4 @@
-model Company {
+model company {
   id           Int      @id @default(autoincrement())
   company_name String   @unique
   company_full String   @db.VarChar(255)
@@ -6,26 +6,27 @@ model Company {
   updated_at   DateTime @updatedAt
 
   is_featured Boolean @default(false)
-  is_legacy Boolean @default(false)
+  is_legacy   Boolean @default(false)
 
   logo_url String?
 
-  domains CompanyDomainMapping[]
+  domains companydomainmapping[]
 
   // Relations
-  info             Company_Info?
-  jds              Company_JD[]
-  compendium       Company_Compendium[]
-  alum_experiences Company_Alum_Exp[]
-  shortlists       Shortlist[]
+  info             company_info?
+  jds              company_jd[]
+  compendium       company_compendium[]
+  alum_experiences company_alum_exp[]
+  shortlists       shortlist[]
+  notifications    notification[]
 
-  news News_Company[]
-  videos Video[]
+  news   news_company[]
+  videos video[]
 }
 
-model CompanyDomainMapping {
+model companydomainmapping {
   id         Int     @id @default(autoincrement())
-  company    Company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  company    company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   company_id Int
 
   domain DOMAIN
@@ -33,10 +34,10 @@ model CompanyDomainMapping {
   @@unique([company_id, domain])
 }
 
-model Company_Info {
+model company_info {
   id            Int    @id @default(autoincrement())
   company_id    Int    @unique
   brief_content String
 
-  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  company company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }

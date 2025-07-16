@@ -1,17 +1,17 @@
-model Company_Compendium {
-  id         Int    @id @default(autoincrement())
-  company_id Int    @unique
+model company_compendium {
+  id         Int @id @default(autoincrement())
+  company_id Int @unique
 
-  compedium_pdf Company_Compendium_Pdf_Path[] @relation("CompendiumPdfPaths")
+  compedium_pdf company_compendium_pdf_path[] @relation("compendiumpdfpaths")
 
-  company Company @relation(fields: [company_id], references: [id])
+  company company @relation(fields: [company_id], references: [id])
 }
 
-model Company_Compendium_Pdf_Path {
-  id            Int               @id @default(autoincrement())
+model company_compendium_pdf_path {
+  id            Int                @id @default(autoincrement())
   compendium_id Int
   pdf_path      String             @db.Text
   pdf_name      String
-  firebase_path  String
-  compendium    Company_Compendium @relation("CompendiumPdfPaths", fields: [compendium_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  firebase_path String
+  compendium    company_compendium @relation("compendiumpdfpaths", fields: [compendium_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }

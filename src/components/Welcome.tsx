@@ -9,7 +9,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { ACCESS_PERMISSION } from "@prisma/client";
-import { generateSecureURL } from "@/utils/secureUrlApi";
+import { generateSecureURL } from "@/utils/shared/secureUrlApi";
 import toast from "react-hot-toast";
 
 const features = [

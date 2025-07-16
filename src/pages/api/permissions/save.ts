@@ -28,17 +28,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        const rolePerm = await prisma.role_Permission.upsert({
+        const rolePerm = await prisma.role_permission.upsert({
             where: { role },
             update: { description },
             create: { role, description },
         });
 
-        await prisma.rolePermissionMap.deleteMany({
+        await prisma.rolepermissionmap.deleteMany({
             where: { role_permission_id: rolePerm.id },
         });
 
-        await prisma.rolePermissionMap.createMany({
+        await prisma.rolepermissionmap.createMany({
             data: permissions.map((permission: ACCESS_PERMISSION) => ({
                 role_permission_id: rolePerm.id,
                 permission,

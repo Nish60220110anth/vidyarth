@@ -22,13 +22,13 @@ import { saveAs } from "file-saver";
 
 import JDPane from "./content/JDPane";
 import VideoPane from "./content/VideoPane";
-import { JDEntry, NewsEntry, VideoEntry } from "@/types/panes";
+import { JDEntry, NewsEntry, PaneKey, VideoEntry } from "@/types/panes";
 import NewsPane from "./content/NewsPane";
 import OverviewPane from "./content/OverviewPane";
 import CompendiumPane from "./content/CompendiumPane";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import { useRouter } from "next/router";
-import { decodeSecureURL } from "@/utils/secureUrlApi";
+import { decodeSecureURL } from "@/utils/shared/secureUrlApi";
 
 
 type PaneComponentProps = Record<string, any>;
@@ -37,7 +37,7 @@ const SummaryPane = () => <p>This is the Summary pane.</p>;
 const AlumExpPane = () => <p>This is the Alum Exp pane.</p>;
 
 export const PANE_CONFIG: {
-    label: string;
+    label: PaneKey;
     icon: JSX.Element;
     component: (props: PaneComponentProps) => JSX.Element;
     color: string;
@@ -99,7 +99,7 @@ export const PANE_CONFIG: {
 export default function CompanyPage() {
     const router = useRouter();
     const [companyId, setCompanyId] = useState<number>(0);
-    const [activeTab, setActiveTab] = useState(PANE_CONFIG[0].label);
+    const [activeTab, setActiveTab] = useState<PaneKey>(PANE_CONFIG[0].label);
     const activePane = PANE_CONFIG.find((p) => p.label === activeTab);
 
     const [prevTabIndex, setPrevTabIndex] = useState(0);
@@ -116,7 +116,7 @@ export default function CompanyPage() {
 
     const hasValidJDs = (allJds ?? []).some(jd => jd?.jd_pdf_path);
 
-    const paneProps = useMemo(() => ({
+    const paneProps: Record<PaneKey, JSX.Element> = useMemo(() => ({
         "Job Description": <JDPane props={{ jds: allJds || [] }} />,
         "Videos": <VideoPane props={{ videos: allVideos || [] }} />,
         "News": <NewsPane props={{ news: allNews || [] }} />,
@@ -412,7 +412,7 @@ export default function CompanyPage() {
     return (
         <>
             <Head>
-                <title>Company Page</title>
+                <title>{company?.company_name}</title>
             </Head>
 
             <motion.div

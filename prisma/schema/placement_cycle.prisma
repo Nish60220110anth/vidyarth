@@ -1,13 +1,13 @@
-model Placement_Cycle {
-  id                  Int                 @id @default(autoincrement())
-  placement_type      PLACEMENT_CYCLE_TYPE
-  year                Int
-  batch_name          String         
-  status              PLACEMENT_CYCLE_STATUS
-  created_at          DateTime            @default(now())
-  updated_at          DateTime            @updatedAt
+model placement_cycle {
+  id             Int                    @id @default(autoincrement())
+  placement_type PLACEMENT_CYCLE_TYPE
+  year           Int
+  batch_name     String
+  status         PLACEMENT_CYCLE_STATUS
+  created_at     DateTime               @default(now())
+  updated_at     DateTime               @updatedAt
 
   // Relations
-  company_jds         Company_JD[] 
-  dishas             DishaMentee[]
+  company_jds company_jd[]
+  dishas      dishamentee[]
 }

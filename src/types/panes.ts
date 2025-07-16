@@ -56,3 +56,12 @@ export interface OverviewEntry {
 export interface CompendiumEntry {
     company_id: number
 }
+
+export type PaneKey =
+    | "Job Description"
+    | "Videos"
+    | "News"
+    | "Overview"
+    | "Summary"
+    | "Compendium"
+    | "Alum Exp";

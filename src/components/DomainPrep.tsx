@@ -9,9 +9,11 @@ import { convertListsToParagraphs } from "@/utils/convertListToPara";
 import { motion } from "framer-motion";
 import { CheckCircleIcon, PencilSquareIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { DOMAIN_COLORS } from "./ManageCompanyList";
+import { useRouter } from "next/router";
 
 export default function HowToPrepareCV() {
     const isMobile = useIsMobile();
+    const router = useRouter();
 
     const [session, setSession] = useState<SessionInfo | null>(null);
     const [permissions, setPermissions] = useState<string[]>([]);
@@ -32,6 +34,33 @@ export default function HowToPrepareCV() {
         setSession(data.data);
     };
 
+    useEffect(() => {
+        if (!router.isReady) return;
+
+        const domains = Object.keys(DOMAIN).map((p) => p.toLowerCase());
+        const tabParam = (router.query.tab as string | undefined)?.toLowerCase();
+        const validTab = domains.find((p) => p.toLowerCase() === tabParam);
+
+        if (validTab) {
+            setSelectedDomain(validTab.toUpperCase() as DOMAIN);
+        } else {
+            const defaultTab = domains[0];
+            setSelectedDomain(defaultTab.toUpperCase() as DOMAIN);
+
+            if (tabParam) {
+                router.replace(
+                    {
+                        pathname: router.pathname,
+                        query: { ...router.query, tab: defaultTab },
+                    },
+                    undefined,
+                    { shallow: true }
+                );
+            }
+        }
+
+    }, [router.isReady, router.query.tab]);
+
     const fetchPermissions = async () => {
         const res = await axios.get(`/api/permissions`);
         setPermissions(res.data.permissions);
@@ -45,12 +74,12 @@ export default function HowToPrepareCV() {
                     "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
                 }
             });
-            
+
             if (!res.data.success) {
                 toast.error(res.data.error);
                 return;
             }
-            
+
             setContent(res.data.content);
             setOriginalContent(res.data.content);
         } catch (err: any) {
@@ -143,7 +172,14 @@ export default function HowToPrepareCV() {
                             key={dom}
                             onClick={() => {
                                 setIsEditing(false);
-                                setSelectedDomain(dom);
+                                router.replace(
+                                    {
+                                        pathname: router.pathname,
+                                        query: { ...router.query, tab: dom.toLowerCase() },
+                                    },
+                                    undefined,
+                                    { shallow: true }
+                                );
                             }}
                             className={`
                     text-sm px-4 py-1.5 rounded-full font-medium border transition-all duration-200

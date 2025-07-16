@@ -1,16 +1,16 @@
-model Company_Alum_Exp {
-  id         Int      @id @default(autoincrement())
+model company_alum_exp {
+  id Int @id @default(autoincrement())
 
-  user_id    Int
-  user       User     @relation(fields: [user_id], references: [id])
+  user_id Int
+  user    user @relation(fields: [user_id], references: [id])
 
   company_id Int
-  company    Company  @relation(fields: [company_id], references: [id])
+  company    company @relation(fields: [company_id], references: [id])
 
-  content    String    @db.Text
- 
+  content String @db.Text
+
   is_approved Boolean @default(false)
   is_featured Boolean @default(false)
-  
+
   created_at DateTime @default(now())
 }

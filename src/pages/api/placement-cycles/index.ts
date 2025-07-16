@@ -42,7 +42,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             if (id) {
                 const permissionFilter = (req as any).filter;
-                const cycle = await prisma.placement_Cycle.findUnique({
+                const cycle = await prisma.placement_cycle.findUnique({
                     where: { id: Number(id), ...permissionFilter },
                 });
 
@@ -53,14 +53,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 return res.status(200).json(cycle);
             }
 
-            const cycles = await prisma.placement_Cycle.findMany({
+            const cycles = await prisma.placement_cycle.findMany({
                 orderBy: { created_at: "desc" }
             });
             return res.status(200).json(cycles);
         }
 
         if (req.method === "POST") {
-            const newCycle = await prisma.placement_Cycle.create({
+            const newCycle = await prisma.placement_cycle.create({
                 data: {
                     year: new Date().getFullYear(),
                     batch_name: "New Batch",

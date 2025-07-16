@@ -10,6 +10,7 @@ export default function Dashboard() {
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('');
     const [name, setName] = useState('');
+    const [id, setId] = useState(0);
     const [mounted, setMounted] = useState(false);
     const router = useRouter();
 
@@ -22,6 +23,7 @@ export default function Dashboard() {
                 setEmail(data.email);
                 setRole(data.role);
                 setName(data.name);
+                setId(data.id);
             } else {
                 router.push('/');
             }
@@ -39,7 +41,7 @@ export default function Dashboard() {
 
     return (
         <>
-            <Sidebar email={email} role={role} onLogout={handleLogout} name={name} />
+            <Sidebar email={email} role={role} onLogout={handleLogout} name={name} id={id}/>
         </>
     );
 }

@@ -1,4 +1,4 @@
-model News {
+model news {
   id String @id @default(cuid())
 
   title          String
@@ -8,39 +8,39 @@ model News {
   is_active   Boolean @default(true)
   is_approved Boolean @default(false)
 
-  news_tag NEWS_DOMAIN_TAG
+  news_tag      NEWS_DOMAIN_TAG
   subdomain_tag NEWS_SUBDOMAIN_TAG?
 
-  image_url       String? @db.Text
-  firebase_path        String?
+  image_url     String? @db.Text
+  firebase_path String?
 
   author_id  Int
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  author User @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  author user @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  companies News_Company[]
-  domains   News_Domain[]
+  companies news_company[]
+  domains   news_domain[]
 }
 
-model News_Company {
+model news_company {
   id         Int    @id @default(autoincrement())
   news_id    String
   company_id Int
 
-  news    News    @relation(fields: [news_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  news    news    @relation(fields: [news_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  company company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@unique([news_id, company_id])
 }
 
-model News_Domain {
+model news_domain {
   id      Int    @id @default(autoincrement())
   news_id String
   domain  DOMAIN
 
-  news News @relation(fields: [news_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  news news @relation(fields: [news_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@unique([news_id, domain])
 }

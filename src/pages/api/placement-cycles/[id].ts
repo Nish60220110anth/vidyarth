@@ -28,7 +28,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             const { year, batch_name, placement_type, status } = req.body;
 
             if (status === "OPEN") {
-                const existingOpen = await prisma.placement_Cycle.findFirst({
+                const existingOpen = await prisma.placement_cycle.findFirst({
                     where: {
                         status: "OPEN",
                         NOT: { id: cycleId },
@@ -43,7 +43,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 }
             }
 
-            const updated = await prisma.placement_Cycle.update({
+            const updated = await prisma.placement_cycle.update({
                 where: { id: cycleId },
                 data: { year, batch_name, placement_type, status },
             });
@@ -53,7 +53,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         if (req.method === "DELETE") {
-            await prisma.placement_Cycle.delete({
+            await prisma.placement_cycle.delete({
                 where: { id: cycleId },
             });
 

@@ -1,9 +1,9 @@
-model Shortlist {
+model shortlist {
   id Int @id @default(autoincrement())
 
-  company_id Int
-  shortlist_id Int @default(0)
-  company    Company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  company_id   Int
+  shortlist_id Int     @default(0)
+  company      company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   round_details  String
   shortlist_type SHORTLIST_TYPE
@@ -14,9 +14,9 @@ model Shortlist {
   is_active   Boolean @default(true)
   is_featured Boolean @default(false)
 
-  // Many-to-many relation with Users (shortlisted PlaceCom IDs)
-  shortlisted_users User[] @relation("ShortlistUsers")
+  shortlisted_users user[] @relation("shortlistusers")
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
+  notification notification[]
 }

@@ -65,7 +65,7 @@ CREATE TABLE `Company_Compendium_Pdf_Path` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `Company_JD` (
+CREATE TABLE `company_jd` (
     `id` VARCHAR(191) NOT NULL,
     `company_id` INTEGER NOT NULL,
     `placement_cycle_id` INTEGER NOT NULL,
@@ -288,13 +288,13 @@ ALTER TABLE `Company_Compendium` ADD CONSTRAINT `Company_Compendium_company_id_f
 ALTER TABLE `Company_Compendium_Pdf_Path` ADD CONSTRAINT `Company_Compendium_Pdf_Path_compendium_id_fkey` FOREIGN KEY (`compendium_id`) REFERENCES `Company_Compendium`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Company_JD` ADD CONSTRAINT `Company_JD_company_id_fkey` FOREIGN KEY (`company_id`) REFERENCES `Company`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `company_jd` ADD CONSTRAINT `Company_JD_company_id_fkey` FOREIGN KEY (`company_id`) REFERENCES `Company`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Company_JD` ADD CONSTRAINT `Company_JD_placement_cycle_id_fkey` FOREIGN KEY (`placement_cycle_id`) REFERENCES `Placement_Cycle`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `company_jd` ADD CONSTRAINT `Company_JD_placement_cycle_id_fkey` FOREIGN KEY (`placement_cycle_id`) REFERENCES `Placement_Cycle`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `CompanyJD_Domain` ADD CONSTRAINT `CompanyJD_Domain_company_jd_id_fkey` FOREIGN KEY (`company_jd_id`) REFERENCES `Company_JD`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `CompanyJD_Domain` ADD CONSTRAINT `CompanyJD_Domain_company_jd_id_fkey` FOREIGN KEY (`company_jd_id`) REFERENCES `company_jd`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `News` ADD CONSTRAINT `News_author_id_fkey` FOREIGN KEY (`author_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

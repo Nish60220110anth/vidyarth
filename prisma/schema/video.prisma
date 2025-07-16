@@ -1,4 +1,4 @@
-model Video {
+model video {
   id         Int @id @default(autoincrement())
   company_id Int
 
@@ -15,25 +15,25 @@ model Video {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  company Company @relation(fields: [company_id], references: [id])
+  company company @relation(fields: [company_id], references: [id])
 }
 
-model YouTubeEmbedSettings {
-  id              String   @id @default(uuid())
-  autoplay        Boolean  @default(false)
-  mute            Boolean  @default(false)
-  controls        Int      @default(1)   // 0, 1, 2
-  loop            Boolean  @default(false)
-  startAt         Int?     // in seconds
-  endAt           Int?
-  rel             Boolean  @default(true)
-  modestBranding  Boolean  @default(false)
-  fs              Boolean  @default(true)
-  ccLoadPolicy    Boolean  @default(false)
-  ccLangPref      String?  // "en", "fr", etc.
-  ivLoadPolicy    Int?     // 1 or 3
-  playsInline     Boolean  @default(false)
-  disableKb       Boolean  @default(false)
-  enableJsApi     Boolean  @default(false)
-  origin          String?  // optional
+model youTubeembedsettings {
+  id             String  @id @default(uuid())
+  autoplay       Boolean @default(false)
+  mute           Boolean @default(false)
+  controls       Int     @default(1) // 0, 1, 2
+  loop           Boolean @default(false)
+  startAt        Int? // in seconds
+  endAt          Int?
+  rel            Boolean @default(true)
+  modestBranding Boolean @default(false)
+  fs             Boolean @default(true)
+  ccLoadPolicy   Boolean @default(false)
+  ccLangPref     String? // "en", "fr", etc.
+  ivLoadPolicy   Int? // 1 or 3
+  playsInline    Boolean @default(false)
+  disableKb      Boolean @default(false)
+  enableJsApi    Boolean @default(false)
+  origin         String? // optional
 }

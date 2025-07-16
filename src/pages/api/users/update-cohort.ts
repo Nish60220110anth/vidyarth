@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let removedShadowUser = null;
 
     try {
-        const openCycle = await prisma.placement_Cycle.findFirst({
+        const openCycle = await prisma.placement_cycle.findFirst({
             where: { status: "OPEN" },
             select: { id: true },
         });
@@ -56,10 +56,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     },
                 });
             } else {
-                await prisma.dishaMentee.deleteMany({ where: { user_id: studentNumId } });
+                await prisma.dishamentee.deleteMany({ where: { user_id: studentNumId } });
             }
         } else {
-            await prisma.dishaMentee.deleteMany({ where: { user_id: studentNumId } });
+            await prisma.dishamentee.deleteMany({ where: { user_id: studentNumId } });
         }
 
         // ======================
@@ -68,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const trimmedShadowPcomId = shadowPcomId?.trim();
 
-        const existingPair = await prisma.shadowPair.findFirst({
+        const existingPair = await prisma.shadowpair.findFirst({
             where: {
                 OR: [
                     { user1Id: studentNumId },
@@ -89,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     select: { id: true, name: true, pcomid: true },
                 });
 
-                await prisma.shadowPair.deleteMany({
+                await prisma.shadowpair.deleteMany({
                     where: {
                         OR: [
                             { user1Id: studentNumId },
@@ -117,8 +117,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const [studentProfile, shadowProfile] = await Promise.all([
-            prisma.dishaMentee.findFirst({ where: { user_id: studentNumId }, select: { mentor_id: true } }),
-            prisma.dishaMentee.findFirst({ where: { user_id: shadowUser.id }, select: { mentor_id: true } }),
+            prisma.dishamentee.findFirst({ where: { user_id: studentNumId }, select: { mentor_id: true } }),
+            prisma.dishamentee.findFirst({ where: { user_id: shadowUser.id }, select: { mentor_id: true } }),
         ]);
 
         if (!studentProfile || !shadowProfile) {
@@ -131,7 +131,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        const shadowAlreadyUsed = await prisma.shadowPair.findFirst({
+        const shadowAlreadyUsed = await prisma.shadowpair.findFirst({
             where: {
                 OR: [
                     { user1Id: shadowUser.id },
@@ -162,7 +162,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     select: { id: true, name: true, pcomid: true },
                 });
 
-                await prisma.shadowPair.deleteMany({
+                await prisma.shadowpair.deleteMany({
                     where: {
                         OR: [
                             { user1Id: studentNumId },
@@ -172,7 +172,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 });
             }
 
-            await prisma.shadowPair.create({
+            await prisma.shadowpair.create({
                 data: {
                     user1: { connect: { id: shadowUser.id } },
                     user2: { connect: { id: studentNumId } },

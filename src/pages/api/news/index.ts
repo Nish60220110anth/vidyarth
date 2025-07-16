@@ -152,8 +152,8 @@ async function handler(
                 select: { image_url: true, firebase_path: true },
             });
 
-            await prisma.news_Domain.deleteMany({ where: { news_id: newsId } });
-            await prisma.news_Company.deleteMany({ where: { news_id: newsId } });
+            await prisma.news_domain.deleteMany({ where: { news_id: newsId } });
+            await prisma.news_company.deleteMany({ where: { news_id: newsId } });
 
             await prisma.news.delete({
                 where: { id: newsId },
@@ -207,8 +207,8 @@ async function handler(
             });
 
             if (Array.isArray(domains)) {
-                await prisma.news_Domain.deleteMany({ where: { news_id: String(id) } });
-                await prisma.news_Domain.createMany({
+                await prisma.news_domain.deleteMany({ where: { news_id: String(id) } });
+                await prisma.news_domain.createMany({
                     data: domains.map((d: string) => ({
                         news_id: String(id),
                         domain: d as DOMAIN,
@@ -217,8 +217,8 @@ async function handler(
             }
 
             if (Array.isArray(companies)) {
-                await prisma.news_Company.deleteMany({ where: { news_id: String(id) } });
-                await prisma.news_Company.createMany({
+                await prisma.news_company.deleteMany({ where: { news_id: String(id) } });
+                await prisma.news_company.createMany({
                     data: companies.map((cid: string) => ({
                         news_id: String(id),
                         company_id: parseInt(cid),

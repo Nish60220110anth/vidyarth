@@ -130,7 +130,30 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
             }
         }
 
-        if (uploadedFiles.length >= 0) {
+        if (uploadedFiles.length === 0) {
+            setUploadMode("done");
+
+            const formData = new FormData();
+            formData.append("cid", company_id.toString());
+            formData.append("content", content);
+            formData.append("total_new_entries", "0");
+            formData.append("total_deleted_entries", "0");
+
+            try {
+                await axios.put("/api/compendium", formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                        "x-access-permission": ACCESS_PERMISSION.MANAGE_MY_COHORT
+                    }
+                });
+            } catch (err: any) {
+                toast.error(`Upload failed: ${err}`);
+                return { success: false, error: err.message };
+            } finally {
+                setTimeout(() => setIsUploading(false), 500);
+            }
+        }
+        else if (uploadedFiles.length > 0) {
             setUploadMode("uploading");
 
             for (let i = 0; i < Math.max(uploadedFiles.length, 1); i++) {
@@ -486,7 +509,7 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
                                 ))}
                         </div>
 
-                        
+
                     </motion.div>
                 )}
 

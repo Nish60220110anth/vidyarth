@@ -61,6 +61,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         email: user.email_id,
         role: user.role,
         name: user.name,
+        id: user.id,
         is_active: user.is_active,
         is_verified: user.is_verified,
     });

@@ -2,9 +2,12 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import fs from 'fs';
 import path from 'path';
 import { MethodConfig, withPermissionCheck } from '@/lib/server/withPermissionCheck';
-import { ACCESS_PERMISSION } from '@prisma/client';
+import { ACCESS_PERMISSION, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from '@prisma/client';
 import { apiHelpers } from '@/lib/server/responseHelpers';
 import crypto from 'crypto'; // For optional ETag
+import { createNotification } from '@/lib/server/notificationSink';
+import { generateSecureURL } from '@/utils/shared/secureUrlApi';
+import { baseUrl } from '@/pages/_app';
 
 const PREP_DIR = path.join(process.cwd(), 'public', 'prep');
 
@@ -47,7 +50,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 fs.writeFileSync(filePath, "", 'utf-8');
             }
             const content = fs.readFileSync(filePath, 'utf-8');
-            
+
             const etag = crypto.createHash("md5").update(content + d).digest("hex");
             res.setHeader("ETag", `"${etag}"`);
             res.setHeader("Cache-Control", "public, max-age=300");
@@ -89,6 +92,22 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             fs.writeFileSync(filePath, content, 'utf-8');
 
+            const secureUrlResp = await generateSecureURL("DOMAIN_PREP", 0)
+
+            if (secureUrlResp.success) {
+                createNotification({
+                    type: NOTIFICATION_TYPE.PREP,
+                    subtype: NOTIFICATION_SUBTYPE.UPDATED,
+                    domain: d,
+                    links: [{
+                        link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=${d}`,
+                        link_name: "domain_link"
+                    }]
+                });
+            } else {
+                console.error(secureUrlResp.error)
+            }
+
             apiHelpers.success(res, {});
             return;
         } catch (err) {
@@ -98,5 +117,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 }
 
-// export default withPermissionCheck(METHOD_PERMISSIONS)(handler);
-export default handler;
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

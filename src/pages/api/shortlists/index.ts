@@ -1,11 +1,8 @@
 // pages/api/shortlists/index.ts
-
 import { sessionOptions } from "@/lib/session";
-import { PrismaClient } from "@prisma/client";
 import { getIronSession, IronSessionData } from "iron-session";
 import { NextApiRequest, NextApiResponse } from "next";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
