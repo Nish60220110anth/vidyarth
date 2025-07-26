@@ -712,7 +712,8 @@ export default function ManageCompanyList() {
 
                                             <button
                                                 onClick={() => {
-                                                    setEditId(null)
+                                                    setEditId(null)   
+                                                    setDomainMenuOpenId(null);
                                                     setEditedDomains([]);
                                                 }}
                                                 className="flex items-center gap-1 px-3 py-1.5 bg-gray-600 text-white rounded-md text-sm shadow hover:bg-gray-700 transition"

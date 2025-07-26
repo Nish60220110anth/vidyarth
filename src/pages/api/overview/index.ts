@@ -7,8 +7,9 @@ import { apiHelpers } from '@/lib/server/responseHelpers';
 import { createNotification } from '@/lib/server/notificationSink';
 import { generateSecureURL } from '@/utils/shared/secureUrlApi';
 import { baseUrl } from '@/pages/_app';
+import { defaultEmptyRichText } from '@/utils/defaultEmptyRichText';
 
-const OVERVIEW_DIR = path.join(process.cwd(), 'public', 'overview');
+const OVERVIEW_DIR = path.join(process.cwd(), 'public', 'content', 'overview');
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
@@ -22,6 +23,10 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     const { method } = req;
 
+    if(!fs.existsSync(OVERVIEW_DIR)) {
+        fs.mkdirSync(OVERVIEW_DIR)
+    }
+
     if (method === 'GET') {
         const companyId = req.query.companyId as string;
 
@@ -33,7 +38,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         const filePath = path.join(OVERVIEW_DIR, `${companyId}.txt`);
 
         if (!fs.existsSync(filePath)) {
-            fs.writeFileSync(filePath, "", 'utf-8');
+            fs.writeFileSync(filePath, defaultEmptyRichText, 'utf-8');
         }
 
         try {
@@ -55,9 +60,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         try {
-            fs.mkdirSync(OVERVIEW_DIR, { recursive: true });
 
             const filePath = path.join(OVERVIEW_DIR, `${companyId}.txt`);
+
+            if (!fs.existsSync(filePath)) {
+                apiHelpers.error(res, "Couldn't fetch resource requested", 500)
+                return;
+            }
+
             fs.writeFileSync(filePath, content, 'utf-8');
 
             const secureUrlResp = await generateSecureURL("COMPANY", companyId)

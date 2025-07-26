@@ -9,7 +9,7 @@ import { createNotification } from '@/lib/server/notificationSink';
 import { generateSecureURL } from '@/utils/shared/secureUrlApi';
 import { baseUrl } from '@/pages/_app';
 
-const PREP_DIR = path.join(process.cwd(), 'public', 'prep');
+const PREP_DIR = path.join(process.cwd(), 'public', 'content', 'prep');
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
@@ -47,7 +47,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         try {
             if (!fs.existsSync(filePath)) {
                 fs.mkdirSync(PREP_DIR, { recursive: true });
-                fs.writeFileSync(filePath, "", 'utf-8');
+                fs.writeFileSync(filePath, '{"root":{"children":[{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""}],"direction":null,"format":"","indent":0,"type":"root","version":1}}', 'utf-8');
             }
             const content = fs.readFileSync(filePath, 'utf-8');
 

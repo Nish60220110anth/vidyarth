@@ -1,0 +1,17 @@
+model userSession {
+  id Int @id @default(autoincrement())
+
+  userId Int
+  user   user @relation("UserSessions", fields: [userId], references: [id])
+
+  isCvHr Boolean
+
+  companyName String?
+  companyId   Int
+  company     company @relation("CompanySessions", fields: [companyId], references: [id])
+
+  jdLinks         String
+  compendiumLinks String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

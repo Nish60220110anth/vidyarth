@@ -29,11 +29,11 @@ import CompendiumPane from "./content/CompendiumPane";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import { useRouter } from "next/router";
 import { decodeSecureURL } from "@/utils/shared/secureUrlApi";
+import SummaryPane from "./content/SummaryPane";
 
 
 type PaneComponentProps = Record<string, any>;
 
-const SummaryPane = () => <p>This is the Summary pane.</p>;
 const AlumExpPane = () => <p>This is the Alum Exp pane.</p>;
 
 export const PANE_CONFIG: {
@@ -45,7 +45,9 @@ export const PANE_CONFIG: {
         {
             label: "Summary",
             icon: <ChartBarSquareIcon className="w-4 h-4 mr-1" />,
-            component: () => <SummaryPane />,
+            component: ({ company_id }) => <SummaryPane props={{
+                company_id: company_id,
+            }} />,
             color: "bg-blue-100 text-blue-800",
         },
         {
@@ -121,7 +123,7 @@ export default function CompanyPage() {
         "Videos": <VideoPane props={{ videos: allVideos || [] }} />,
         "News": <NewsPane props={{ news: allNews || [] }} />,
         "Overview": <OverviewPane props={{ company_id: companyId }} />,
-        "Summary": <SummaryPane />,
+        "Summary": <SummaryPane props={{ company_id: companyId }} />,
         "Compendium": <CompendiumPane props={{ company_id: companyId }} />,
         "Alum Exp": <AlumExpPane />,
     }), [allJds, allVideos, allNews, companyId]);
@@ -253,10 +255,10 @@ export default function CompanyPage() {
                 const response = await axios.get(proxyURL, { responseType: "blob" });
 
                 saveAs(response.data, filename);
-                toast.success("Downloaded JD");
             } catch (err) {
                 console.error("Download failed", err);
                 toast.error("Failed to download file");
+            } finally {
                 setIsDownloading(false);
             }
             return;

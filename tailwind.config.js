@@ -17,6 +17,13 @@ module.exports = {
               },
         },
     },
+    safelist: [
+        'dark:text-white',
+        'dark:bg-blue-950',
+        'dark:border-gray-800',
+        'dark:text-gray-300',
+        'dark:text-cyan-400',
+    ],
     plugins: [
         require('tailwind-scrollbar'),
     ],

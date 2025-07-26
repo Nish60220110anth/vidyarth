@@ -53,6 +53,10 @@ export interface OverviewEntry {
     company_id: number
 }
 
+export interface SummaryEntry {
+    company_id: number
+}
+
 export interface CompendiumEntry {
     company_id: number
 }

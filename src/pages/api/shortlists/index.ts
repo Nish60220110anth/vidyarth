@@ -3,23 +3,36 @@ import { sessionOptions } from "@/lib/session";
 import { getIronSession, IronSessionData } from "iron-session";
 import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { ACCESS_PERMISSION } from "@prisma/client";
+import { apiHelpers } from "@/lib/server/responseHelpers";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    get: {
+        permissions: [
+            ACCESS_PERMISSION.ENABLE_MY_SECTION,
+        ],
+        filters: {
+            [ACCESS_PERMISSION.ENABLE_MY_SECTION]: {
+                priority: 1,
+                filter: {},
+            }
+        },
+    }
+};
+
+async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
-        if (req.method !== "GET") {
-            return res.status(405).json({ message: "Method not allowed" });
-        }
-
         const userSession = await getIronSession<IronSessionData>(req, res, sessionOptions);
-        if (!userSession) {
-            return res.status(500).json({ message: "Internal Server Error" });
+        const rawCount = req.query.count;
+        const count = rawCount ? Number(rawCount) : undefined;
+
+        if (rawCount && count && isNaN(count)) {
+            apiHelpers.badRequest(res, "Count should be a number");
+            return;
         }
 
-        if (!userSession?.email) {
-            return res.status(401).json({ message: "Unauthorized: No email in session" });
-        }
-
-        const user = await prisma.user.findFirst({
+        const user = await prisma.user.findUniqueOrThrow({
             where: { email_id: userSession.email },
             select: {
                 id: true,
@@ -29,10 +42,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
         });
 
-        if (!user || !user.is_active || !user.is_verified) {
-            return res.status(403).json({ message: "User not authorized or not verified" });
-        }
-
         const shortlists = await prisma.shortlist.findMany({
             where: {
                 shortlisted_users: {
@@ -40,6 +49,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         pcomid: user.pcomid,
                     },
                 },
+                company: {
+                    is_featured: true
+                }
             },
             orderBy: {
                 created_at: "desc",
@@ -48,11 +60,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 company: true,
                 shortlisted_users: true
             },
+            take: count
         });
 
-        return res.status(200).json({ success: true, shortlists });
+        apiHelpers.success(res, { shortlists })
+        return;
     } catch (error) {
         console.error("Error fetching user shortlists:", error);
         return res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

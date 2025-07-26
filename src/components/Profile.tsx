@@ -4,12 +4,12 @@ import { AnimatePresence, motion as m, motion } from "framer-motion";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { roleIcons } from "./Sidebar";
-import { UserCircleIcon } from "@heroicons/react/24/solid";
 
 type Props = {
     name: string;
     email: string;
     role: string;
+    id: number;
 };
 
 type MentorInfo = { name: string; email_id: string };

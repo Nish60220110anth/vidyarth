@@ -1,8 +1,9 @@
 model news {
-  id String @id @default(cuid())
+  id Int @id @default(autoincrement())
 
   title          String
   content        String  @db.Text
+  description    String  @db.Text
   link_to_source String? @db.Text
 
   is_active   Boolean @default(true)
@@ -25,8 +26,8 @@ model news {
 }
 
 model news_company {
-  id         Int    @id @default(autoincrement())
-  news_id    String
+  id         Int @id @default(autoincrement())
+  news_id    Int
   company_id Int
 
   news    news    @relation(fields: [news_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -37,7 +38,7 @@ model news_company {
 
 model news_domain {
   id      Int    @id @default(autoincrement())
-  news_id String
+  news_id Int
   domain  DOMAIN
 
   news news @relation(fields: [news_id], references: [id], onDelete: Cascade, onUpdate: Cascade)

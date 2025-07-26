@@ -20,8 +20,10 @@ model company {
   shortlists       shortlist[]
   notifications    notification[]
 
-  news   news_company[]
-  videos video[]
+  news        news_company[]
+  videos      video[]
+  userSession userSession[]  @relation("CompanySessions")
+  summary     summary[]      @relation("SummaryCompany")
 }
 
 model companydomainmapping {

@@ -41,12 +41,26 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return res.status(403).json({ error: 'Inactive or unauthorized user' });
     }
 
-    if( !user.is_verified ) {
+    const signoutExists = await prisma.signouts.findFirst({
+        where: {
+            userId: user.id,
+        },
+        select: {
+            id: true,
+        },
+    });
+
+    if (!user.is_verified) {
         session.destroy();
         return res.status(403).json({ error: 'User not verified' });
     }
 
-    if(session.role != user.role) {
+    if (!!signoutExists) {
+        session.destroy();
+        return res.status(403).json({ error: 'User signed out of process' });
+    }
+
+    if (session.role != user.role) {
         session.destroy();
         return res.status(403).json({ error: 'Permissions Updated' });
     }

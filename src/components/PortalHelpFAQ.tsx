@@ -1,17 +1,21 @@
+"use client";
+
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    AcademicCapIcon,
     BuildingOffice2Icon,
     NewspaperIcon,
     DocumentTextIcon,
     ComputerDesktopIcon,
-    SpeakerWaveIcon,
+    CheckCircleIcon,
     UserCircleIcon,
     Cog6ToothIcon,
-    CheckCircleIcon,
+    AcademicCapIcon,
+    FilmIcon,
+    FolderOpenIcon,
     ChevronRightIcon,
 } from "@heroicons/react/24/outline";
+import { toTitleCase } from "./Profile";
 
 type PortalHelpFAQProps = {
     role: string;
@@ -19,15 +23,85 @@ type PortalHelpFAQProps = {
     email: string;
 };
 
-const iconMap = {
-    COMPANY: <BuildingOffice2Icon className="w-5 h-5 text-cyan-600" />,
-    NEWS: <NewspaperIcon className="w-5 h-5 text-indigo-600" />,
-    CV: <DocumentTextIcon className="w-5 h-5 text-purple-600" />,
-    MOCK: <ComputerDesktopIcon className="w-5 h-5 text-pink-600" />,
-    SHORTLISTS: <CheckCircleIcon className="w-5 h-5 text-emerald-600" />,
-    PROFILE: <UserCircleIcon className="w-5 h-5 text-gray-600" />,
-    PREFERENCES: <Cog6ToothIcon className="w-5 h-5 text-yellow-500" />,
-};
+const featureList = [
+    {
+        label: "Dashboard",
+        description:
+            "Personalized overview with announcements, shortlists, and recommended content.",
+        icon: <AcademicCapIcon className="w-5 h-5 text-cyan-400" />,
+    },
+    {
+        label: "Company Directory",
+        description:
+            "Browse recruiters with domain tags, job descriptions, logos, and prep guides.",
+        icon: <BuildingOffice2Icon className="w-5 h-5 text-cyan-500" />,
+    },
+    {
+        label: "Placement News",
+        description:
+            "Stay updated with latest news filtered by company, domain, or date.",
+        icon: <NewspaperIcon className="w-5 h-5 text-indigo-400" />,
+    },
+    {
+        label: "CV Preparation",
+        description:
+            "View formatting tips, domain-based CV examples, and CV-related alerts.",
+        icon: <DocumentTextIcon className="w-5 h-5 text-purple-500" />,
+    },
+    {
+        label: "Mock Interviews",
+        description:
+            "Practice AI-powered or manual mocks with zero data retention.",
+        icon: <ComputerDesktopIcon className="w-5 h-5 text-pink-500" />,
+    },
+    {
+        label: "Shortlists & Announcements",
+        description:
+            "Track your shortlist status and access JD and preparation materials.",
+        icon: <CheckCircleIcon className="w-5 h-5 text-emerald-400" />,
+    },
+    {
+        label: "My CV",
+        description:
+            "Download your verified CV(s) and view version history and comments.",
+        icon: <FolderOpenIcon className="w-5 h-5 text-cyan-300" />,
+    },
+    {
+        label: "Videos",
+        description:
+            "Watch curated videos tagged by domain and company.",
+        icon: <FilmIcon className="w-5 h-5 text-yellow-400" />,
+    },
+    {
+        label: "Profile & Preferences",
+        description:
+            "Manage your role, email, and notification preferences.",
+        icon: <UserCircleIcon className="w-5 h-5 text-gray-300" />,
+    },
+];
+
+const faqList = [
+    {
+        question: "Can I upload or edit my CV here?",
+        answer:
+            "CV uploads are currently managed by the placement team. You can download all your verified versions here.",
+    },
+    {
+        question: "Are AI mock interviews recorded?",
+        answer:
+            "No. AI mocks are completely private and reset each session. No data is stored.",
+    },
+    {
+        question: "Who can see my shortlists and activity?",
+        answer:
+            "Only you and authorized placement team members can access your data. Nothing is public.",
+    },
+    {
+        question: "Why can’t I see certain features?",
+        answer:
+            "Feature access depends on your assigned role. Contact PlaceCom for any access concerns.",
+    },
+];
 
 export default function PortalHelpFAQ({ role, name, email }: PortalHelpFAQProps) {
     const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -36,101 +110,67 @@ export default function PortalHelpFAQ({ role, name, email }: PortalHelpFAQProps)
         setOpenIndex(openIndex === index ? null : index);
     };
 
-    const getStudentFeatures = () => [
-        {
-            label: "Company Directory",
-            description: "Explore recruiters with domain tags, logos, and JD access.",
-            icon: iconMap.COMPANY,
-        },
-        {
-            label: "Latest News",
-            description: "Get timely updates, announcements, and batch-specific alerts.",
-            icon: iconMap.NEWS,
-        },
-        {
-            label: "CV Preparation",
-            description: "Follow structured guidelines for CVs, including domain-based examples.",
-            icon: iconMap.CV,
-        },
-        {
-            label: "AI Mock Interviews",
-            description: "Practice interviews with an AI assistant, no data stored.",
-            icon: iconMap.MOCK,
-        },
-        {
-            label: "Shortlists & Announcements",
-            description: "View your shortlist status and company announcements.",
-            icon: iconMap.SHORTLISTS,
-        },
-        {
-            label: "Profile & Access",
-            description: "Check your role, email, and access level.",
-            icon: iconMap.PROFILE,
-        },
-        {
-            label: "Preferences",
-            description: "Customize your notification and comms settings (coming soon).",
-            icon: iconMap.PREFERENCES,
-        },
-    ];
-
-    const faqList = [
-        {
-            question: "Can I upload or edit my CV here?",
-            answer:
-                "Currently, you can explore format guidelines and domain tips. Uploading will be enabled in the next release.",
-        },
-        {
-            question: "Is my activity on Vidyarth visible to others?",
-            answer:
-                "Only essential access logs are stored. Admins can view minimal data for portal operations. Nothing is publicly visible.",
-        },
-        {
-            question: "Are AI mock sessions recorded?",
-            answer:
-                "No. Sessions are ephemeral and reset each time. Your data remains private.",
-        },
-        {
-            question: "What happens if I lose access to a feature?",
-            answer:
-                "Access is based on your current role. Contact PlaceCom or Admin for clarification.",
-        },
-    ];
-
     return (
-        <div className="max-w-4xl mx-auto px-6 py-12 font-[Inter,sans-serif] text-gray-800">
-            <h1 className="text-3xl font-bold text-blue-800 mb-4">Welcome, {name?.split(" ")[0] || "Student"} 🎓</h1>
-            <p className="text-base md:text-lg text-gray-700 mb-8">
-                You’re logged in as <span className="font-semibold text-cyan-600">{role}</span> (<span className="text-gray-500">{email}</span>). Here’s how you can make the most of <strong>Vidyarth</strong>.
+        <div className="w-full mx-auto px-6 py-12 font-[Urbanist] bg-gradient-to-b from-[#0d1b24] to-[#0a141d] min-h-screen text-white">
+            <h1 className="text-3xl font-bold text-cyan-400 mb-4">Welcome, {toTitleCase(name)} 🎓</h1>
+            <p className="text-base md:text-lg text-gray-300 mb-8">
+                Vidyarth is a centralized platform designed to support students through every stage of the placement process. Key features include:
             </p>
+            <ul className="list-disc pl-6 text-gray-300 space-y-2 mb-8">
+                <li>
+                    <strong className="text-cyan-400">Comprehensive Company Access:</strong> View detailed company information, domains they came for, and job descriptions.
+                </li>
+                <li>
+                    <strong className="text-cyan-400">Domain-Based Prep Resources:</strong> Explore curated content across Consulting, Finance, Marketing, Product Management, and more.
+                </li>
+                <li>
+                    <strong className="text-cyan-400">Shortlists & CV Tracking:</strong> Monitor your shortlist status and manage all submitted CV versions.
+                </li>
+                <li>
+                    <strong className="text-cyan-400">Curated Learning Materials:</strong> Access domain-tagged videos and prep guides tailored to your goals.
+                </li>
+                <li>
+                    <strong className="text-cyan-400">Real-Time Placement Updates:</strong> Stay informed with the latest news, alerts, and announcements.
+                </li>
+                <li>
+                    <strong className="text-cyan-400">Mock Interviews & Dashboards:</strong> Practice AI mocks and use personalized dashboards to stay prepared and organized.
+                </li>
+            </ul>
+
 
             <section className="mb-12">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">📌 Key Features</h2>
-                <ul className="space-y-4">
-                    {getStudentFeatures().map((item, index) => (
-                        <li key={index} className="flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm">
+                <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    <AcademicCapIcon className="w-5 h-5 text-cyan-400" />
+                    Student Features
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {featureList.map((item, index) => (
+                        <div key={index} className="flex items-start gap-3 bg-[#0e1c27] border border-cyan-800 rounded-lg p-4 shadow">
                             <div className="flex-shrink-0 mt-1">{item.icon}</div>
                             <div>
-                                <p className="font-medium text-gray-800">{item.label}</p>
-                                <p className="text-sm text-gray-600">{item.description}</p>
+                                <p className="font-medium text-white">{item.label}</p>
+                                <p className="text-sm text-gray-300">{item.description}</p>
                             </div>
-                        </li>
+                        </div>
                     ))}
-                </ul>
+                </div>
             </section>
 
             <section className="mb-12">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">❓ Frequently Asked Questions</h2>
+                <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    <DocumentTextIcon className="w-5 h-5 text-indigo-400" />
+                    Frequently Asked Questions
+                </h2>
                 <div className="space-y-4">
                     {faqList.map((faq, index) => (
-                        <div key={index} className="border border-gray-200 rounded-lg bg-white shadow-sm">
+                        <div key={index} className="border border-cyan-800 rounded-lg bg-[#0e1c27] shadow-sm">
                             <button
-                                className="flex justify-between items-center w-full px-4 py-3 text-left text-sm font-medium text-gray-800 hover:bg-gray-50 transition"
+                                className="flex justify-between items-center w-full px-4 py-3 text-left text-sm font-medium text-white hover:bg-[#112531] transition"
                                 onClick={() => toggle(index)}
                             >
                                 <span>{faq.question}</span>
                                 <motion.span animate={{ rotate: openIndex === index ? 90 : 0 }} transition={{ duration: 0.2 }}>
-                                    <ChevronRightIcon className="w-5 h-5 text-gray-500" />
+                                    <ChevronRightIcon className="w-5 h-5 text-cyan-400" />
                                 </motion.span>
                             </button>
                             <AnimatePresence initial={false}>
@@ -139,7 +179,7 @@ export default function PortalHelpFAQ({ role, name, email }: PortalHelpFAQProps)
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        className="overflow-hidden px-4 pb-4 text-sm text-gray-600"
+                                        className="overflow-hidden px-4 pb-4 text-sm text-gray-300"
                                     >
                                         {faq.answer}
                                     </motion.div>
@@ -150,11 +190,14 @@ export default function PortalHelpFAQ({ role, name, email }: PortalHelpFAQProps)
                 </div>
             </section>
 
-            <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-5 py-4">
-                <h3 className="font-semibold text-cyan-800 mb-1 text-base">💡 Pro Tip</h3>
-                <p className="text-sm text-cyan-900">
-                    Use <span className="bg-gray-200 px-1 rounded text-xs font-mono">Alt + [Key]</span> shortcuts.
-                    Try <span className="bg-gray-200 px-1 rounded text-xs font-mono">Alt + C</span> to open the Company Directory.
+            <div className="bg-[#0e1c27] border border-cyan-800 rounded-xl px-5 py-4">
+                <h3 className="font-semibold text-cyan-400 mb-1 text-base flex items-center gap-2">
+                    <Cog6ToothIcon className="w-4 h-4 text-cyan-400" />
+                    Pro Tip
+                </h3>
+                <p className="text-sm text-gray-300">
+                    Use <span className="bg-gray-700 px-1 rounded text-xs font-mono">Alt + [Key]</span> shortcuts.
+                    For example, <span className="bg-gray-700 px-1 rounded text-xs font-mono">Alt + C</span> opens Company Directory.
                 </p>
             </div>
         </div>

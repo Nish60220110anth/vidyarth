@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import axios from "axios";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/router";
+import { ACCESS_PERMISSION } from "@prisma/client";
+import { toast } from "react-hot-toast";
 
 const DOMAIN_COLORS: Record<string, { bg: string; text: string }> = {
     FINANCE: { bg: "bg-green-100", text: "text-green-800" },
@@ -25,7 +27,7 @@ type Shortlist = {
 
 type NewsEntry = {
     title: string;
-    source_link: string;
+    link_to_source: string;
     content: string;
     company_name: string;
     company_id: number;
@@ -42,6 +44,7 @@ export default function MySection() {
     const [news, setNews] = useState<NewsEntry[]>([]);
     const [loadingNews, setLoadingNews] = useState(true);
     const [expandedIndices, setExpandedIndices] = useState<Set<number>>(new Set());
+    const shortlist_max_count = 6;
 
     const toggleExpanded = (idx: number) => {
         setExpandedIndices((prev) => {
@@ -51,12 +54,26 @@ export default function MySection() {
         });
     };
 
+    const fetchShortlists = async () => {
+        try {
+            const res = await axios.get(`/api/shortlists/?count=${shortlist_max_count}`, {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.ENABLE_MY_SECTION
+                }
+            });
+
+            if (!res.data.success) {
+                toast.error(res.data.error);
+                return;
+            }
+            setShortlists(res.data.shortlists);
+        } catch (err: any) {
+            toast.error("Error fetching")
+            return;
+        }
+    };
+
     useEffect(() => {
-        const fetchShortlists = async () => {
-            const res = await fetch("/api/shortlists");
-            const data = await res.json();
-            if (data.success) setShortlists(data.shortlists);
-        };
         fetchShortlists();
     }, []);
 
@@ -77,7 +94,7 @@ export default function MySection() {
                 if (!data.success) return;
                 const transformed = data.data.map((news: any): NewsEntry => ({
                     title: news.title,
-                    source_link: news.link_to_source,
+                    link_to_source: news.link_to_source,
                     content: news.content,
                     company_name: news.company_name,
                     company_id: news.company_id,
@@ -151,10 +168,8 @@ export default function MySection() {
                                     {news.map((entry, idx) => {
                                         const isExpanded = expandedIndices.has(idx);
                                         return (
-                                            <motion.a
+                                            <motion.div
                                                 key={idx}
-                                                href={entry.source_link || "#"}
-                                                target="_blank"
                                                 rel="noopener noreferrer"
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
@@ -231,8 +246,8 @@ export default function MySection() {
                                                                 })
                                                                 : "Unknown"}
                                                         </span>
-                                                        {entry.source_link && <a
-                                                            href={entry.source_link}
+                                                        {entry.link_to_source && <a
+                                                            href={entry.link_to_source}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                         >
@@ -243,7 +258,7 @@ export default function MySection() {
                                                         }
                                                     </div>
                                                 </div>
-                                            </motion.a>
+                                            </motion.div>
                                         );
                                     })}
                                 </div>

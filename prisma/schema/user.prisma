@@ -33,6 +33,9 @@ model user {
   known_languages   userlanguage[]        @relation("languagesknown")
   shortlists        shortlist[]           @relation("shortlistusers")
   announcements     announcements[]
+  student_cv        student_cv[]
+  signouts          signouts[]
+  userSession       userSession[]         @relation("UserSessions")
 
   @@unique([pgpid, pcomid])
 }

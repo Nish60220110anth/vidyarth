@@ -1,0 +1,8 @@
+model summary {
+  id Int @id @default(autoincrement())
+
+  companyId Int @unique
+  company   company @relation("SummaryCompany", fields: [companyId], references: [id])
+
+  summary String @db.Text
+}

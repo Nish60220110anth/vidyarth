@@ -13,6 +13,7 @@ import { apiHelpers } from '@/lib/server/responseHelpers';
 import { createNotification } from '@/lib/server/notificationSink';
 import { baseUrl } from '@/pages/_app';
 import { generateSecureURL } from '@/utils/shared/secureUrlApi';
+import { defaultEmptyRichText } from '@/utils/defaultEmptyRichText';
 
 export const config = {
     api: {
@@ -42,7 +43,6 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     }
 };
 
-
 const parseForm = async (req: NextApiRequest): Promise<{ fields: any; files: any }> => {
     try {
         return await new Promise((resolve, reject) => {
@@ -57,9 +57,13 @@ const parseForm = async (req: NextApiRequest): Promise<{ fields: any; files: any
     }
 };
 
-const COMPENDIUM_DIR = path.join(process.cwd(), 'public', 'compendium');
+const COMPENDIUM_DIR = path.join(process.cwd(), 'public', 'content', 'compendium');
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+
+    if (!fs.existsSync(COMPENDIUM_DIR)) {
+        fs.mkdirSync(COMPENDIUM_DIR)
+    }
 
     try {
         if (req.method === 'GET') {
@@ -77,10 +81,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     },
                 });
 
-                if (compendium) {
-                    const textPath = path.join(COMPENDIUM_DIR, `${companyId}.txt`);
-                    const content = fs.existsSync(textPath) ? fs.readFileSync(textPath, 'utf-8') : '';
+                let content = "";
+                const filePath = path.join(COMPENDIUM_DIR, `${companyId}.txt`);
 
+                if (!fs.existsSync(filePath)) {
+                    fs.writeFileSync(filePath, defaultEmptyRichText, 'utf-8');
+                }
+
+                content = fs.readFileSync(filePath, 'utf-8')
+
+                if (compendium) {
                     apiHelpers.success(res, { content, pdfs: compendium?.compedium_pdf })
                     return;
                 } else {
@@ -117,11 +127,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     return;
                 }
 
-                if (!fs.existsSync(COMPENDIUM_DIR)) {
-                    fs.mkdirSync(COMPENDIUM_DIR, { recursive: true });
-                }
 
                 const txtPath = path.join(COMPENDIUM_DIR, `${companyId}.txt`);
+
+                if (!fs.existsSync(txtPath)) {
+                    apiHelpers.error(res, "Couldn't fetch resource requested", 500)
+                    return;
+                }
+
                 fs.writeFileSync(txtPath, content);
 
                 const compendium = await prisma.company_compendium.upsert({
@@ -228,7 +241,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                             action: 'read',
                             expires: new Date('2030-12-31T23:59:59Z'),
                         });
-
 
                         await prisma.company_compendium_pdf_path.create({
                             data: {

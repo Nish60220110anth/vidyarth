@@ -333,7 +333,7 @@ export default function Sidebar({ email, role, onLogout, name, id }: SidebarProp
             section: "Mock",
             perm: ACCESS_PERMISSION.ENABLE_AI_MOCK,
             icon: (cls) => <ComputerDesktopIcon className={cls} />,
-            component: () => <AIMock />,
+            component: () => <AIMock id={id} name={name} email={email} role={role} />,
             shortcut: "A"
         },
         COMPANY_LIST: {
@@ -385,13 +385,13 @@ export default function Sidebar({ email, role, onLogout, name, id }: SidebarProp
             component: () => <div className="p-6 text-gray-500">Announcements will be displayed here.</div>,
             shortcut: "S"
         },
-        CUSTOM_EMAILS: {
-            section: "Announcements",
-            perm: ACCESS_PERMISSION.MANAGE_EMAIL,
-            icon: (cls) => <EnvelopeIcon className={cls} />,
-            component: () => <div className="p-6 text-gray-500">Email management will be available soon.</div>,
-            shortcut: "E"
-        },
+        // CUSTOM_EMAILS: {
+        //     section: "Announcements",
+        //     perm: ACCESS_PERMISSION.MANAGE_EMAIL,
+        //     icon: (cls) => <EnvelopeIcon className={cls} />,
+        //     component: () => <div className="p-6 text-gray-500">Email management will be available soon.</div>,
+        //     shortcut: "E"
+        // },
         NOTIFICATION: {
             section: "Announcements",
             perm: ACCESS_PERMISSION.MANAGE_ANNOUNCEMENTS,
@@ -425,7 +425,7 @@ export default function Sidebar({ email, role, onLogout, name, id }: SidebarProp
             label: "Profile",
             icon: (cls) => <UserIcon className={cls} />,
             perm: ACCESS_PERMISSION.ENABLE_PROFILE,
-            component: () => <Profile name={name} email={email} role={role} />
+            component: () => <Profile name={name} email={email} role={role} id={id} />
         },
         SHORTLISTS: {
             label: "Shortlists",
@@ -437,7 +437,7 @@ export default function Sidebar({ email, role, onLogout, name, id }: SidebarProp
             label: "My CV",
             icon: (cls) => <DocumentTextIcon className={cls} />,
             perm: ACCESS_PERMISSION.ENABLE_MY_CV,
-            component: () => <MyCV />
+            component: () => <MyCV name={name} email={email} role={role} id={id} />
         },
         ANNOUNCEMENTS: {
             label: "Announcements",
@@ -479,12 +479,12 @@ export default function Sidebar({ email, role, onLogout, name, id }: SidebarProp
                 }
             });
 
-            
-            if(!res.data.success) {
+
+            if (!res.data.success) {
                 toast.error(res.data.error)
                 return;
             }
-            
+
             setAnnouncements(res.data.data)
         } catch (err) {
             console.error(err);
@@ -839,7 +839,7 @@ export default function Sidebar({ email, role, onLogout, name, id }: SidebarProp
                                 </div>
 
                             )}
-                    
+
                             {/* Theme toggle icon */}
                             {/* <div
                             onClick={toggleTheme}

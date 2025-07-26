@@ -8,7 +8,7 @@ import { generateSecureURL } from "@/utils/shared/secureUrlApi";
 import { baseUrl, chitraguptaUrl } from "../_app";
 
 const cors = Cors({
-    origin: "http://localhost:5173",
+    origin: process.env.NEXT_PUBLIC_CHITRAGUPTA_URL,
     methods: ["POST", "OPTIONS"],
     credentials: true
 });
@@ -167,7 +167,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlRespMySection.url)}&tab=My+Section`,
                         link_name: "my_section_link"
                     }, {
-                        link: `${chitraguptaUrl}/my-shortlists`,
+                        link: `${chitraguptaUrl}/chitragupta/my-shortlists`,
                         link_name: "chitragupta_link"
                     }, {
                         link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlRespCompany.url)}&tab=Summary`,
