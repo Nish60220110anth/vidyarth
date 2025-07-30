@@ -3,7 +3,7 @@ import { USER_ROLE } from "@prisma/client";
 import { AnimatePresence, motion as m, motion } from "framer-motion";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { roleIcons } from "./Sidebar";
+import { roleIcons } from "@/constants/roleIcons";
 
 type Props = {
     name: string;

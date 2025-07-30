@@ -8,6 +8,8 @@ import toast from "react-hot-toast";
 import { ChevronUpIcon, ChevronDownIcon, PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { ArrowPathIcon, ArrowUpTrayIcon, CheckCircleIcon, CheckIcon, PencilIcon, TrashIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { debounce } from "lodash";
+import { fetchCompanyListWithPermission } from "@/lib/api/company";
+import { ACCESS_PERMISSION } from "@prisma/client";
 
 interface Company {
     id: number;
@@ -113,14 +115,10 @@ export default function ManageCompanyList() {
                     },
                 });
             } else {
-                res = await axios.get("/api/company", {
-                    headers: {
-                        "x-access-permission": "MANAGE_COMPANY_LIST",
-                    },
-                });
+                res = await fetchCompanyListWithPermission(ACCESS_PERMISSION.MANAGE_COMPANY_LIST);
             }
 
-            const fetchedCompanies = res.data.companies.filter((c: Company) => c.id > 0);
+            const fetchedCompanies = res.filter((c: Company) => c.id > 0);
             const domainToUse = domainOverride || selectedDomain;
 
             setAllCompanies((prev) => {
@@ -307,7 +305,7 @@ export default function ManageCompanyList() {
 
     const handleDelete = async (id: number) => {
         try {
-            const res = await axios.delete(`/api/company?id=${id}`, {
+            const res = await axios.delete(`/api/company?cid=${id}`, {
                 headers: {
                     "x-access-permission": "MANAGE_COMPANY_LIST"
                 }

@@ -6,8 +6,8 @@ import { ACCESS_PERMISSION, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from '@pri
 import { apiHelpers } from '@/lib/server/responseHelpers';
 import { createNotification } from '@/lib/server/notificationSink';
 import { generateSecureURL } from '@/utils/shared/secureUrlApi';
-import { baseUrl } from '@/pages/_app';
 import { defaultEmptyRichText } from '@/utils/defaultEmptyRichText';
+import { baseUrl } from '@/lib/config';
 
 const OVERVIEW_DIR = path.join(process.cwd(), 'public', 'content', 'overview');
 

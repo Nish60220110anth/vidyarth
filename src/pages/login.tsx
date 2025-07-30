@@ -139,101 +139,99 @@ export default function LoginPage({ ip, IIMLPrivate, userAgent, language }: {
     return (
         <>
             <Head>
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+                <title>Login - Vidyarth</title>
+                <link
+                    href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&display=swap"
+                    rel="stylesheet"
+                />
             </Head>
 
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 font-[Inter] relative overflow-hidden">
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0d1b24] to-[#0a141d] font-[Urbanist] text-cyan-100 relative overflow-hidden">
                 {isLoggingIn && (
-                    <div className="absolute inset-0 z-50 bg-black bg-opacity-70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
+                    <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
                         <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
                         <p className="text-cyan-200 text-lg font-medium animate-pulse">Logging you in...</p>
                     </div>
                 )}
 
-                <div className="w-full max-w-md bg-gray-800/90 backdrop-blur-md border border-gray-700 p-8 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.6)] animate-fade-in z-10">
-                    <h1 className="text-4xl font-extrabold text-center text-gray-100 mb-8 tracking-wide">Welcome to Vidyarth</h1>
+                <div className="w-full max-w-md bg-[#0c0f11] backdrop-blur-md border border-cyan-900 p-8 rounded-2xl shadow-[0_0_20px_rgba(0,255,255,0.15)] animate-fade-in z-10">
+                    <h1 className="text-4xl font-extrabold text-center text-cyan-300 mb-8 tracking-wide">Welcome to Vidyarth</h1>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1">Email ID</label>
+                            <label htmlFor="username" className="block text-sm font-medium text-cyan-200 mb-1">Email ID</label>
                             <input
                                 type="text"
                                 id="username"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
-                                className="w-full px-4 py-2 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition"
+                                className="w-full px-4 py-2 rounded-xl bg-[#111418] text-cyan-100 placeholder-cyan-400/70 border border-cyan-800 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition"
+                                placeholder="you@iiml.ac.in"
                                 required
                             />
                         </div>
 
-                        <div className="relative">
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">Password</label>
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                id="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pr-12 px-4 py-2 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition"
-                                required
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword((prev) => !prev)}
-                                className="absolute right-3 top-1/2 -translate-y-1/5 transform p-1 focus:outline-none"
-                                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                            >
-                                {showPassword ? (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4-10-7s4.477-7 10-7c1.326 0 2.588.263 3.75.738M15 12a3 3 0 11-6 0 3 3 0 016 0zM3 3l18 18" />
-                                    </svg>
-                                ) : (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                )}
-                            </button>
+                        <div>
+                            <label htmlFor="password" className="block text-sm font-medium text-cyan-200 mb-1">Password</label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    id="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full px-4 py-2 pr-10 rounded-xl bg-[#111418] text-cyan-100 placeholder-cyan-400/70 border border-cyan-800 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition"
+                                    placeholder="••••••••"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(prev => !prev)}
+                                    className="absolute inset-y-0 right-3 flex items-center text-cyan-300 hover:text-cyan-100 focus:outline-none"
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                >
+                                    {showPassword ? (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4-10-7s4.477-7 10-7c1.326 0 2.588.263 3.75.738M15 12a3 3 0 11-6 0 3 3 0 016 0zM3 3l18 18" />
+                                        </svg>
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    )}
+                                </button>
+                            </div>
                         </div>
 
                         <button
                             type="submit"
-                            className="w-full bg-cyan-400 hover:bg-cyan-300 text-gray-900 font-semibold py-2 px-4 rounded-xl shadow transition duration-300 ease-in-out"
+                            className="w-full bg-cyan-400 hover:bg-cyan-300 text-[#0a141d] font-semibold py-2 px-4 rounded-xl shadow-sm transition duration-300 ease-in-out"
                         >
                             Login
                         </button>
                     </form>
 
-                    <div className="mt-6 flex justify-between text-sm">
-                        <button
-                            onClick={handleNewUser}
-                            className="text-cyan-300 hover:underline hover:text-cyan-100 transition"
-                        >
-                            New User?
-                        </button>
-                        <button
-                            onClick={handleForgotPassword}
-                            className="text-cyan-300 hover:underline hover:text-cyan-100 transition"
-                        >
-                            Forgot Password?
-                        </button>
+                    <div className="mt-6 flex justify-between text-sm text-cyan-300">
+                        <button onClick={handleNewUser} className="hover:underline hover:text-cyan-100 transition">New User?</button>
+                        <button onClick={handleForgotPassword} className="hover:underline hover:text-cyan-100 transition">Forgot Password?</button>
                     </div>
 
                     <div className="my-8 flex justify-center">
                         <GoogleLogin onSuccess={handleGoogleLogin} onError={() => toast.error("Google login failed")} />
                     </div>
 
-
-                    <div className="mt-8 text-center text-sm text-gray-400">
+                    <div className="mt-8 text-center text-sm text-gray-400 space-y-1">
                         <p>🌐 <strong>IP:</strong> {ip || 'Unknown'}</p>
                         <p>🧭 <strong>Browser:</strong> {userAgent || 'Unavailable'}</p>
                         <p>🈯 <strong>Language:</strong> {language || 'Unavailable'}</p>
                     </div>
                 </div>
 
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-gray-500 text-xs">
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-cyan-500 text-xs">
                     <p>© 2025 Vidyarth. All rights reserved.</p>
                 </div>
             </div>
+
         </>
     );
 }

@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import axios from "axios";
-import { baseUrl } from "@/pages/_app";
 import { USER_ROLE } from "@prisma/client";
+import { baseUrl } from "@/lib/config";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "POST") {

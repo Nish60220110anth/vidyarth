@@ -1,10 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import axios from "axios";
-import { baseUrl } from "@/pages/_app";
 import { renderTemplate } from "@/utils/emailTemplate";
 import { toTitleCase } from "@/components/Profile";
 import { prisma } from "@/lib/prisma";
 import { ACCESS_PERMISSION } from "@prisma/client";
+import { baseUrl } from "@/lib/config";
+import axios from "axios";
 
 type RefinedEntry = {
     to: string[];

@@ -53,7 +53,11 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
     };
 
     const fetchPermissions = async () => {
-        const res = await axios.get(`/api/permissions`);
+        const res = await axios.get(`/api/permissions`, {
+            headers: {
+                "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+            }
+        });
         setPermissions(res.data.permissions);
     };
 

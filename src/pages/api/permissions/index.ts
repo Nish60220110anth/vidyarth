@@ -1,24 +1,22 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { USER_ROLE } from "@prisma/client";
+import { ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";
 import { getIronSession, IronSessionData } from "iron-session";
 import { sessionOptions } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { apiHelpers } from "@/lib/server/responseHelpers";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    get: {
+        permissions: [ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY],
+    }
+};
+async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const session: IronSessionData = await getIronSession(req, res, sessionOptions);
-
     const role = session?.role as USER_ROLE;
 
-    if (typeof role !== "string") {
-        return res.status(400).json({ error: "Invalid role format" });
-    }
-
-    if (!role) {
-        return res.status(400).json({ error: "Role cannot be undefined" });
-    }
-
-    if (req.method === "GET" && role) {
+    if (req.method === "GET") {
         try {
             const rolePerm = await prisma.role_permission.findUnique({
                 where: { role },
@@ -31,16 +29,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
             });
 
-            return res.status(200).json({
+            apiHelpers.success(res, {
                 permissions: rolePerm?.permissions.map(p => p.permission) || [],
                 description: rolePerm?.description || ""
             });
 
+            return;
+
         } catch (error) {
             console.error("Error fetching permissions:", error);
-            return res.status(500).json({ error: "Internal server error" });
+            apiHelpers.error(res, "Failed to fetch permissions", 500);
+            return;
         }
     }
 
     return res.status(405).json({ error: "Method not allowed" });
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

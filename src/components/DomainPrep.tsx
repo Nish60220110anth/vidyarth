@@ -62,7 +62,11 @@ export default function HowToPrepareCV() {
     }, [router.isReady, router.query.tab]);
 
     const fetchPermissions = async () => {
-        const res = await axios.get(`/api/permissions`);
+        const res = await axios.get(`/api/permissions`, {
+            headers: {
+                "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+            }
+        });
         setPermissions(res.data.permissions);
     };
 
@@ -134,12 +138,14 @@ export default function HowToPrepareCV() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[150px] bg-gray-50 border border-cyan-100 rounded-md text-sm text-cyan-600 font-medium gap-2 px-4 py-3 shadow-sm">
-                <svg className="w-4 h-4 animate-spin text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v4m0 8v4m8-8h4M4 12H0m16.24-6.24l2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83" />
+            <div className="flex items-center justify-center min-h-[150px] bg-gradient-to-br from-[#0d1b24] to-[#0a141d] border border-cyan-800 rounded-md text-sm text-cyan-300 font-medium gap-3 px-4 py-3 shadow-inner">
+                <svg className="w-4 h-4 animate-spin text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                        d="M12 4v4m0 8v4m8-8h4M4 12H0m16.24-6.24l2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83" />
                 </svg>
                 Loading content...
             </div>
+
         );
     }
 
@@ -162,9 +168,9 @@ export default function HowToPrepareCV() {
             className="max-h-[calc(100vh-5.5rem)]"
         >
             {/* Tabs for domain selection */}
-            <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-2 sm:px-6 py-3 overflow-x-auto whitespace-nowrap flex gap-2 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+            <div className="sticky top-0 z-20 bg-[#0c0f11] border-b border-cyan-900 px-2 sm:px-6 py-3 overflow-x-auto whitespace-nowrap flex gap-2 backdrop-blur supports-[backdrop-filter]:bg-[#0c0f11]/90">
                 {Object.values(DOMAIN).map((dom) => {
-                    const color = DOMAIN_COLORS[dom] ?? { bg: "bg-gray-100", text: "text-gray-800" };
+                    const color = DOMAIN_COLORS[dom] ?? { bg: "bg-cyan-900", text: "text-cyan-300", border: "border-cyan-700" };
                     const isSelected = selectedDomain === dom;
 
                     return (
@@ -182,11 +188,12 @@ export default function HowToPrepareCV() {
                                 );
                             }}
                             className={`
-                    text-sm px-4 py-1.5 rounded-full font-medium border transition-all duration-200
-                    ${isSelected
+                        text-sm px-4 py-1.5 rounded-full font-medium border transition-all duration-200
+                        ${isSelected
                                     ? `${color.bg} ${color.text} ${color.border} border-transparent shadow-sm`
-                                    : `bg-white text-gray-700 border-gray-300 hover:${color.bg} hover:${color.text} hover:${color.border}`}
-                `}
+                                    : `bg-[#0c0f11] text-cyan-100 border-cyan-800 hover:${color.bg} hover:${color.text} hover:${color.border}`
+                                }
+                    `}
                         >
                             {dom}
                         </button>
@@ -195,14 +202,14 @@ export default function HowToPrepareCV() {
             </div>
 
             {/* Content editor section */}
-            <div className="group bg-white border border-gray-200 rounded-2xl shadow-lg px-4 sm:px-8 py-0 space-y-4 w-full transition-all duration-300 ease-in-out h-full overflow-hidden">
+            <div className="group bg-[#0a141d] border border-cyan-900 rounded-2xl shadow-lg px-4 sm:px-8 py-0 space-y-4 w-full transition-all duration-300 ease-in-out h-full overflow-hidden">
                 <div className="h-full overflow-y-auto">
                     {isEditor && (
-                        <div className="sticky top-0 z-10 border-b border-gray-300 py-3 flex flex-col sm:flex-row justify-end items-start sm:items-center gap-2">
+                        <div className="sticky top-0 z-10 border-b border-cyan-800 py-3 flex flex-col sm:flex-row justify-end items-start sm:items-center gap-2">
                             {!isEditing ? (
                                 <button
                                     onClick={() => setIsEditing(true)}
-                                    className="w-full sm:w-auto px-4 py-1.5 text-sm rounded-md border border-cyan-500 text-cyan-700 bg-white hover:bg-cyan-50 hover:shadow-md transition-all duration-200 ease-in-out font-medium flex items-center gap-2"
+                                    className="w-full sm:w-auto px-4 py-1.5 text-sm rounded-md border border-cyan-500 text-cyan-300 bg-transparent hover:bg-cyan-900/30 hover:shadow-md transition-all duration-200 font-medium flex items-center gap-2"
                                 >
                                     <PencilSquareIcon className="w-4 h-4" />
                                     Edit
@@ -214,7 +221,7 @@ export default function HowToPrepareCV() {
                                             setContent(originalContent);
                                             setIsEditing(false);
                                         }}
-                                        className="px-4 py-1.5 text-sm rounded-md border border-red-400 text-red-600 bg-white hover:bg-red-50 hover:shadow transition-all duration-200 w-full sm:w-auto font-medium flex items-center gap-2"
+                                        className="px-4 py-1.5 text-sm rounded-md border border-red-400 text-red-400 bg-transparent hover:bg-red-800/20 hover:shadow transition-all duration-200 w-full sm:w-auto font-medium flex items-center gap-2"
                                     >
                                         <XCircleIcon className="w-4 h-4" />
                                         Cancel
@@ -249,5 +256,6 @@ export default function HowToPrepareCV() {
                 </div>
             </div>
         </motion.div>
+
     );
 }

@@ -7,6 +7,7 @@ import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/router";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import { toast } from "react-hot-toast";
+import { generateSecureURL } from "@/utils/shared/secureUrlApi";
 
 const DOMAIN_COLORS: Record<string, { bg: string; text: string }> = {
     FINANCE: { bg: "bg-green-100", text: "text-green-800" },
@@ -52,6 +53,16 @@ export default function MySection() {
             updated.has(idx) ? updated.delete(idx) : updated.add(idx);
             return updated;
         });
+    };
+
+    const onCompanySelected = async (company_id: number) => {
+
+        const authResp = await generateSecureURL("COMPANY", company_id);
+        if (!authResp.success) {
+            toast.error(authResp.error)
+            return;
+        }
+        router.push({ query: { auth: encodeURIComponent(authResp.url) } }, undefined, { shallow: true });
     };
 
     const fetchShortlists = async () => {
@@ -127,11 +138,22 @@ export default function MySection() {
                     ) : (
                         <div className="space-y-4">
                             {shortlists.map((s) => (
-                                <div key={s.id} className="border border-cyan-700 bg-[#0e1c27] p-4 rounded-lg shadow-sm">
+                                <button
+                                    key={s.id}
+                                    onClick={() => onCompanySelected(s.company_id)}
+                                    className="w-full text-left border border-cyan-700 
+                                    bg-[#0e1c27] p-4 rounded-lg shadow-sm hover:bg-[#102431] transition duration-200
+                                    cursor-pointer"
+                                >
                                     <h4 className="text-lg font-semibold text-cyan-200">{s.company.company_full}</h4>
-                                    <p className="text-cyan-100 text-sm"><strong>Role:</strong> {s.role}</p>
-                                    <p className="text-cyan-100 text-sm"><strong>Round:</strong> {s.round_details}</p>
-                                </div>
+                                    <p className="text-cyan-100 text-sm">
+                                        <strong>Role:</strong> {s.role}
+                                    </p>
+                                    <p className="text-cyan-100 text-sm">
+                                        <strong>Round:</strong> {s.round_details}
+                                    </p>
+                                </button>
+
                             ))}
                         </div>
                     )}

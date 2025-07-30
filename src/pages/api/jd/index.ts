@@ -8,7 +8,7 @@ import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCh
 import { apiHelpers } from "@/lib/server/responseHelpers";
 import { createNotification } from "@/lib/server/notificationSink";
 import { generateSecureURL } from "@/utils/shared/secureUrlApi";
-import { baseUrl } from "@/pages/_app";
+import { baseUrl } from "@/lib/config";
 
 export const config = {
     api: {
@@ -109,8 +109,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return;
         }
     }
-
-    if (req.method === "PUT") {
+    else if (req.method === "PUT") {
         try {
             const { fields, files } = await parseForm(req);
 
@@ -231,8 +230,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return;
         }
     }
-
-    if (req.method === "GET") {
+    else if (req.method === "GET") {
         try {
             const { cid } = req.query;
 
@@ -269,8 +267,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return;
         }
     }
-
-    if (req.method === "DELETE") {
+    else if (req.method === "DELETE") {
         try {
             const jdId = req.query.id;
 
@@ -312,6 +309,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             apiHelpers.error(res, "Failed to delete JD")
             return;
         }
+    }
+
+    else {
+        apiHelpers.methodNotAllowed(res, req.method);
+        return;
     }
 }
 

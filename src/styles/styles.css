@@ -5,23 +5,26 @@
 .rtl {
     text-align: right;
 }
+
 /* 
 * {
     border: 1px solid red;
 }  */
 
+
 .editor-container {
-    /* margin: 20px auto 20px auto; */
+    margin: 20px auto 20px auto;
     overflow: hidden;
     /* padding-left: 20px;
     padding-right: 20px; */
-    color: #000;
     position: relative;
     line-height: 20px;
     font-weight: 400;
     text-align: left;
     padding: 0.5rem;
     margin: 12px auto;
+    background-color: #0d1b24;
+    color: #c1f5ff;
 }
 
 @media screen and (max-width: 640px) {
@@ -84,26 +87,13 @@
     }
 }
 
-.editor-container {
-    margin: 20px auto;
-    overflow: hidden;
-    padding: 1rem;
-    color: #000;
-    position: relative;
-    line-height: 1.5rem;
-    font-weight: 400;
-    text-align: left;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-
 .editor-inner {
-    background: #fff;
     position: relative;
     border-bottom-left-radius: 8px;
     border-bottom-right-radius: 8px;
     width: 100%;
     max-width: 100%;
+    background-color: #0a141d;
 }
 
 .editor-input {
@@ -115,11 +105,12 @@
     tab-size: 1;
     outline: 0;
     padding: 15px 10px;
-    caret-color: #444;
+    color: #e0f7ff;
+    background-color: transparent;
+    caret-color: #22d3ee;
 }
 
 .editor-placeholder {
-    color: #999;
     overflow: hidden;
     position: absolute;
     text-overflow: ellipsis;
@@ -129,6 +120,7 @@
     user-select: none;
     display: inline-block;
     pointer-events: none;
+    color: #7dd3fc;
 }
 
 .editor-inner,

@@ -11,9 +11,9 @@ import { ACCESS_PERMISSION, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from '@pri
 import { getFieldValue } from '@/utils/parseApiField';
 import { apiHelpers } from '@/lib/server/responseHelpers';
 import { createNotification } from '@/lib/server/notificationSink';
-import { baseUrl } from '@/pages/_app';
 import { generateSecureURL } from '@/utils/shared/secureUrlApi';
 import { defaultEmptyRichText } from '@/utils/defaultEmptyRichText';
+import { baseUrl } from '@/lib/config';
 
 export const config = {
     api: {

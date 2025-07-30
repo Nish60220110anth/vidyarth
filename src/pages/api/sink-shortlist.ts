@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { createNotification } from "@/lib/server/notificationSink";
 import { NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@prisma/client";
 import { generateSecureURL } from "@/utils/shared/secureUrlApi";
-import { baseUrl, chitraguptaUrl } from "../_app";
+import { baseUrl, chitraguptaUrl } from "@/lib/config";
 
 const cors = Cors({
     origin: process.env.NEXT_PUBLIC_CHITRAGUPTA_URL,

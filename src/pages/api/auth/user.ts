@@ -3,24 +3,29 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { sessionOptions } from '@/lib/session';
 
 import { prisma } from "@/lib/prisma";
+import { apiHelpers } from '@/lib/server/responseHelpers';
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     const session: IronSession<IronSessionData> = await getIronSession(req, res, sessionOptions);
 
     if (!(req.method === 'GET' || req.method === "DELETE")) {
-        return res.status(405).json({ error: 'Method not allowed' });
+        apiHelpers.methodNotAllowed(res, req.method, ['GET', 'DELETE']);
+        return;
     }
 
     const email = session.email;
 
     if (!email) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        session.destroy();
+        apiHelpers.unauthorized(res, "User not logged in");
+        return;
     }
 
     // On DELETE: logout (destroy session)
     if (req.method === 'DELETE') {
         session.destroy();
-        return res.status(200).json({ message: 'Session cleared' });
+        apiHelpers.success(res, { message: 'Session cleared' });
+        return;
     }
 
     // Validate user existence and activity
@@ -38,7 +43,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     if (!user || !user.is_active) {
         session.destroy();
-        return res.status(403).json({ error: 'Inactive or unauthorized user' });
+        apiHelpers.unauthorized(res, "User not found or inactive");
+        return;
     }
 
     const signoutExists = await prisma.signouts.findFirst({
@@ -52,17 +58,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     if (!user.is_verified) {
         session.destroy();
-        return res.status(403).json({ error: 'User not verified' });
+        apiHelpers.unauthorized(res, "User not verified");
+        return;
     }
 
     if (!!signoutExists) {
         session.destroy();
-        return res.status(403).json({ error: 'User signed out of process' });
+        apiHelpers.unauthorized(res, "User signed out of process");
+        return;
     }
 
     if (session.role != user.role) {
         session.destroy();
-        return res.status(403).json({ error: 'Permissions Updated' });
+        apiHelpers.unauthorized(res, "Permissions Updated, please login again");
+        return;
     }
 
     session.email = user.email_id;
@@ -71,7 +80,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     session.save();
 
-    return res.status(200).json({
+    apiHelpers.success(res, {
         email: user.email_id,
         role: user.role,
         name: user.name,
@@ -79,6 +88,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         is_active: user.is_active,
         is_verified: user.is_verified,
     });
+    return;
 }
 
 export default handler;

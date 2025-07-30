@@ -1,6 +1,6 @@
 // utils/secureUrlApi.ts
 
-import { baseUrl } from "@/pages/_app";
+import { baseUrl } from "@/lib/config";
 
 type GenerateUrlResponse = {
     success: true;

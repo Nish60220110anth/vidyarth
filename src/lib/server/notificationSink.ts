@@ -22,10 +22,6 @@ export async function createNotification({
         throw new Error("Both 'type' and 'subtype' are required.");
     }
 
-    if (!shortlistId && !companyId && !domain) {
-        throw new Error("At least one of 'shortlistId', 'companyId' or 'domain' must be provided.");
-    }
-
     switch (type) {
         case 'SHORTLIST':
             if (!['SL', 'ESL'].includes(subtype)) {

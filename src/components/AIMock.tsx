@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import CompanySearchDropdown, { Company } from "./CompanySearchDropDown";
 import { AnimatePresence, motion } from "framer-motion";
 import PortalWrapper from "./PortableWrapper";
+import { fetchCVForUserID } from "@/lib/api/studentCV";
 
 type Props = {
     name: string;
@@ -46,18 +47,8 @@ export default function AiMockSession({ id, name }: Props) {
     const fetchCVs = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`/api/cv/?userid=${id}`, {
-                headers: {
-                    'x-access-permission': ACCESS_PERMISSION.ENABLE_MY_CV,
-                },
-            });
-
-            if (!res.data.success) {
-                toast.error(res.data.error);
-                return;
-            }
-
-            setCvList(res.data.cvs || []);
+            const res = await fetchCVForUserID(id);
+            setCvList(res);
         } catch (err: any) {
             toast.error(err.message || 'Failed to fetch CVs');
         } finally {

@@ -137,7 +137,7 @@ export function RichTextPane({ OnSetContent, editable, lexicalState, placeholder
     };
 
     return (
-        <div className="bg-gray-50 font-[Urbanist] px-6 py-6 flex flex-col items-center justify-center">
+        <div className="font-[Urbanist] flex flex-col items-center justify-center">
             <LexicalComposer initialConfig={
                 {
                     ...editorConfig,

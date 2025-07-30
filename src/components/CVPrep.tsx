@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/useMobile";
 import { convertListsToParagraphs } from "@/utils/convertListToPara";
 import { motion } from "framer-motion";
 import { CheckCircleIcon, PencilSquareIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import { fetchPermissions } from "@/lib/api/user";
 
 export default function HowToPrepareCV() {
     const isMobile = useIsMobile();
@@ -28,9 +29,13 @@ export default function HowToPrepareCV() {
         setSession(data.data);
     };
 
-    const fetchPermissions = async () => {
-        const res = await axios.get(`/api/permissions`);
-        setPermissions(res.data.permissions);
+    const _fetchPermissions = async () => {
+        try {
+            const res = await fetchPermissions();
+            setPermissions(res);
+        } catch (err: any) {
+            return;
+        }
     };
 
     const fetchOverviewContent = async () => {
@@ -82,7 +87,7 @@ export default function HowToPrepareCV() {
         const init = async () => {
             setLoading(true);
             await loadSession();
-            await fetchPermissions();
+            await _fetchPermissions();
             await fetchOverviewContent();
             setLoading(false);
         };
@@ -179,7 +184,7 @@ export default function HowToPrepareCV() {
                         </div>
                     )}
 
-                    <div className="pb-6">
+                    <div className="pb-6 mt-5">
                         <RichTextPane
                             editable={isEditing}
                             lexicalState={

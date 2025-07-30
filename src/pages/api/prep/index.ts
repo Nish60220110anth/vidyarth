@@ -7,7 +7,7 @@ import { apiHelpers } from '@/lib/server/responseHelpers';
 import crypto from 'crypto'; // For optional ETag
 import { createNotification } from '@/lib/server/notificationSink';
 import { generateSecureURL } from '@/utils/shared/secureUrlApi';
-import { baseUrl } from '@/pages/_app';
+import { baseUrl } from '@/lib/config';
 
 const PREP_DIR = path.join(process.cwd(), 'public', 'content', 'prep');
 
@@ -92,20 +92,37 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             fs.writeFileSync(filePath, content, 'utf-8');
 
-            const secureUrlResp = await generateSecureURL("DOMAIN_PREP", 0)
+            if (rType === "overview") {
 
-            if (secureUrlResp.success) {
-                createNotification({
-                    type: NOTIFICATION_TYPE.PREP,
-                    subtype: NOTIFICATION_SUBTYPE.UPDATED,
-                    domain: d,
-                    links: [{
-                        link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=${d}`,
-                        link_name: "domain_link"
-                    }]
-                });
+                const secureUrlResp = await generateSecureURL("CV_PREP", 0)
+
+                if (secureUrlResp.success) {
+                    createNotification({
+                        type: NOTIFICATION_TYPE.PREP,
+                        subtype: NOTIFICATION_SUBTYPE.UPDATED,
+                        links: [{
+                            link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}`,
+                            link_name: "cv_prep_link"
+                        }]
+                    });
+                } else {
+                    console.error(secureUrlResp.error)
+                }
             } else {
-                console.error(secureUrlResp.error)
+                const secureUrlResp = await generateSecureURL("DOMAIN_PREP", 0)
+                if (secureUrlResp.success) {
+                    createNotification({
+                        type: NOTIFICATION_TYPE.PREP,
+                        subtype: NOTIFICATION_SUBTYPE.UPDATED,
+                        domain: d,
+                        links: [{
+                            link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=${d}`,
+                            link_name: "domain_link"
+                        }]
+                    });
+                } else {
+                    console.error(secureUrlResp.error)
+                }
             }
 
             apiHelpers.success(res, {});

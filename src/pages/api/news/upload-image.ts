@@ -9,6 +9,7 @@ import { ACCESS_PERMISSION } from "@prisma/client";
 import { apiHelpers } from "@/lib/server/responseHelpers";
 import { bucket } from "@/lib/firebase-admin";
 import fs from "fs";
+import { getFieldValue } from "@/utils/parseApiField";
 
 export const config = {
     api: {
@@ -36,10 +37,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 return;
             }
 
-            const newsId = Array.isArray(fields.id) ? fields.id[0] : fields.id;
+            const news_id = parseInt(getFieldValue(fields.id));
             const file = Array.isArray(files.file) ? files.file[0] : files.file;
 
-            if (!newsId || !file || !file.filepath) {
+            if (!news_id || !file || !file.filepath) {
                 apiHelpers.badRequest(res, "Missing news ID or file")
                 return;
             }
@@ -51,11 +52,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
             try {
                 const ext = path.extname(file.originalFilename || ".png");
-                const newFilename = `${newsId}${ext}`;
+                const newFilename = `${news_id}${ext}`;
 
                 const oldFileNews = await prisma.news.findUnique({
                     where: {
-                        id: newsId
+                        id: news_id,
                     }, select: {
                         firebase_path: true,
                         updated_at: true
@@ -85,7 +86,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 });
 
                 await prisma.news.update({
-                    where: { id: newsId },
+                    where: { id: news_id },
                     data: { image_url: signedUrl, firebase_path: firebasePath },
                 });
 

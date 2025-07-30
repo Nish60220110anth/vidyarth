@@ -29,7 +29,9 @@ export default function Overview({ props }: { props: OverviewEntry }) {
 
     const fetchPermissions = async () => {
         const res = await axios.get(`/api/permissions`, {
-
+            headers: {
+                "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+            }
         });
         setPermissions(res.data.permissions);
     };

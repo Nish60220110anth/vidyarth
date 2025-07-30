@@ -50,7 +50,7 @@ export default function ProfileDropdownPortal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="w-52 rounded-lg shadow-xl border border-blue-900 bg-blue-950"
+            className="w-52 rounded-lg shadow-xl border border-cyan-900 bg-[#0c0f11] text-cyan-100"
         >
             {children}
         </motion.div>,

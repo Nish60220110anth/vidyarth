@@ -15,7 +15,7 @@ import { ACCESS_PERMISSION, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@pri
 import { apiHelpers } from "@/lib/server/responseHelpers";
 import { createNotification } from "@/lib/server/notificationSink";
 import { generateSecureURL } from "@/utils/shared/secureUrlApi";
-import { baseUrl } from "@/pages/_app";
+import { baseUrl } from "@/lib/config";
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {

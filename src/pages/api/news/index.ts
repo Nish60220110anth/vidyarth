@@ -6,6 +6,7 @@ import { bucket } from "@/lib/firebase-admin";
 import { prisma } from "@/lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { apiHelpers } from "@/lib/server/responseHelpers";
+import { getFieldValue } from "@/utils/parseApiField";
 
 export const config = {
     api: {
@@ -139,7 +140,7 @@ async function handler(
         }
     } else if (req.method === "DELETE") {
         const id = req.query.id;
-        const newsId = String(id);
+        const newsId = parseInt(getFieldValue(id));
 
         if (!id) {
             apiHelpers.badRequest(res, "Invalid ID")
@@ -193,8 +194,10 @@ async function handler(
                 return;
             }
 
+            const news_id = parseInt(getFieldValue(id));
+
             const news = await prisma.news.update({
-                where: { id: String(id) },
+                where: { id: news_id },
                 data: {
                     title,
                     content,
@@ -207,20 +210,20 @@ async function handler(
             });
 
             if (Array.isArray(domains)) {
-                await prisma.news_domain.deleteMany({ where: { news_id: String(id) } });
+                await prisma.news_domain.deleteMany({ where: { news_id } });
                 await prisma.news_domain.createMany({
                     data: domains.map((d: string) => ({
-                        news_id: String(id),
+                        news_id,
                         domain: d as DOMAIN,
                     })),
                 });
             }
 
             if (Array.isArray(companies)) {
-                await prisma.news_company.deleteMany({ where: { news_id: String(id) } });
+                await prisma.news_company.deleteMany({ where: { news_id } });
                 await prisma.news_company.createMany({
                     data: companies.map((cid: string) => ({
-                        news_id: String(id),
+                        news_id,
                         company_id: parseInt(cid),
                     })),
                 });

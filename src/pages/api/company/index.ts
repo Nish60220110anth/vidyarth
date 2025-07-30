@@ -5,7 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { apiHelpers } from "@/lib/server/responseHelpers";
 import { createNotification } from "@/lib/server/notificationSink";
 import { generateSecureURL } from "@/utils/shared/secureUrlApi";
-import { baseUrl } from "@/pages/_app";
+import { baseUrl } from "@/lib/config";
+import { getCompanies, UpdateCompanyById } from "@/lib/server/services/company";
+import z from "zod";
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
@@ -40,8 +42,36 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     delete: {
         permissions: [ACCESS_PERMISSION.MANAGE_COMPANY_LIST],
     },
-};
+}
 
+const GetCompaniesQuerySchema = z.object({
+    cid: z.preprocess((val) => {
+        const v = Array.isArray(val) ? val[0] : val;
+        if (v === "" || v == null) return undefined;
+        const n = typeof v === "number" ? v : Number(v);
+        return Number.isFinite(n) ? n : v;
+    }, z.number().int().positive().optional()),
+});
+
+const DeleteCompaniesSchema = z.object({
+    cid: z.preprocess((val) => {
+        const v = Array.isArray(val) ? val[0] : val;
+        if (v === "" || v == null) return undefined;
+        const n = typeof v === "number" ? v : Number(v);
+        return Number.isFinite(n) ? n : v;
+    }, z.number().int().positive()),
+});
+
+const UpdateCompanyBodySchema = z.object({
+    id: z.coerce.number().int().positive(),
+    company_name: z.string().trim().min(1, "company_name cannot be empty").optional(),
+    company_full: z.string().trim().min(1, "company_full cannot be empty").optional(),
+    is_featured: z.coerce.boolean().optional(),
+    is_legacy: z.coerce.boolean().optional(),
+}).refine(d => !(d.is_legacy === true && d.is_featured === false), {
+    path: ["is_featured"],
+    message: "is_featured must be true when is_legacy is true",
+});
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
 
@@ -49,97 +79,93 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         const whereClause = (req as any).filter ?? {};
 
-        const { cid } = req.query;
-
-        if (cid && cid > "0") {
-            whereClause.id = Number(cid);
+        const parsedQuery = GetCompaniesQuerySchema.safeParse(req.query);
+        if (!parsedQuery.success) {
+            apiHelpers.badRequest(res, `Invalid query parameters: ${JSON.stringify(parsedQuery.error)}`);
+            return;
         }
 
-        const companies = await prisma.company.findMany({
-            where: whereClause,
-            include: {
-                domains: {
-                    select: { domain: true },
-                },
-            },
-            orderBy: [
-                { company_full: "asc" },
-                { company_name: "asc" },
-                { created_at: "desc" },
-            ],
+        if (parsedQuery.data.cid && parsedQuery.data.cid > 0) {
+            whereClause.id = parsedQuery.data.cid;
+        }
+
+        const companies = await getCompanies(parsedQuery.data.cid, whereClause);
+
+        if (!companies) {
+            apiHelpers.notFound(res, "No companies found");
+            return;
+        }
+
+        apiHelpers.success(res, { data: companies })
+        return;
+    } else if (req.method === "DELETE") {
+
+        const parsedBody = DeleteCompaniesSchema.safeParse({
+            cid: (req.query as any).cid
         });
 
-        return apiHelpers.success(res, { companies })
-    }
-
-    if (req.method === "DELETE") {
-        const id = parseInt(req.query.id as string);
-        if (isNaN(id)) {
-            apiHelpers.badRequest(res, "Invalid ID")
-            return
+        if (!parsedBody.success) {
+            apiHelpers.badRequest(res, `Invalid request body: ${JSON.stringify(parsedBody.error)}`);
+            return;
         }
 
-        const company = await prisma.company.findUnique({
+        const id = parsedBody.data.cid;
+
+        const company = await getCompanies(id);
+
+        if (!company || company.length === 0) {
+            return res.status(404).json({ error: "Company not found", success: false });
+        }
+        await prisma.company.delete({
             where: { id }
         });
 
-        if (company) {
-            await prisma.company.delete({ where: { id } });
-            return res.status(200).json({ success: true });
-        } else {
-            return res.status(404).json({ error: "Company not found", success: false });
-        }
+        apiHelpers.success(res, { success: true });
+        return;
     }
+    else if (req.method === "PUT") {
+        const parsedBody = UpdateCompanyBodySchema.safeParse(req.body);
 
-    if (req.method === "PUT") {
-        const { id, company_name, company_full } = req.body;
-        let { is_featured, is_legacy } = req.body;
-
-        const company_id = parseInt(id as string);
-        if (isNaN(company_id)) return res.status(400).json({ error: "Invalid ID", success: false });
-
-        if (is_legacy) {
-            is_featured = true;
+        if (!parsedBody.success) {
+            apiHelpers.badRequest(res, `Invalid request body: ${JSON.stringify(parsedBody.error)}`);
+            return;
         }
 
-        const oldRes = await prisma.company.findUnique({
-            where: {
-                id
-            },
-            select: {
-                is_featured: true
-            }
-        })
+        const { id, company_name, company_full, is_featured, is_legacy } = parsedBody.data;
 
-        if (!oldRes?.is_featured && is_featured) {
-            const secureUrlResp = await generateSecureURL("COMPANY", company_id)
+        const oldRes = await getCompanies(id, {
+            is_featured: true,
+        });
+
+        if (oldRes) {
+            const secureUrlResp = await generateSecureURL("COMPANY", id)
 
             if (secureUrlResp.success) {
                 createNotification({
                     type: NOTIFICATION_TYPE.COMPANY,
                     subtype: NOTIFICATION_SUBTYPE.ADDED,
-                    companyId: company_id,
+                    companyId: id,
                     links: [{
                         link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Overview`,
-                        link_name: "company_link"
+                        link_name: `${company_full} Link`
                     }]
                 });
             } else {
                 console.error(secureUrlResp.error)
+                apiHelpers.error(res, "Failed to generate secure URL for company");
+                return;
             }
         }
 
-        await prisma.company.update({
-            where: { id: company_id },
-            data: {
-                company_name,
-                company_full,
-                is_featured,
-                is_legacy
-            },
+        await UpdateCompanyById(id, {
+            company_name,
+            company_full,
+            is_featured,
+            is_legacy
         });
 
-        return res.status(200).json({ success: true });
+        apiHelpers.success(res, { success: true });
+        return;
     }
 
     res.status(405).json({ error: "Method not allowed", success: false });

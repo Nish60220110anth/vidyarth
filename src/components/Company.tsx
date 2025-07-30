@@ -1,36 +1,40 @@
 import Head from "next/head";
 import Image from "next/image";
-import { JSX, useEffect, useMemo, useState } from "react";
-import { toast } from "react-hot-toast";
-import { AnimatePresence, motion } from "framer-motion";
-import { Company } from "./CompanySearchDropDown";
+import { useEffect, useMemo, useState } from "react";
+import type { JSX } from "react";
+import { useRouter } from "next/router";
 
-import { ArrowDownTrayIcon, SpeakerWaveIcon } from "@heroicons/react/24/outline";
+import { AnimatePresence, motion } from "framer-motion";
+import { ACCESS_PERMISSION } from "@prisma/client";
 import {
+    AcademicCapIcon,
+    ArrowDownTrayIcon,
+    BookOpenIcon,
     ChartBarSquareIcon,
+    ClipboardDocumentListIcon,
     DocumentTextIcon,
     NewspaperIcon,
-    ClipboardDocumentListIcon,
+    SpeakerWaveIcon,
     VideoCameraIcon,
-    AcademicCapIcon,
-    BookOpenIcon,
 } from "@heroicons/react/24/outline";
-import { DOMAIN_COLORS } from "./ManageCompanyList";
 import axios from "axios";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import { toast } from "react-hot-toast";
 
+import { decodeSecureURL } from "@/utils/shared/secureUrlApi";
+
+import CompendiumPane from "./content/CompendiumPane";
 import JDPane from "./content/JDPane";
-import VideoPane from "./content/VideoPane";
-import { JDEntry, NewsEntry, PaneKey, VideoEntry } from "@/types/panes";
 import NewsPane from "./content/NewsPane";
 import OverviewPane from "./content/OverviewPane";
-import CompendiumPane from "./content/CompendiumPane";
-import { ACCESS_PERMISSION } from "@prisma/client";
-import { useRouter } from "next/router";
-import { decodeSecureURL } from "@/utils/shared/secureUrlApi";
 import SummaryPane from "./content/SummaryPane";
+import VideoPane from "./content/VideoPane";
 
+import { DOMAIN_COLORS } from "./ManageCompanyList";
+import type { Company } from "./CompanySearchDropDown";
+import type { JDEntry, NewsEntry, PaneKey, VideoEntry } from "@/types/panes";
+import { fetchCompanyInfo, fetchCompanyListWithPermission, fetchJDByCompanyID } from "@/lib/api/company";
 
 type PaneComponentProps = Record<string, any>;
 
@@ -100,24 +104,29 @@ export const PANE_CONFIG: {
 
 export default function CompanyPage() {
     const router = useRouter();
-    const [companyId, setCompanyId] = useState<number>(0);
-    const [activeTab, setActiveTab] = useState<PaneKey>(PANE_CONFIG[0].label);
-    const activePane = PANE_CONFIG.find((p) => p.label === activeTab);
 
+    // Tab state
+    const [activeTab, setActiveTab] = useState<PaneKey>(PANE_CONFIG[0].label);
+    const currentTabIndex = PANE_CONFIG.findIndex((p) => p.label === activeTab);
     const [prevTabIndex, setPrevTabIndex] = useState(0);
     const [direction, setDirection] = useState(0);
+
+    // Pane config
+    const activePane = PANE_CONFIG.find((p) => p.label === activeTab);
+
+    // Page readiness
     const [isPageReady, setIsPageReady] = useState(false);
 
-    const currentTabIndex = PANE_CONFIG.findIndex((p) => p.label === activeTab);
-
+    // Company-specific data
+    const [companyId, setCompanyId] = useState<number>(0);
     const [allJds, setAllJDS] = useState<Partial<JDEntry>[]>();
     const [allVideos, setAllVideos] = useState<Partial<VideoEntry>[]>();
     const [allNews, setAllNews] = useState<Partial<NewsEntry>[]>();
 
+    // UI flags
     const [isDownloading, setIsDownloading] = useState(false);
 
     const hasValidJDs = (allJds ?? []).some(jd => jd?.jd_pdf_path);
-
     const paneProps: Record<PaneKey, JSX.Element> = useMemo(() => ({
         "Job Description": <JDPane props={{ jds: allJds || [] }} />,
         "Videos": <VideoPane props={{ videos: allVideos || [] }} />,
@@ -199,22 +208,13 @@ export default function CompanyPage() {
         if (!companyId || isNaN(companyId)) return;
 
         const fetchCompany = async () => {
-            try {
-                const res = await axios.get(`/api/company/specific/?cid=${companyId}`, {
-                    headers: {
-                        "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY,
-                    },
-                });
+            const res = await fetchCompanyInfo(companyId, ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY)
+            setCompany(res);
+        };
 
-                if (!res.data.success) {
-                    toast.error("Failed to fetch company");
-                    return;
-                }
-
-                setCompany(res.data.companies[0]);
-            } catch (err: any) {
-                toast.error(err?.response?.data?.error || "Error fetching company");
-            }
+        const fetchJDs = async () => {
+           const res = await fetchJDByCompanyID(companyId);
+           setAllJDS(res);
         };
 
         fetchCompany();
@@ -292,32 +292,6 @@ export default function CompanyPage() {
         saveAs(content, "All_JDs.zip");
     };
 
-    const fetchJDs = async () => {
-        try {
-            const res = await axios.get(`/api/jd?cid=${companyId}`, {
-                headers: {
-                    "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
-                }
-            });
-
-            if (!res.data.success) {
-                toast.error(res.data.error || "Error fetching JDs")
-                return;
-            }
-
-            const transformed = res.data.allJDs.map((jd: any): JDEntry => ({
-                company: jd.company.company_full,
-                role: jd.role,
-                cycle_type: jd.placement_cycle.placement_type,
-                year: jd.placement_cycle.year,
-                jd_pdf_path: jd.pdf_path,
-                domains: jd.domains.map((d: any) => d.domain),
-            }));
-            setAllJDS(transformed);
-        } catch (err: any) {
-            toast.error(err || "Error fetching JDs");
-        }
-    };
 
     const fetchVideos = async () => {
         try {
