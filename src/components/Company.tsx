@@ -17,7 +17,6 @@ import {
     SpeakerWaveIcon,
     VideoCameraIcon,
 } from "@heroicons/react/24/outline";
-import axios from "axios";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { toast } from "react-hot-toast";
@@ -34,7 +33,8 @@ import VideoPane from "./content/VideoPane";
 import { DOMAIN_COLORS } from "./ManageCompanyList";
 import type { Company } from "./CompanySearchDropDown";
 import type { JDEntry, NewsEntry, PaneKey, VideoEntry } from "@/types/panes";
-import { fetchCompanyInfo, fetchCompanyListWithPermission, fetchJDByCompanyID } from "@/lib/api/company";
+import { fetchCompanyInfo, fetchJDByCompanyID, fetchNewsByCompanyID, fetchVideosByCompanyID } from "@/lib/api/company";
+import { getFileBlobByPath } from "@/lib/api/file";
 
 type PaneComponentProps = Record<string, any>;
 
@@ -213,9 +213,19 @@ export default function CompanyPage() {
         };
 
         const fetchJDs = async () => {
-           const res = await fetchJDByCompanyID(companyId);
-           setAllJDS(res);
+            const res = await fetchJDByCompanyID(companyId);
+            setAllJDS(res);
         };
+
+        const fetchVideos = async () => {
+            const res = await fetchVideosByCompanyID(companyId);
+            setAllVideos(res);
+        }
+
+        const fetchNews = async () => {
+            const res = await fetchNewsByCompanyID(companyId);
+            setAllNews(res);
+        }
 
         fetchCompany();
         fetchJDs();
@@ -225,140 +235,61 @@ export default function CompanyPage() {
 
     const handleDownloadJDs = async () => {
         setIsDownloading(true);
-        const jdEntries = allJds;
+        try {
+            const entries = Array.isArray(allJds) ? allJds : [];
+            let cycle = `${entries[0].cycle_type}_${entries[0].year}`;
 
-        if (!Array.isArray(jdEntries) || jdEntries.length === 0) {
-            setIsDownloading(false);
-            toast.error("No JDs available to download.");
-            return;
-        }
-
-        const getExtension = (path: string): string => {
-            const parts = path.split(".");
-            return parts.length > 1 ? parts.pop()!.toLowerCase() : "pdf";
-        };
-
-        if (jdEntries.length === 1) {
-            const jd = jdEntries[0];
-
-            if (!jd.jd_pdf_path) {
-                setIsDownloading(false);
-                toast.error("File path missing");
+            if (!entries.length) {
+                toast.error("No JDs available to download.");
                 return;
             }
 
-            try {
-                const ext = getExtension(jd.jd_pdf_path);
-                const filename = `${jd.company}_${jd.role}(${jd.cycle_type}_${jd.year}).${ext}`;
+            const getExtension = (path: string): string =>
+                path?.split(".").pop()?.toLowerCase() || "pdf";
 
-                const proxyURL = `/api/proxy-file?url=${encodeURIComponent(jd.jd_pdf_path)}`;
-                const response = await axios.get(proxyURL, { responseType: "blob" });
+            const getFilename = (jd: Partial<JDEntry>) =>
+                 `${jd.company}_${jd.role}(${jd.cycle_type}_${jd.year}).${getExtension(jd.jd_pdf_path || "")}`;
 
-                saveAs(response.data, filename);
-            } catch (err) {
-                console.error("Download failed", err);
-                toast.error("Failed to download file");
-            } finally {
-                setIsDownloading(false);
+            if (entries.length === 1) {
+                const jd = entries[0];
+                if (!jd.jd_pdf_path) {
+                    toast.error("File path missing");
+                    return;
+                }
+                const blob = await getFileBlobByPath(jd.jd_pdf_path);
+                saveAs(blob, getFilename(jd));
+                return;
             }
-            return;
+
+            const zip = new JSZip();
+            const tasks = entries.map(async (jd) => {
+                if (!jd.jd_pdf_path) {
+                    toast.error(`JD Missing for ${jd.role}`);
+                    return;
+                }
+                const blob = await getFileBlobByPath(jd.jd_pdf_path);
+                zip.file(getFilename(jd), blob);
+            });
+
+            await Promise.allSettled(tasks);
+            const content = await zip.generateAsync({ type: "blob" });
+            saveAs(content, `${cycle}_${company?.company_full}_JDs.zip`);
+        } catch (err) {
+            console.error("Download failed", err);
+            toast.error("Failed to download file");
+        } finally {
+            setIsDownloading(false);
         }
-
-        // Multiple JDs – zip
-        const zip = new JSZip();
-
-        for (const jd of jdEntries) {
-            if (!jd.jd_pdf_path) {
-                toast.error("File path missing");
-                continue;
-            }
-
-            try {
-                const ext = getExtension(jd.jd_pdf_path);
-                const filename = `${jd.company}_${jd.role}(${jd.cycle_type}_${jd.year}).${ext}`;
-
-                const proxyURL = `/api/proxy-file?url=${encodeURIComponent(jd.jd_pdf_path)}`;
-                const response = await axios.get(proxyURL, { responseType: "blob" });
-
-                zip.file(filename, response.data);
-            } catch (err) {
-                toast.error(`Failed to fetch file: ${jd.company}`);
-                setIsDownloading(false);
-            }
-        }
-
-        const content = await zip.generateAsync({ type: "blob" });
-        setIsDownloading(false);
-        saveAs(content, "All_JDs.zip");
     };
 
-
-    const fetchVideos = async () => {
-        try {
-            const res = await axios.get(`/api/video?cid=${companyId}`, {
-                headers: {
-                    "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
-                }
-            });
-
-            if (!res.data.success) {
-                toast.error(res.data.error || "Error fetching Videos")
-                return;
-            }
-
-            const transformed = res.data.allVideos.map((video: any): VideoEntry => ({
-                source: video.source,
-                title: video.title,
-                embed_id: video.embed_id,
-                thumbnail_url: video.thumbnail_url,
-                updated_at: new Date(video.updated_at),
-            }));
-
-            setAllVideos(transformed);
-        } catch (err: any) {
-            toast.error(err || "Error fetching Videos");
-        }
-    }
-
-    const fetchNews = async () => {
-        try {
-
-            const res = await axios.get(`/api/news?cid=${companyId}`, {
-                headers: {
-                    "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
-                }
-            });
-
-            if (!res.data.success) {
-                toast.error(res.data.error)
-                return;
-            }
-
-            const transformed = res.data.newsList.map((news: any): NewsEntry => ({
-                title: news.title,
-                content: news.content,
-                created_at: new Date(news.created_at),
-                image_url: news.image_url,
-                source_link: news.link_to_source,
-                domains: news.domains.map((d: any) => d.domain),
-                news_tag: news.news_tag,
-                subdomain_tag: news.subdomain_tag,
-            }));
-
-            setAllNews(transformed);
-        } catch (err: any) {
-            toast.error(err || "Failed to load news");
-        }
-    }
 
     if (!isPageReady) {
         return (
             <div className="min-h-screen flex flex-col bg-gray-100 font-[Urbanist]">
                 <div className="sticky top-0 z-40 w-full px-4 sm:px-6 py-4 bg-white shadow-sm flex gap-4 items-center">
-                    {/* Logo Skeleton */}
+
                     <div className="w-16 h-16 rounded-md bg-gray-200 animate-pulse" />
 
-                    {/* Name + Domain Skeleton */}
                     <div className="flex flex-col gap-2">
                         <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
                         <div className="flex gap-2 flex-wrap">
@@ -369,7 +300,7 @@ export default function CompanyPage() {
                     </div>
                 </div>
 
-                {/* Tabs + Content Placeholder */}
+
                 <div className="w-full px-6 py-2 bg-white shadow">
                     <div className="h-6 w-1/2 bg-gray-200 rounded animate-pulse" />
                 </div>

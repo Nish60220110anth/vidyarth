@@ -2,7 +2,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
-import { ACCESS_PERMISSION } from "@prisma/client";
+import { ACCESS_PERMISSION, PLACEMENT_CYCLE_STATUS, PLACEMENT_CYCLE_TYPE } from "@prisma/client";
+import { ToInt } from "@/lib/server/zod_utils";
+import z from "zod";
+import { apiHelpers } from "@/lib/server/responseHelpers";
+import { deleteCycleById, updateCycle } from "@/lib/server/services/cycle";
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     put: {
@@ -13,59 +17,83 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     }
 };
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const { id } = req.query;
+const BasicQuerySchema = z.object({
+    id: ToInt.refine((val) => (val > 0), {
+        message: "id must be a positive integer or undefined",
+    }),
+}).strict();
 
-    if (!id || Array.isArray(id)) {
-        res.status(400).json({ error: "Invalid ID" });
+const PutBodySchema = z.object({
+    year: z.number().int().min(2000, "Year must be a valid year"),
+    batch_name: z.string().min(1, "Batch name cannot be empty"),
+    placement_type: z.enum(Object.keys(PLACEMENT_CYCLE_TYPE)),
+    status: z.enum(Object.keys(PLACEMENT_CYCLE_STATUS)),
+});
+
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+    const parsedId = BasicQuerySchema.safeParse(req.query);
+
+    if (!parsedId.success) {
+        apiHelpers.badRequest(res, `Invalid query parameters: ${parsedId.error.message}`);
         return;
     }
 
+    const { id: cycleId } = parsedId.data;
+
     try {
-        const cycleId = parseInt(id);
-
         if (req.method === "PUT") {
-            const { year, batch_name, placement_type, status } = req.body;
 
-            if (status === "OPEN") {
+            const parsedBody = PutBodySchema.safeParse(req.body);
+
+            if (!parsedBody.success) {
+                apiHelpers.badRequest(res, `Invalid request body: ${parsedBody.error.message}`);
+                return;
+            }
+
+            const { year, batch_name, placement_type, status } = parsedBody.data;
+
+            if (status === PLACEMENT_CYCLE_STATUS.OPEN) {
+
                 const existingOpen = await prisma.placement_cycle.findFirst({
                     where: {
-                        status: "OPEN",
+                        status: PLACEMENT_CYCLE_STATUS.OPEN,
                         NOT: { id: cycleId },
                     },
                 });
 
                 if (existingOpen) {
-                    res.status(400).json({
-                        error: "Another cycle is already OPEN. Close it before setting this one to OPEN.",
-                    });
+                    apiHelpers.badRequest(res, "There is already an open placement cycle.");
                     return;
                 }
             }
 
-            const updated = await prisma.placement_cycle.update({
-                where: { id: cycleId },
-                data: { year, batch_name, placement_type, status },
+            const updated = await updateCycle(cycleId, {
+                year,
+                batch_name,
+                placement_type: placement_type as PLACEMENT_CYCLE_TYPE,
+                status: status as PLACEMENT_CYCLE_STATUS,
             });
 
-            res.status(200).json(updated);
+            apiHelpers.success(res, {
+                data: updated
+            });
             return;
         }
-
-        if (req.method === "DELETE") {
-            await prisma.placement_cycle.delete({
-                where: { id: cycleId },
+        else if (req.method === "DELETE") {
+            const resp = await deleteCycleById(cycleId);
+            apiHelpers.success(res, {
+                data: resp
             });
 
-            res.status(204).end();
             return;
         }
 
         res.setHeader("Allow", ["PUT", "DELETE"]);
         res.status(405).end(`Method ${req.method} Not Allowed`);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Internal server error" });
+        console.error("Error handling placement cycle request:", error);
+        apiHelpers.error(res, "An error occurred while processing your request", 500);
+        return;
     }
 }
 

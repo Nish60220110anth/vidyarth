@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
-import { motion } from "framer-motion";
-import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/solid";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useDeferredValue } from "react";
 import { useRouter } from "next/router";
-import { addCompanyToRecentHistory, getRecentCompanies } from "@/utils/recentCompany";
+import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/solid";
+import { motion } from "framer-motion";
+import { ACCESS_PERMISSION } from "@prisma/client";
+
+import { fetchCompanyListWithPermission } from "@/lib/api/company";
 import CompanySearchDropdownPortal from "@/portals/CompanySearchDropDownPortal";
-import toast from "react-hot-toast";
+import { addCompanyToRecentHistory, getRecentCompanies } from "@/utils/recentCompany";
 
 export interface Company {
     id: number;
@@ -17,109 +18,126 @@ export interface Company {
     is_legacy: boolean;
 }
 
+type Props = {
+    onSelect?: (company: Company) => void;
+    showHint?: boolean;
+    placeholder?: string;
+    autoFocusNext?: boolean;
+    inputExpand?: boolean;
+    permission: ACCESS_PERMISSION; // << strong typing
+};
+
 export default function CompanySearchBar({
     onSelect,
     showHint = true,
     placeholder = "Search for a company...",
     autoFocusNext = true,
     inputExpand = false,
-    permission
-}: {
-    onSelect?: (company: Company) => void;
-    showHint?: boolean;
-    placeholder?: string;
-    autoFocusNext?: boolean;
-    inputExpand?: boolean;
-    permission: string;
-}) {
+    permission,
+}: Props) {
     const [search, setSearch] = useState("");
+    const deferredSearch = useDeferredValue(search);
+
     const [allCompanies, setAllCompanies] = useState<Company[]>([]);
-    const [filtered, setFiltered] = useState<Company[]>([]);
-    const [showDropdown, setShowDropdown] = useState(false);
-    const [focusedIndex, setFocusedIndex] = useState(-1);
     const [loading, setLoading] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const [recentSelections, setRecentSelections] = useState<Company[]>([]);
+    const [focusedIndex, setFocusedIndex] = useState(-1);
     const [isResetting, setIsResetting] = useState(false);
 
     const dropdownRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const inputWrapperRef = useRef<HTMLDivElement>(null);
     const isClearingRef = useRef(false);
     const wasManuallyCleared = useRef(false);
-    const inputWrapperRef = useRef<HTMLDivElement>(null);
+    const isComposingRef = useRef(false);
 
     const router = useRouter();
+    const listboxId = useId();
 
+    // Fetch companies (include permission in deps; guard unmount)
     useEffect(() => {
-        const fetchCompanies = async () => {
+        let active = true;
+        const run = async () => {
             try {
                 setLoading(true);
-                const res = await axios.get("/api/company", {
-                    headers: {
-                        "x-access-permission": permission
-                    }
-                });
-
-                if (!res.data.success) {
-                    toast.error(res.data.error)
-                    return;
-                }
-
-                const companies = res.data.companies;
-
-                if (Array.isArray(companies)) {
-                    setAllCompanies(companies.filter((c: Company) => c.id > 0));
-                } else {
-                    setAllCompanies([]);
-                }
-            } catch (err) {
-                toast.error("Failed to fetch companies", { duration: 2000, ariaProps: { role: "alert", "aria-live": "assertive" } });
+                const res = await fetchCompanyListWithPermission(permission);
+                if (active) setAllCompanies(res ?? []);
+            } catch (e) {
+                if (active) setAllCompanies([]);
+                // optionally: show a toast
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
-        fetchCompanies();
-    }, []);
+        run();
+        return () => {
+            active = false;
+        };
+    }, [permission]);
 
+    // Load & subscribe to recent selections (client only)
     useEffect(() => {
+        if (typeof window === "undefined") return;
+
         const loadRecent = () => {
-            const companies = getRecentCompanies();
-            setRecentSelections(companies);
+            try {
+                const companies = getRecentCompanies();
+                setRecentSelections(companies);
+            } catch {
+                setRecentSelections([]);
+            }
         };
 
         loadRecent();
-
         window.addEventListener("recent-companies-updated", loadRecent);
-        return () => {
-            window.removeEventListener("recent-companies-updated", loadRecent);
-        };
+        return () => window.removeEventListener("recent-companies-updated", loadRecent);
     }, [isFocused]);
 
-
-    const addToRecentSelections = (company: Company) => {
+    const addToRecentSelections = useCallback((company: Company) => {
         addCompanyToRecentHistory(company);
-        window.dispatchEvent(new Event("recent-companies-updated"));
-        setRecentSelections(getRecentCompanies());
-    };
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("recent-companies-updated"));
+        }
+    }, []);
 
-    const filteredCompanies = useMemo(() => {
-        if (search.trim() === "") return [];
-        return allCompanies.filter((c) =>
-            (c.company_name + " " + c.company_full).toLowerCase().includes(search.toLowerCase())
-        );
-    }, [search, allCompanies]);
+    // Precompute normalized haystacks once per dataset
+    const normalized = useMemo(
+        () =>
+            allCompanies.map((c) => ({
+                company: c,
+                haystack: (c.company_name + " " + c.company_full).toLowerCase(),
+            })),
+        [allCompanies]
+    );
 
-    useEffect(() => {
-        setFiltered(filteredCompanies);
-        setShowDropdown(search.trim() !== "" || isFocused);
-    }, [filteredCompanies, search, isFocused]);
+    // Fast, multi-word filtering with capped results; uses deferred search
+    const filtered = useMemo(() => {
+        const q = deferredSearch.trim().toLowerCase();
+        if (!q) return [] as Company[];
 
+        const words = q.split(/\s+/).filter(Boolean);
+        const out: Company[] = [];
+        for (const item of normalized) {
+            const ok = words.every((w) => item.haystack.includes(w));
+            if (ok) {
+                out.push(item.company);
+                if (out.length >= 50) break; // cap results for perf
+            }
+        }
+        return out;
+    }, [deferredSearch, normalized]);
+
+    // Derived: showDropdown
+    const showDropdown = isFocused && (deferredSearch.trim() !== "" || recentSelections.length > 0);
+
+    // Click outside to close
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setShowDropdown(false);
+            const target = e.target as Node;
+            if (dropdownRef.current && !dropdownRef.current.contains(target)) {
+                // Close only if click is outside the input+dropdown wrapper
                 setFocusedIndex(-1);
-
                 if (wasManuallyCleared.current && inputRef.current?.value === "") {
                     wasManuallyCleared.current = false;
                     inputRef.current?.blur();
@@ -130,17 +148,13 @@ export default function CompanySearchBar({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // Global shortcut: Ctrl+K or "/"
     useEffect(() => {
         const listener = (e: KeyboardEvent) => {
-
             const target = e.target as HTMLElement;
             const isTyping =
-                target.tagName === "INPUT" ||
-                target.tagName === "TEXTAREA" ||
-                target.isContentEditable;
-
+                target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
             if (isTyping) return;
-
             if ((e.ctrlKey && e.key === "k") || e.key === "/") {
                 e.preventDefault();
                 inputRef.current?.focus();
@@ -150,101 +164,107 @@ export default function CompanySearchBar({
         return () => window.removeEventListener("keydown", listener);
     }, []);
 
+    // Close on route change
     useEffect(() => {
         const handleRouteChange = () => {
-            setShowDropdown(false);
             setIsFocused(false);
+            setFocusedIndex(-1);
             setSearch("");
         };
-
         router.events.on("routeChangeStart", handleRouteChange);
         return () => {
             router.events.off("routeChangeStart", handleRouteChange);
         };
-    }, [router]);
+    }, [router.events]);
 
+    const handleSelect = useCallback(
+        (company: Company) => {
+            addToRecentSelections(company);
 
-    const handleSelect = (company: Company) => {
-        addToRecentSelections(company);
-
-        setShowDropdown(false);
-        setFocusedIndex(-1);
-        setIsFocused(false);
-        setSearch("");
-
-        if (inputRef.current) {
-            inputRef.current.value = "";
-            inputRef.current.blur();
-        }
-
-        if (isClearingRef.current) {
-            isClearingRef.current = false;
-            return;
-        }
-
-        if (wasManuallyCleared.current) {
-            wasManuallyCleared.current = false;
-            return;
-        }
-
-        if (onSelect) onSelect(company);
-
-        if (autoFocusNext) {
-            setTimeout(() => {
-                const formEls = Array.from(document.querySelectorAll<HTMLElement>(
-                    'input, select, textarea, button, [tabindex]:not([tabindex="-1"])'
-                )).filter(el => !el.hasAttribute("disabled") && el.tabIndex !== -1);
-
-                const currentIndex = formEls.indexOf(document.activeElement as HTMLElement);
-                if (currentIndex !== -1 && formEls[currentIndex + 1]) {
-                    formEls[currentIndex + 1].focus();
-                }
-            }, 100);
-        }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Escape") {
-            inputRef.current?.blur();
-            setSearch("");
-            setIsFocused(false);
-            setShowDropdown(false);
             setFocusedIndex(-1);
+            setIsFocused(false);
+            setSearch("");
 
-            setIsResetting(true);
-            setTimeout(() => setIsResetting(false), 300);
-            return;
-        }
+            if (inputRef.current) {
+                inputRef.current.value = "";
+                inputRef.current.blur();
+            }
+            if (isClearingRef.current) {
+                isClearingRef.current = false;
+                return;
+            }
+            if (wasManuallyCleared.current) {
+                wasManuallyCleared.current = false;
+                return;
+            }
 
-        if (!showDropdown) return;
+            onSelect?.(company);
 
-        const results = search.trim() === "" ? recentSelections : filtered;
-        if (results.length === 0) return;
+            if (autoFocusNext) {
+                setTimeout(() => {
+                    const formEls = Array.from(
+                        document.querySelectorAll<HTMLElement>(
+                            'input, select, textarea, button, [tabindex]:not([tabindex="-1"])'
+                        )
+                    ).filter((el) => !el.hasAttribute("disabled") && el.tabIndex !== -1);
 
+                    const currentIndex = formEls.indexOf(document.activeElement as HTMLElement);
+                    if (currentIndex !== -1 && formEls[currentIndex + 1]) {
+                        formEls[currentIndex + 1].focus();
+                    }
+                }, 100);
+            }
+        },
+        [addToRecentSelections, onSelect, autoFocusNext]
+    );
 
-        if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setFocusedIndex((prev) => (prev + 1) % results.length);
-        } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setFocusedIndex((prev) => (prev - 1 + results.length) % results.length);
-        } else if (e.key === "Enter" && focusedIndex >= 0) {
-            e.preventDefault();
-            handleSelect(results[focusedIndex]);
-        }
-
-    };
-
-    const clearSearch = () => {
+    const clearSearch = useCallback(() => {
         isClearingRef.current = true;
         wasManuallyCleared.current = true;
         setSearch("");
-        setShowDropdown(false);
         setFocusedIndex(-1);
-        setTimeout(() => {
-            inputRef.current?.focus();
-        }, 10);
-    };
+        setTimeout(() => inputRef.current?.focus(), 10);
+    }, []);
+
+    const handleKeyDown = useCallback(
+        (e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === "Escape") {
+                inputRef.current?.blur();
+                setSearch("");
+                setIsFocused(false);
+                setFocusedIndex(-1);
+                setIsResetting(true);
+                setTimeout(() => setIsResetting(false), 300);
+                return;
+            }
+
+            if (!showDropdown) return;
+
+            const results = deferredSearch.trim() === "" ? recentSelections : filtered;
+            if (results.length === 0) return;
+
+            // IME composition: ignore arrows/enter while composing
+            if (isComposingRef.current) return;
+
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setFocusedIndex((prev) => (prev + 1) % results.length);
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setFocusedIndex((prev) => (prev - 1 + results.length) % results.length);
+            } else if (e.key === "Home") {
+                e.preventDefault();
+                setFocusedIndex(0);
+            } else if (e.key === "End") {
+                e.preventDefault();
+                setFocusedIndex(results.length - 1);
+            } else if (e.key === "Enter" && focusedIndex >= 0) {
+                e.preventDefault();
+                handleSelect(results[focusedIndex]);
+            }
+        },
+        [showDropdown, deferredSearch, recentSelections, filtered, focusedIndex, handleSelect]
+    );
 
     return (
         <div
@@ -253,6 +273,8 @@ export default function CompanySearchBar({
             role="combobox"
             aria-haspopup="listbox"
             aria-expanded={showDropdown}
+            aria-controls={listboxId}
+            aria-autocomplete="list"
         >
             <motion.div
                 ref={inputWrapperRef}
@@ -261,12 +283,17 @@ export default function CompanySearchBar({
                 animate={{ width: inputExpand && isFocused ? "32rem" : "20rem" }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
             >
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-500 absolute left-3 top-1/5 transform pointer-events-none" />
+                <MagnifyingGlassIcon
+                    className="h-5 w-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                    aria-hidden="true"
+                />
 
                 <input
                     ref={inputRef}
                     type="text"
                     placeholder={placeholder}
+                    onCompositionStart={() => (isComposingRef.current = true)}
+                    onCompositionEnd={() => (isComposingRef.current = false)}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => {
                         if (isClearingRef.current) {
@@ -282,15 +309,20 @@ export default function CompanySearchBar({
                     }}
                     onKeyDown={handleKeyDown}
                     className={`w-full pl-10 pr-10 py-2 text-sm border border-gray-300 rounded-md 
-                        focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 
-                        bg-white text-gray-800 placeholder-gray-400 font-medium shadow-sm 
-                        transition focus:shadow-[0_0_0_4px_rgba(0,255,255,0.1)]`}
-                    aria-controls="suggestion-list"
+            focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 
+            bg-white text-gray-800 placeholder-gray-400 font-medium shadow-sm 
+            transition focus:shadow-[0_0_0_4px_rgba(0,255,255,0.1)]`}
+                    aria-activedescendant={
+                        focusedIndex >= 0 ? `${listboxId}-option-${focusedIndex}` : undefined
+                    }
                 />
 
                 {loading ? (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 border-2 
-                                    border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                    <div
+                        className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 border-2 
+                       border-cyan-400 border-t-transparent rounded-full animate-spin"
+                        aria-label="Loading"
+                    />
                 ) : (
                     search.length > 0 && (
                         <XMarkIcon
@@ -298,17 +330,17 @@ export default function CompanySearchBar({
                                 isClearingRef.current = true;
                             }}
                             onClick={clearSearch}
-                            className="h-5 w-5 text-gray-400 hover:text-gray-600 absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer"
+                            className="h-5 w-5 text-gray-400 hover:text-gray-600 absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                            aria-label="Clear search"
                         />
                     )
                 )}
-
 
                 {showHint && (
                     <div className="mt-1 text-xs italic pl-1">
                         {loading ? (
                             <span className="text-cyan-500">Fetching companies...</span>
-                        ) : search.length === 0 ? (
+                        ) : deferredSearch.length === 0 ? (
                             <span className="text-gray-400">Try "Google" or "Amazon"</span>
                         ) : filtered.length === 0 ? (
                             <span className="text-red-400">No results found</span>
@@ -322,19 +354,20 @@ export default function CompanySearchBar({
                     results={filtered}
                     recentSelections={recentSelections}
                     focusedIndex={focusedIndex}
-                    search={search}
+                    search={deferredSearch}
+                    listboxId={listboxId as unknown as string}
                     onClearRecent={() => {
-                        localStorage.removeItem("recent_companies");
-                        setRecentSelections([]);
-                        window.dispatchEvent(new Event("recent-companies-updated"));
-                        setShowDropdown(false);
+                        if (typeof window !== "undefined") {
+                            localStorage.removeItem("recent_companies");
+                            setRecentSelections([]);
+                            window.dispatchEvent(new Event("recent-companies-updated"));
+                        }
                     }}
                     onSelect={(company) => {
-                        if (!company) return setShowDropdown(false);
+                        if (!company) return;
                         handleSelect(company);
                     }}
                 />
-
             </motion.div>
         </div>
     );

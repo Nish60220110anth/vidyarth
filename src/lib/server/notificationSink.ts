@@ -1,70 +1,49 @@
-import { DOMAIN, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@prisma/client";
+import { DOMAIN, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import z from "zod";
 
-interface CreateNotificationArgs {
+export type CreateNotificationDTO = {
     type: NOTIFICATION_TYPE;
     subtype: NOTIFICATION_SUBTYPE;
-    shortlistId?: number;
-    companyId?: number;
-    domain?: DOMAIN;
+    initiator: NOTIFICATION_SOURCE_INITIATOR;
+    shortlistId?: number | null | undefined;
+    companyId?: number | null | undefined;
+    domain?: DOMAIN | null | undefined;
     links: { link: string; link_name: string }[];
-}
+};
 
-export async function createNotification({
-    type,
-    subtype,
-    shortlistId,
-    companyId,
-    domain,
-    links
-}: CreateNotificationArgs) {
-    if (!type || !subtype) {
-        throw new Error("Both 'type' and 'subtype' are required.");
-    }
+const NotificationSchema = z.object({
+    type: z.enum(NOTIFICATION_TYPE),
+    subtype: z.enum(NOTIFICATION_SUBTYPE).nullable().optional(),
+    initiator: z.enum(NOTIFICATION_SOURCE_INITIATOR),
+    shortlistId: z.number().min(1).nullable().optional(),
+    companyId: z.number().min(1).nullable().optional(),
+    domain: z.enum(DOMAIN).nullable().optional(),
+    links: z.array(z.object({
+        link: z.url(),
+        link_name: z.string().max(255),
+    })),
+});
 
-    switch (type) {
-        case 'SHORTLIST':
-            if (!['SL', 'ESL'].includes(subtype)) {
-                throw new Error("SHORTLIST type requires subtype to be 'SL' or 'ESL'.");
-            }
-            break;
+export async function createNotification(input: CreateNotificationDTO) {
+    const parsed = NotificationSchema.safeParse(input);
 
-        case 'COMPANY':
-            if (!subtype) {
-                throw new Error("COMPANY type requires a valid subtype.");
-            }
-            break;
-
-        case 'CONTENT':
-            if (!['ADDED', 'UPDATED'].includes(subtype)) {
-                throw new Error("CONTENT type requires subtype to be 'ADDED' or 'UPDATED'.");
-            }
-            break;
-
-        case 'PREP':
-            if (!['UPDATED'].includes(subtype)) {
-                throw new Error("PREP type requires subtype to be 'UPDATED'.");
-            }
-            break;
-
-        default:
-            throw new Error("Unsupported notification type.");
+    if (!parsed.success) {
+        console.error("Invalid notification data:", parsed.error);
+        throw new Error(`Invalid notification data: ${parsed.error.message}`);
     }
 
     return prisma.notification.create({
         data: {
-            type,
-            subtype,
-            shortlistId: shortlistId ?? null,
-            companyId: companyId ?? null,
-            domain: domain ?? null,
+            type: parsed.data.type,
+            subtype: parsed.data.subtype,
+            initiator: parsed.data.initiator,
             is_handled: false,
-            links: {
-                create: links.map(l => ({
-                    link: l.link,
-                    link_name: l.link_name,
-                })),
-            },
+            domain: parsed.data.domain ?? null,
+            ...(parsed.data.shortlistId != null && { shortlist: { connect: { id: parsed.data.shortlistId } } }),
+            ...(parsed.data.companyId != null && { company: { connect: { id: parsed.data.companyId } } }),
+            links: { create: parsed.data.links },
         },
+        include: { links: true },
     });
 }

@@ -42,11 +42,10 @@ export default function SidebarNav({
                                         ? "bg-white/10 text-cyan-400 border-l-4 border-cyan-400"
                                         : "hover:bg-white/10 pl-4"
                                     }`}
-                                onClick={() => onItemClick(key)}
-                            >
+                                onClick={() => onItemClick(key)}>
                                 <div className="flex items-center gap-4">
                                     {icon("h-5 w-5")}
-                                    {!collapsed && <span className="text-sm">{_label}</span>}
+                                    {!collapsed && <span className="text-sm">{_label.toLocaleUpperCase()}</span>}
                                 </div>
                                 {!collapsed && shortcut && (
                                     <span className="ml-auto bg-white/20 text-[0.65rem] px-2 py-0.5 rounded-md text-white">

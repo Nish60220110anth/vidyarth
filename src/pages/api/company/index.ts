@@ -6,7 +6,7 @@ import { apiHelpers } from "@/lib/server/responseHelpers";
 import { createNotification } from "@/lib/server/notificationSink";
 import { generateSecureURL } from "@/utils/shared/secureUrlApi";
 import { baseUrl } from "@/lib/config";
-import { getCompanies, UpdateCompanyById } from "@/lib/server/services/company";
+import { getCompanies, updateCompanyById } from "@/lib/server/services/company";
 import z from "zod";
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
@@ -157,7 +157,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             }
         }
 
-        await UpdateCompanyById(id, {
+        await updateCompanyById(id, {
             company_name,
             company_full,
             is_featured,

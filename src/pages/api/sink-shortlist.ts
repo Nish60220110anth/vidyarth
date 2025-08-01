@@ -3,7 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import Cors from "cors";
 import { prisma } from "@/lib/prisma"
 import { createNotification } from "@/lib/server/notificationSink";
-import { NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@prisma/client";
+import { NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@prisma/client";
 import { generateSecureURL } from "@/utils/shared/secureUrlApi";
 import { baseUrl, chitraguptaUrl } from "@/lib/config";
 
@@ -110,7 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     },
                 });
 
-                if (!company) {
+                if (!company || !student) {
                     results.skipped.push({
                         reason: 'Company or user not found',
                         pcom_id,
@@ -162,6 +162,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 createNotification({
                     type: NOTIFICATION_TYPE.SHORTLIST,
                     subtype: entry.sl_type === "SL" ? NOTIFICATION_SUBTYPE.SL : NOTIFICATION_SUBTYPE.ESL,
+                    initiator: NOTIFICATION_SOURCE_INITIATOR.PUBLISHED,
                     shortlistId: entry.id,
                     links: [{
                         link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlRespMySection.url)}&tab=My+Section`,

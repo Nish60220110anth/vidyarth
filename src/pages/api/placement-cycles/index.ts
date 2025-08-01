@@ -1,8 +1,11 @@
 // /pages/api/placement-cycles/index.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { ACCESS_PERMISSION, PLACEMENT_CYCLE_STATUS, PLACEMENT_CYCLE_TYPE } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { ACCESS_PERMISSION } from "@prisma/client";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { apiHelpers } from "@/lib/server/responseHelpers";
+import z from "zod";
+import { ToInt } from "@/lib/server/zod_utils";
+import { createDefaultCycle, getAllCycles, getCycleById } from "@/lib/server/services/cycle";
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
@@ -33,43 +36,53 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     },
 };
 
+const GetQuerySchema = z.object({
+    id: ToInt.optional().refine((val) => !val || (val > 0), {
+        message: "id must be a positive integer or undefined",
+    }),
+});
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
         if (req.method === "GET") {
 
-            const { id } = req.query;
+            const parsedQuery = GetQuerySchema.safeParse(req.query);
+
+            if (!parsedQuery.success) {
+                apiHelpers.badRequest(res, `Invalid query parameters: ${parsedQuery.error.message}`);
+                return;
+            }
+
+            const { id } = parsedQuery.data;
 
             if (id) {
                 const permissionFilter = (req as any).filter;
-                const cycle = await prisma.placement_cycle.findUnique({
-                    where: { id: Number(id), ...permissionFilter },
-                });
+                const cycle = await getCycleById(id, permissionFilter);
 
                 if (!cycle) {
-                    return res.status(404).json({ error: "Placement cycle not found" });
+                    apiHelpers.notFound(res, "Placement cycle not found");
+                    return;
                 }
 
-                return res.status(200).json(cycle);
+                apiHelpers.success(res, {
+                    data: cycle
+                });
             }
 
-            const cycles = await prisma.placement_cycle.findMany({
-                orderBy: { created_at: "desc" }
+            const cycles = await getAllCycles();
+
+            apiHelpers.success(res, {
+                data: cycles
             });
-            return res.status(200).json(cycles);
+
+            return;
         }
-
-        if (req.method === "POST") {
-            const newCycle = await prisma.placement_cycle.create({
-                data: {
-                    year: new Date().getFullYear(),
-                    batch_name: "New Batch",
-                    placement_type: "SUMMERS" as PLACEMENT_CYCLE_TYPE,
-                    status: "CLOSED" as PLACEMENT_CYCLE_STATUS,
-                },
+        else if (req.method === "POST") {
+            const newCycle = await createDefaultCycle();
+            apiHelpers.success(res, {
+                data: newCycle
             });
-
-            res.status(201).json(newCycle);
+            return;
         }
 
 

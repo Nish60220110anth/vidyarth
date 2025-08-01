@@ -2,8 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { motion } from "framer-motion";
-import toast from "react-hot-toast";
-import { PLACEMENT_CYCLE_TYPE, PLACEMENT_CYCLE_STATUS, ACCESS_PERMISSION } from "@prisma/client";
+import { PLACEMENT_CYCLE_TYPE, PLACEMENT_CYCLE_STATUS } from "@prisma/client";
 import {
     ArrowPathIcon,
     PencilIcon,
@@ -13,7 +12,7 @@ import {
     PlusIcon,
 } from "@heroicons/react/24/outline";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
-import axios from "axios";
+import { createCycle, deleteCycle, fetchAllCyclesWithDetails, updateCycle } from "@/lib/api/cycle";
 
 export interface PlacementCycle {
     id: number;
@@ -50,7 +49,6 @@ export default function ManagePlacementCycle() {
 
     const [batchNameError, setBatchNameError] = useState(false);
 
-
     const [filters, setFilters] = useState<{
         placement_type: PLACEMENT_CYCLE_TYPE | "ALL";
         year: string;
@@ -62,23 +60,15 @@ export default function ManagePlacementCycle() {
 
     const fetchCycles = async () => {
         setIsRefreshing(true);
-        try {
-            const res = await axios.get("/api/placement-cycles", {
-                headers: {
-                    "x-access-permission": ACCESS_PERMISSION.MANAGE_PLACEMENT_CYCLE
-                }
-            });
-            const data = res.data;
-            setCycles(data);
-            setAllCycles(data);
-        } catch (err) {
-            toast.error("Failed to load placement cycles");
-        } finally {
-            setTimeout(() => {
-                setIsRefreshing(false)
-            }, 1000);
-        }
-    };
+        const res = await fetchAllCyclesWithDetails();
+
+        setCycles(res);
+        setAllCycles(res);
+
+        setTimeout(() => {
+            setIsRefreshing(false)
+        }, 1000);
+    }
 
     useEffect(() => {
         fetchCycles();
@@ -134,57 +124,37 @@ export default function ManagePlacementCycle() {
     };
 
     const handleSave = async () => {
-        try {
-            const res = await fetch(`/api/placement-cycles/${editId}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-access-permission": ACCESS_PERMISSION.MANAGE_PLACEMENT_CYCLE
-                },
-                body: JSON.stringify(newCycle),
-            });
-
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || "Update failed");
-            }
-
-            const updatedCycle = await res.json();
-            const updated = cycles.map((c) => (c.id === editId ? updatedCycle : c));
-            setCycles(updated);
-            setAllCycles(updated);
-            toast.success("Placement cycle updated");
-            setEditId(null);
-        } catch (err: any) {
-            toast.error(err.message);
+        if (!editId) {
+            return;
         }
+        const updatedCycle = await updateCycle(editId, newCycle);
 
+        if (!updatedCycle) return;
+
+        const updated = cycles.map((c) => (c.id === editId ? updatedCycle : c));
+        setCycles(updated);
+        setAllCycles(updated);
+        setEditId(null);
     };
 
     const handleDelete = async (id: number) => {
-        try {
-            const res = await fetch(`/api/placement-cycles/${id}`, {
-                method: "DELETE",
-                headers: {
-                    "x-access-permission": ACCESS_PERMISSION.MANAGE_PLACEMENT_CYCLE
-                }
-            });
-            if (!res.ok) throw new Error("Delete failed");
-
-            setCycles(cycles.filter((c) => c.id !== id));
-            setAllCycles(allCycles.filter((c) => c.id !== id));
-        } catch (err) {
-            toast.error("Failed to delete");
-            console.error(err);
-        }
+        await deleteCycle(id);
+        setAllCycles((prev) => prev.filter((g) => g.id !== id));
+        setCycles((prev) => prev.filter((g) => g.id !== id));
     };
 
+    const handleNewCycle = async () => {
+        const newCycle = await createCycle();
+        setAllCycles([...allCycles, newCycle]);
+        setCycles([...allCycles, newCycle]);
+        setEditId(newCycle.id);
+        setNewCycle(newCycle);
+    }
 
     const handleFilter = () => {
         if (allCycles.length === 0) return;
         let filtered = [...allCycles];
 
-        console.log("Applying filters:", filters);
         if (filters.placement_type !== "ALL") {
             filtered = filtered.filter((c) => c.placement_type === filters.placement_type as PLACEMENT_CYCLE_TYPE);
         }
@@ -314,29 +284,7 @@ export default function ManagePlacementCycle() {
                     {/* Add cycle */}
                     <button
                         onClick={async () => {
-                            try {
-                                const res = await fetch("/api/placement-cycles", {
-                                    method: "POST",
-                                    headers: {
-                                        "x-access-permission": ACCESS_PERMISSION.MANAGE_PLACEMENT_CYCLE
-                                    }
-                                });
-
-                                if (!res.ok) {
-                                    const err = await res.json();
-                                    throw new Error(err.error || "Creation failed");
-                                }
-
-                                const newCycle = await res.json();
-                                setAllCycles([...allCycles, newCycle]);
-                                setCycles([...cycles, newCycle]);
-                                setEditId(newCycle.id);
-                                setNewCycle(newCycle);
-                                toast.success("Cycle added");
-                            } catch (err: any) {
-                                toast.error(err.message);
-                            }
-
+                            await handleNewCycle();
                         }}
                         className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-md text-sm font-medium shadow transition ml-auto"
                     >

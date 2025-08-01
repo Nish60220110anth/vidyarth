@@ -1,28 +1,24 @@
 import { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import toast from "react-hot-toast";
-import { ACCESS_PERMISSION, NOTIFICATION_TYPE, USER_ROLE } from '@prisma/client';
+import { ACCESS_PERMISSION, notification_properties, NOTIFICATION_TYPE, USER_ROLE } from '@prisma/client';
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowPathIcon, CheckCircleIcon, CheckIcon, PencilIcon, TrashIcon, XCircleIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import { ArrowPathIcon, CheckCircleIcon, CheckIcon, PencilIcon, XCircleIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { useRouter } from 'next/router';
+import { shallowEqualByKeys } from '@/utils/shallowEqual';
+import { fetchEmailProps, updateEmailProps } from '@/lib/api/emailprops';
 
-interface NotificationProperty {
-    type: string;
-    send_email: boolean;
-    delay: number;
-    only_for_target: boolean;
-    role: string | null;
-}
-
+export type NotificationProperty = notification_properties;
 export default function EmailProps() {
     const router = useRouter();
 
     const types = Object.keys(NOTIFICATION_TYPE);
+
     const roles = useMemo(() => {
         return [null, ...Object.keys(USER_ROLE).filter(role => !role.startsWith("CCA_"))];
     }, []);
 
-    const [originalPropeties, setOriginalProperties] = useState<Record<string, NotificationProperty>>({});
+    const [originalProperties, setOriginalProperties] = useState<Record<string, NotificationProperty>>({});
     const [editProperties, setEditProperties] = useState<Record<string, NotificationProperty>>({});
     const [editId, setEditId] = useState<NOTIFICATION_TYPE | null>(null);
 
@@ -30,51 +26,23 @@ export default function EmailProps() {
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const isDisabled = useMemo(() => {
-        if (!editId) {
-            return;
-        }
-        const original = originalPropeties[editId];
-        const edited = editProperties[editId];
+        if (!editId) return true;
+        const o = originalProperties[editId];
+        const e = editProperties[editId];
+        if (!o || !e) return true;
+        return shallowEqualByKeys(o, e);
+    }, [editId, originalProperties, editProperties]);
 
-        return (
-            original.delay === edited.delay &&
-            original.only_for_target === edited.only_for_target &&
-            original.role === edited.role &&
-            original.send_email === edited.send_email
-        );
-    }, [editId, editProperties]);
-
-
-    const fetchData = async () => {
-        try {
-            const res = await axios.get('/api/email/props', {
-                headers: {
-                    "x-access-permission": ACCESS_PERMISSION.MANAGE_ANNOUNCEMENTS,
-                },
-            });
-
-            if (!res.data.success) {
-                toast.error(res.data.error || "Failed to load data");
-                return;
-            }
-
-            const grouped: Record<string, NotificationProperty> = {};
-            for (const item of res.data.data) {
-                grouped[item.type] = item;
-            }
-
-            setOriginalProperties(grouped);
-            setEditProperties(grouped);
-        } catch {
-            toast.error("Failed to load properties");
-        } finally {
-            setLoading(false);
-            setIsRefreshing(false);
-        }
+    const fetchProps = async () => {
+        setLoading(true);
+        const res = await fetchEmailProps();
+        setOriginalProperties(res);
+        setEditProperties(res);
+        setLoading(false);
     };
 
     useEffect(() => {
-        fetchData();
+        fetchProps();
     }, []);
 
     const handleChange = (
@@ -97,31 +65,24 @@ export default function EmailProps() {
     };
 
     const handleSave = async (entry: NotificationProperty) => {
-        try {
-            const res = await axios.put('/api/email/props', entry, {
-                headers: {
-                    "x-access-permission": ACCESS_PERMISSION.MANAGE_ANNOUNCEMENTS,
-                },
-            });
-
-            if (!res.data.success) {
-                toast.error(res.data.error || "Update failed");
-                return;
-            }
-
-            originalPropeties[entry.type] = editProperties[entry.type]
-
-        } catch {
-            toast.error("Failed to update");
-        } finally {
-            setEditId(null);
-        }
+        const res = await updateEmailProps(entry);
+        if (res) {
+            originalProperties[entry.type] = entry;
+            editProperties[entry.type] = entry;
+        };
+        setEditId(null);
     };
 
-    if (loading) return <div className="text-center mt-10 text-gray-600">Loading...</div>;
+    if (loading) return <div className="flex items-center justify-center min-h-[150px] bg-gradient-to-br from-[#0d1b24] to-[#0a141d] border border-cyan-800 rounded-md text-sm text-cyan-300 font-medium gap-3 px-4 py-3 shadow-inner">
+        <svg className="w-4 h-4 animate-spin text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                d="M12 4v4m0 8v4m8-8h4M4 12H0m16.24-6.24l2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83" />
+        </svg>
+        Loading content...
+    </div>;
 
     return (
-        <div className="px-4 py-6 md:px-10 md:py-10 bg-gray-100 min-h-screen">
+        <div className="px-4 py-6 md:px-10 md:py-10 bg-gray-100 min-h-full font-[Urbanist]">
             <div className="sticky top-0 bg-gray-100 pb-4 z-20">
                 {/* Breadcrumb */}
                 <div className="text-sm text-gray-600 flex gap-2 mb-2">
@@ -144,7 +105,8 @@ export default function EmailProps() {
                 <button
                     onClick={async (e) => {
                         setIsRefreshing(true);
-                        await fetchData();
+                        await fetchEmailProps()
+                        setIsRefreshing(false);
                     }}
                     className="p-2 rounded-md border border-gray-300 text-gray-600 hover:text-cyan-600 hover:border-cyan-500 transition shadow-sm hover:shadow-md"
                     title="Refresh properties"
@@ -190,11 +152,11 @@ export default function EmailProps() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.35, ease: "easeOut" }}
-                            className="mt-4 grid grid-cols-1 md:grid-cols-8 gap-4 md:items-center md:py-3 bg-white shadow-sm rounded-lg px-4 py-3"
+                            className="mt-4 grid grid-cols-1 md:grid-cols-8 gap-4 md:items-center md:py-3 bg-white shadow-sm rounded-lg px-4 py-3 text-black"
 
                         >
                             {/* Type */}
-                            <div className="col-span-2 text-center">{type}</div>
+                            <div className="col-span-2 text-center text-black">{type}</div>
 
                             {/* Send Email */}
                             <div className="col-span-1 flex justify-center">
@@ -221,11 +183,11 @@ export default function EmailProps() {
                                         min={0}
                                         max={240}
                                         className="w-16 border px-2 py-1 rounded text-sm"
-                                        value={current.delay}
-                                        onChange={e => handleChange(type, "delay", parseInt(e.target.value))}
+                                        value={current.delay_minutes}
+                                        onChange={e => handleChange(type, "delay_minutes", parseInt(e.target.value))}
                                     />
                                 ) : (
-                                    <span className="text-sm text-gray-700">{current.delay}</span>
+                                    <span className="text-sm text-gray-700">{current.delay_minutes}</span>
                                 )}
                             </div>
 
@@ -254,7 +216,7 @@ export default function EmailProps() {
                                         onChange={e => handleChange(type, "role", e.target.value || null)}
                                         className="w-32 border px-2 py-1 rounded text-sm"
                                     >
-                                        <option value="None">None</option>
+                                        <option value={undefined}>None</option>
                                         {Object.keys(USER_ROLE)
                                             .filter(role => !role.startsWith("CCA_"))
                                             .map(role => (

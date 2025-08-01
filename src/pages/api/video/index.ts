@@ -11,11 +11,14 @@ export const config = {
 import formidable from "formidable";
 import fs from "fs";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
-import { ACCESS_PERMISSION, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@prisma/client";
+import { ACCESS_PERMISSION, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE, VIDEO_REQ, VIDEO_STREAM_SOURCE } from "@prisma/client";
 import { apiHelpers } from "@/lib/server/responseHelpers";
 import { createNotification } from "@/lib/server/notificationSink";
 import { generateSecureURL } from "@/utils/shared/secureUrlApi";
 import { baseUrl } from "@/lib/config";
+import { z } from "zod";
+import { ToBool, ToInt, ToStr } from "@/lib/server/zod_utils";
+import { createDefaultVideo, getVideoById, updateVideo } from "@/lib/server/services/video";
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
@@ -58,177 +61,138 @@ const parseForm = async (req: NextApiRequest): Promise<{ fields: any; files: any
     });
 };
 
+const PostQuerySchema = z.object({
+    is_default: ToBool
+}).strict();
+
+const PutFormSchema = z
+    .object({
+        id: ToInt,
+        company_id: ToInt,
+        type: ToStr.transform((s) => s.toUpperCase()).pipe(z.enum(VIDEO_REQ)),
+        source: ToStr.transform((s) => s.toUpperCase()).pipe(z.enum(VIDEO_STREAM_SOURCE)),
+        title: ToStr,
+        embed_id: ToStr,
+        image_name: ToStr.optional(),
+        is_featured: ToBool,
+        keep_existing_image: ToBool,
+        is_default: ToBool,
+    })
+    .strict();
+
+const GetQuerySchema = z.object({
+    cid: z.string().optional(),
+}).strict();
+
+const DeleteQuerySchema = z.object({
+    id: ToInt.refine((val) => val > 0, {
+        message: "Invalid video ID",
+    }),
+}).strict();
+
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === "POST") {
-        try {
-            const { fields } = await parseForm(req);
+        const { fields } = await parseForm(req);
+        const parsedQuery = PostQuerySchema.safeParse(fields);
 
-            const is_default = Array.isArray(fields.is_default) ? fields.is_default[0] : fields.is_default
-
-            if (is_default !== true && is_default !== "true") {
-                return res.status(400).json({ error: "Invalid request. Use PUT for main update." });
-            }
-
-            const defaultVideo = await prisma.video.create({
-                data: {
-                    company_id: 0,
-                    title: "Default Video title",
-                    source: "YOUTUBE",
-                    thumbnail_url: "https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/thumbnails%2Fdefault-thumbnail.svg?alt=media&token=115891f2-e858-458b-bf7c-8a9d8a05f4be"
-                },
-                include: {
-                    company: true
-                },
-            });
-
-            const refreshVideo = await prisma.video.findUnique({
-                where: { id: defaultVideo.id },
-                include: {
-                    company: true,
-                },
-            });
-
-            apiHelpers.success(res, { refreshVideo })
-            return;
-        } catch (error) {
-            apiHelpers.error(res, "Failed to create default video", 500)
+        if (!parsedQuery.success) {
+            apiHelpers.badRequest(res, `Invalid query parameters: ${parsedQuery.error.message}`);
             return;
         }
+
+        const { is_default } = parsedQuery.data;
+
+        if (is_default !== true) {
+            apiHelpers.badRequest(res, "is_default must be true to create a default video");
+            return;
+        }
+
+        const defaultVideo = await createDefaultVideo();
+        apiHelpers.success(res, { data: defaultVideo })
+        return;
     }
+    else if (req.method === "PUT") {
+        const { fields, files } = await parseForm(req);
 
-    if (req.method === "PUT") {
-        try {
-            const { fields, files } = await parseForm(req);
+        const parsedForm = PutFormSchema.safeParse(fields);
+        if (!parsedForm.success) {
+            apiHelpers.badRequest(res, `Invalid form parameters: ${parsedForm.error.message}`);
+            return;
+        }
 
-            const id = Array.isArray(fields.id) ? parseInt(fields.id[0]) : parseInt(fields.id);
-            const company_id = Array.isArray(fields.company_id) ? parseInt(fields.company_id[0]) : parseInt(fields.company_id);
-            const video_type = Array.isArray(fields.type) ? fields.type[0] : fields.type;
-            const video_source = Array.isArray(fields.source) ? fields.source[0] : fields.source;
-            const title = Array.isArray(fields.title) ? fields.title[0] : fields.title;
-            const embed_id = Array.isArray(fields.embed_id) ? fields.embed_id[0] : fields.embed_id;
-            const image_name = Array.isArray(fields.image_name) ? fields.image_name[0] : fields.image_name;
-            const is_featured = Array.isArray(fields.is_featured) ? fields.is_featured[0] === "true" : fields.is_featured === "true";
-            const keep_existing_image = Array.isArray(fields.keep_existing_image) ? fields.keep_existing_image[0] === "true" : fields.keep_existing_image === "true";
+        const {
+            id,
+            company_id,
+            type: video_type,
+            source: video_source,
+            title,
+            embed_id,
+            image_name,
+            is_featured,
+            keep_existing_image,
+            is_default
+        } = parsedForm.data;
 
-            if (id == null || company_id == null || title == null) {
-                apiHelpers.badRequest(res)
-                return;
-            }
+        if (is_default) {
+            apiHelpers.badRequest(res, "is_default cannot be true for PUT requests");
+            return;
+        }
 
-            let image_path = "";
-            let firebase_path = "";
+        let image_path = "";
+        let firebase_path = "";
 
-            if (files.image) {
-                const file = files.image[0];
-                const fileBuffer = fs.readFileSync(file.filepath);
+        if (files.image && !keep_existing_image) {
+            const file = files.image[0];
+            const orig = file.originalFilename || "image.png"
+            const dest = `thumbnails/${Date.now()}-${orig}`;
+            const fileRef = bucket.file(dest);
+            const fileBuffer = fs.readFileSync(file.filepath);
 
-                firebase_path = `thumbnails/${Date.now()}-${file.originalFilename}`;
-                const fileRef = bucket.file(firebase_path);
-
-                await fileRef.save(fileBuffer, {
-                    metadata: {
-                        contentType: file.mimetype || "image/png",
-                    },
-                });
-
-                // await file.makePublic(); - dude, use this when u want to make the link shorter
-
-                // const publicUrl = file.publicUrl();
-                // getting signed makes the file more private 
-
-                const [signedUrl] = await fileRef.getSignedUrl({
-                    action: "read",
-                    expires: "03-01-2030",
-                });
-
-                image_path = signedUrl;
-            }
-
-            const oldVideo = await prisma.video.findUnique({
-                where: {
-                    id
+            await fileRef.save(fileBuffer, {
+                metadata: {
+                    contentType: file.mimetype || "image/png",
                 },
-                select: {
-                    is_featured: true
-                }
-            })
+            });
 
-            if (keep_existing_image) {
-                await prisma.video.update({
-                    where: { id },
-                    data: {
-                        company_id,
-                        type: video_type,
-                        source: video_source,
-                        title,
-                        embed_id,
-                        is_featured,
-                    },
-                });
+            await new Promise<void>((resolve, reject) => {
+                fs.createReadStream(file.filepath)
+                    .pipe(
+                        fileRef.createWriteStream({
+                            metadata: { contentType: file.mimetype || "image/png" },
+                        })
+                    )
+                    .on("error", reject)
+                    .on("finish", resolve);
+            });
 
-                if (!oldVideo?.is_featured && is_featured) {
-                    const secureUrlResp = await generateSecureURL("COMPANY", company_id)
+            // await file.makePublic(); - dude, use this when u want to make the link shorter
 
-                    if (secureUrlResp.success) {
-                        createNotification({
-                            type: NOTIFICATION_TYPE.CONTENT,
-                            subtype: NOTIFICATION_SUBTYPE.UPDATED,
-                            companyId: company_id,
-                            links: [{
-                                link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Videos`,
-                                link_name: "Recorded Videos"
-                            }]
-                        });
-                    } else {
-                        console.error(secureUrlResp.error)
-                    }
-                }
+            // const publicUrl = file.publicUrl();
+            // getting signed makes the file more private 
 
-            } else {
-                // delete existing thumbnail if exists
-                const existingVideo = await prisma.video.findUnique({
-                    where: { id },
-                });
+            const [signedUrl] = await fileRef.getSignedUrl({
+                action: "read",
+                expires: "03-01-2030",
+            });
 
-                if (existingVideo?.thumbnail_url && existingVideo.firebase_path) {
-                    const imageRef = bucket.file(existingVideo.firebase_path);
-                    await imageRef.delete();
-                }
+            image_path = signedUrl;
+            firebase_path = dest;
 
-                await prisma.video.update({
-                    where: { id },
-                    data: {
-                        company_id,
-                        type: video_type,
-                        source: video_source,
-                        title,
-                        embed_id,
-                        thumbnail_image_name: image_name,
-                        thumbnail_url: image_path,
-                        is_featured,
-                        firebase_path
-                    },
-                });
+            fs.promises.unlink(file.filepath).catch(() => { });
+        }
 
-                if (!oldVideo?.is_featured && is_featured) {
-                    const secureUrlResp = await generateSecureURL("COMPANY", company_id)
+        const oldVideo = await getVideoById(id);
 
-                    if (secureUrlResp.success) {
-                        createNotification({
-                            type: NOTIFICATION_TYPE.CONTENT,
-                            subtype: NOTIFICATION_SUBTYPE.UPDATED,
-                            companyId: company_id,
-                            links: [{
-                                link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Videos`,
-                                link_name: "Recorded Videos"
-                            }]
-                        });
-                    } else {
-                        console.error(secureUrlResp.error)
-                    }
-                }
+        if (keep_existing_image) {
 
-            }
+            await updateVideo(id, {
+                company_id,
+                type: video_type,
+                source: video_source,
+                title,
+                embed_id,
+                is_featured,
+            });
 
             const refreshedVideo = await prisma.video.findUnique({
                 where: { id },
@@ -237,92 +201,178 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 },
             });
 
-            apiHelpers.success(res, { refreshedVideo })
-            return;
-        } catch (error) {
-            apiHelpers.error(res, "Failed to update video entry", 500)
-            return;
+            if (is_featured) {
+                const secureUrlResp = await generateSecureURL("COMPANY", company_id)
+                if (!secureUrlResp.success) {
+                    apiHelpers.success(res, {
+                        message: "Video updated successfully, but failed to generate secure URL.", error: secureUrlResp.error,
+                        data: refreshedVideo
+                    });
+                    return;
+                }
+
+                createNotification({
+                    type: NOTIFICATION_TYPE.COMPANY_CONTENT,
+                    subtype: NOTIFICATION_SUBTYPE.VIDEO,
+                    initiator: oldVideo?.is_featured ? NOTIFICATION_SOURCE_INITIATOR.UPDATED : NOTIFICATION_SOURCE_INITIATOR.ADDED,
+                    companyId: company_id,
+                    links: [{
+                        link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Videos`,
+                        link_name: "recorded_videos"
+                    }]
+                });
+            }
+
+        } else {
+            // delete existing thumbnail if exists
+
+            if (oldVideo?.thumbnail_url && oldVideo.firebase_path) {
+                const imageRef = bucket.file(oldVideo.firebase_path);
+                await imageRef.delete();
+            }
+
+            await prisma.video.update({
+                where: { id },
+                data: {
+                    company_id,
+                    type: video_type,
+                    source: video_source,
+                    title,
+                    embed_id,
+                    thumbnail_image_name: image_name,
+                    thumbnail_url: image_path,
+                    is_featured,
+                    firebase_path
+                },
+            });
+
+            const refreshedVideo = await prisma.video.findUnique({
+                where: { id },
+                include: {
+                    company: true,
+                },
+            });
+
+            if (is_featured) {
+
+                const secureUrlResp = await generateSecureURL("COMPANY", company_id);
+                if (!secureUrlResp.success) {
+                    apiHelpers.success(res, {
+                        message: "Video updated successfully, but failed to generate secure URL.",
+                        error: secureUrlResp.error,
+                        data: refreshedVideo
+                    });
+                    return;
+                }
+
+                createNotification({
+                    type: NOTIFICATION_TYPE.COMPANY_CONTENT,
+                    subtype: NOTIFICATION_SUBTYPE.VIDEO,
+                    initiator: oldVideo?.is_featured ? NOTIFICATION_SOURCE_INITIATOR.UPDATED : NOTIFICATION_SOURCE_INITIATOR.ADDED,
+                    companyId: company_id,
+                    links: [{
+                        link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Videos`,
+                        link_name: "recorded_videos"
+                    }]
+                });
+            }
         }
+
+        const refreshedVideo = await prisma.video.findUnique({
+            where: { id },
+            include: {
+                company: true,
+            },
+        });
+
+        apiHelpers.success(res, { data: refreshedVideo })
+        return;
     }
-
-    if (req.method === "GET") {
-
-        const { cid } = req.query;
+    else if (req.method === "GET") {
 
         const permissionFilter = (req as any).filter ?? {};
         const filters: any = {
             ...permissionFilter
         };
 
-        if (cid) {
-            filters.company_id = parseInt(Array.isArray(cid) ? cid[0] : cid);
-        }
-        try {
-            const allVideos = await prisma.video.findMany({
-                where: filters,
-                include: {
-                    company: {
-                        include: {
-                            domains: false,
-                        },
-                    }
-                },
-                orderBy: {
-                    updated_at: "desc",
-                },
-            });
+        const parsedQuery = GetQuerySchema.safeParse(req.query);
 
-            apiHelpers.success(res, { allVideos })
-            return;
-        } catch (error) {
-            apiHelpers.error(res, "Failed to fetch Videos", 500)
+        if (!parsedQuery.success) {
+            apiHelpers.badRequest(res, `Invalid query parameters: ${parsedQuery.error.message}`);
             return;
         }
-    }
 
-    if (req.method === "DELETE") {
-        try {
+        if (parsedQuery.data.cid) {
+            filters.company_id = parseInt(Array.isArray(parsedQuery.data.cid) ? parsedQuery.data.cid[0] : parsedQuery.data.cid);
+        }
 
-            if (!req.query.id) {
-                apiHelpers.badRequest(res, "Invalid or missing Video ID")
-                return;
-            };
-
-            const videoId = Array.isArray(req.query.id) ? parseInt(req.query.id[0]) : parseInt(req.query.id);
-
-            if (!videoId || typeof videoId !== "number") {
-                apiHelpers.badRequest(res, "Invalid or missing Video ID")
-                return;
-            }
-
-            const video = await prisma.video.findUnique({
-                where: { id: videoId },
-            });
-
-            if (!video) {
-                apiHelpers.notFound(res, "Video not found")
-                return;
-            }
-
-            if (video.firebase_path) {
-                const fileRef = bucket.file(video.firebase_path);
-                try {
-                    await fileRef.delete();
-                } catch (err: any) {
-                    console.warn("Failed to delete file from Firebase:", err.message);
+        const videos = await prisma.video.findMany({
+            where: filters,
+            include: {
+                company: {
+                    include: {
+                        domains: false,
+                    },
                 }
-            }
+            },
+            orderBy: {
+                updated_at: "desc",
+            },
+        });
 
-            await prisma.video.delete({
-                where: { id: videoId },
-            });
+        apiHelpers.success(res, { data: videos })
+        return;
+    }
+    else if (req.method === "DELETE") {
+        const parsedQuery = DeleteQuerySchema.safeParse(req.query);
 
-            apiHelpers.success(res, {})
-            return;
-        } catch (err) {
-            apiHelpers.error(res, "Failed to delete video", 500);
+        if (!parsedQuery.success) {
+            apiHelpers.badRequest(res, `Invalid query parameters: ${parsedQuery.error.message}`);
             return;
         }
+
+        const videoId = parsedQuery.data.id;
+
+        const video = await prisma.video.findUnique({
+            where: { id: videoId },
+        });
+
+        if (!video) {
+            apiHelpers.notFound(res, "Video not found")
+            return;
+        }
+
+        if (video.firebase_path) {
+            const fileRef = bucket.file(video.firebase_path);
+            try {
+                await fileRef.delete();
+            } catch (err: any) {
+                console.warn("Failed to delete file from Firebase:", err.message);
+            }
+        }
+
+        await prisma.video.delete({
+            where: { id: videoId },
+        });
+
+        if (video.is_featured) {
+            const secureUrlResp = await generateSecureURL("COMPANY", video.company_id);
+            if (secureUrlResp.success) {
+                createNotification({
+                    type: NOTIFICATION_TYPE.COMPANY_CONTENT,
+                    subtype: NOTIFICATION_SUBTYPE.VIDEO,
+                    initiator: NOTIFICATION_SOURCE_INITIATOR.DELETED,
+                    companyId: video.company_id,
+                    links: [{
+                        link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Videos`,
+                        link_name: "recorded_videos"
+                    }]
+                });
+            }
+        }
+
+        apiHelpers.success(res, {})
+        return;
     }
 }
 

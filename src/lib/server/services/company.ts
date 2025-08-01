@@ -22,7 +22,7 @@ async function getCompanies (company_id?: number, initialFilter: any = {}) {
     });
 }
 
-async function UpdateCompanyById(id: number, data: any) {
+async function updateCompanyById(id: number, data: any) {
     return prisma.company.update({
         where: { id },
         data,
@@ -31,5 +31,5 @@ async function UpdateCompanyById(id: number, data: any) {
 
 export {
     getCompanies,
-    UpdateCompanyById
+    updateCompanyById
 };

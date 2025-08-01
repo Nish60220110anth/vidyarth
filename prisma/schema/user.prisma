@@ -29,13 +29,17 @@ model user {
   // DISHA mentorship role (1-to-many)
   disha_mentees dishamentee[] @relation("dishamentor")
 
-  domain_preference userdomainpreference? @relation("userdomain")
-  known_languages   userlanguage[]        @relation("languagesknown")
-  shortlists        shortlist[]           @relation("shortlistusers")
-  announcements     announcements[]
-  student_cv        student_cv[]
-  signouts          signouts[]
-  userSession       userSession[]         @relation("UserSessions")
+  domain_preference      userdomainpreference?   @relation("userdomain")
+  known_languages        userlanguage[]          @relation("languagesknown")
+  shortlists             shortlist[]             @relation("shortlistusers")
+  announcements          announcements[]
+  student_cv             student_cv[]
+  signouts               signouts[]
+  userSession            userSession[]           @relation("UserSessions")
+  EMAIL_RECEIPIENT_STATE email_recipicent_state[] @relation("Email_Recipient_state")
+
+  ccEmails  email_content[] @relation("EmailCC")
+  bccEmails email_content[] @relation("EmailBCC")
 
   @@unique([pgpid, pcomid])
 }

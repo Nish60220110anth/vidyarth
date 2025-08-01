@@ -51,7 +51,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 },
                 company: {
                     is_featured: true
-                }
+                },
+                is_active: true,
+                is_featured: true
             },
             orderBy: {
                 created_at: "desc",

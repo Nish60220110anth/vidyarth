@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { DOMAIN, ACCESS_PERMISSION, NOTIFICATION_TYPE, NOTIFICATION_SUBTYPE } from "@prisma/client";
+import { DOMAIN, ACCESS_PERMISSION, NOTIFICATION_TYPE, NOTIFICATION_SUBTYPE, NOTIFICATION_SOURCE_INITIATOR } from "@prisma/client";
 import { bucket } from "@/lib/firebase-admin";
 import { prisma } from "@/lib/prisma";
 import formidable from "formidable";
@@ -9,6 +9,10 @@ import { apiHelpers } from "@/lib/server/responseHelpers";
 import { createNotification } from "@/lib/server/notificationSink";
 import { generateSecureURL } from "@/utils/shared/secureUrlApi";
 import { baseUrl } from "@/lib/config";
+import { z } from "zod";
+import { getActiveCycle } from "@/lib/server/services/cycle";
+import { createDefaultJD, createDefaultJDDomain, deleteDomainsByJDId, deleteJD, getJDByID, updateJD } from "@/lib/server/services/jd";
+import { ToBool, ToDomains, ToInt, ToStr } from "@/lib/server/zod_utils";
 
 export const config = {
     api: {
@@ -51,7 +55,10 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
 
 const parseForm = async (req: NextApiRequest): Promise<{ fields: any; files: any }> => {
     return new Promise((resolve, reject) => {
-        const form = formidable({ multiples: false });
+        const form = formidable({
+            multiples: false, maxFileSize: 10 * 1024 * 1024,
+            allowEmptyFiles: false
+        });
         form.parse(req, (err, fields, files) => {
             if (err) reject(err);
             resolve({ fields, files });
@@ -59,258 +66,257 @@ const parseForm = async (req: NextApiRequest): Promise<{ fields: any; files: any
     });
 };
 
+const PostJDBodySchema = z
+    .object({
+        is_default: z.preprocess((val) => {
+            const v = Array.isArray(val) ? val[0] : val;
+            if (typeof v === "string") return v.toLowerCase() === "true";
+            return v;
+        }, z.literal(true)),
+    })
+    .strict();
+
+const PutJDMultiPartSchema = z
+    .object({
+        is_default: ToBool,
+        id: ToStr,
+        company_id: ToInt,
+        placement_cycle_id: ToInt,
+        role: ToStr,
+        pdf_name: ToStr.optional(),
+        is_active: ToBool,
+        keep_existing_pdf: ToBool,
+        domains: ToDomains,
+        pdf_path: ToStr.optional(),
+    })
+    .strict();
+
+const GetQuerySchema = z.object({
+    cid: ToInt.optional().refine((val) => !val || (val > 0), {
+        message: "cid must be a positive integer or undefined",
+    }),
+});
+
+const DeleteQuerySchema = z.object({
+    id: z.string(),
+}).strict();
+
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === "POST") {
-        try {
-            const { fields } = await parseForm(req);
-            const is_default = Array.isArray(fields.is_default) ? fields.is_default[0] : fields.is_default
+        const { fields } = await parseForm(req);
+        const parsedBody = PostJDBodySchema.safeParse(fields);
 
-            if (is_default !== true && is_default !== "true") {
-                apiHelpers.badRequest(res, "Use PUT for main update")
-                return;
-            }
-
-            const defaultJD = await prisma.company_jd.create({
-                data: {
-                    company_id: 0,
-                    placement_cycle_id: 5,
-                    role: "Enter Role",
-                    pdf_path: "",
-                    is_active: true,
-                },
-                include: {
-                    company: true,
-                    placement_cycle: true,
-                    domains: true,
-                },
-            });
-
-            await prisma.companyjd_domain.create({
-                data: {
-                    company_jd_id: defaultJD.id,
-                    domain: "FINANCE",
-                },
-            });
-
-            const refreshedJD = await prisma.company_jd.findUnique({
-                where: { id: defaultJD.id },
-                include: {
-                    company: true,
-                    placement_cycle: true,
-                    domains: true,
-                },
-            });
-
-            apiHelpers.success(res, { refreshedJD })
-            return;
-        } catch (error) {
-            console.error("Error creating default JD:", error);
-            apiHelpers.error(res, "Failed to create default JD", 500)
+        if (!parsedBody.success) {
+            apiHelpers.badRequest(res, "Invalid request body");
             return;
         }
+
+        const { is_default } = parsedBody.data;
+
+        if (is_default) {
+
+            const defaultJD = await prisma.company_jd.findFirst({
+                where: { company_id: 0 },
+                include: {
+                    company: true,
+                    placement_cycle: true,
+                    domains: true,
+                },
+            });
+
+            if (defaultJD) {
+                apiHelpers.success(res, { data: defaultJD });
+                return;
+            }
+        } else {
+            console.warn("Not allowed to create non-default JDs via this endpoint");
+            apiHelpers.badRequest(res, "Creating non-default JDs is not allowed via this endpoint");
+            return;
+        }
+
+        const activeCycle = await getActiveCycle();
+
+        if (!activeCycle) {
+            apiHelpers.error(res, "No active placement cycle found!", 404);
+            return;
+        }
+
+        const defaultJD = await createDefaultJD(activeCycle.id);
+        await createDefaultJDDomain(defaultJD.id);
+        const refreshedJD = await getJDByID(defaultJD.id);
+
+        apiHelpers.success(res, { data: refreshedJD })
+        return;
     }
     else if (req.method === "PUT") {
-        try {
-            const { fields, files } = await parseForm(req);
+        const { fields, files } = await parseForm(req);
 
-            const {
-                domains
-            } = fields;
+        const parsedBody = PutJDMultiPartSchema.safeParse({
+            ...fields,
+            domains: Array.isArray(fields.domains) ? fields.domains[0] : fields.domains,
+        });
 
-            const id = Array.isArray(fields.id) ? fields.id[0] : fields.id;
-            const role = Array.isArray(fields.role) ? fields.role[0] : fields.role;
-            const pdf_name = Array.isArray(fields.pdf_name) ? fields.pdf_name[0] : fields.pdf_name;
-            const companyId = Array.isArray(fields.company_id) ? parseInt(fields.company_id[0]) : parseInt(fields.company_id);
-            const placement_cycle_id = Array.isArray(fields.placement_cycle_id) ? parseInt(fields.placement_cycle_id[0]) : parseInt(fields.placement_cycle_id);
-            const is_active = Array.isArray(fields.is_active) ? fields.is_active[0] === "true" : fields.is_active === "true";
-            const keep_existing_pdf = Array.isArray(fields.keep_existing_pdf) ? fields.keep_existing_pdf[0] === "true" : fields.keep_existing_pdf === "true";
+        if (!parsedBody.success) {
+            apiHelpers.badRequest(res, `Invalid request body: ${parsedBody.error.message}`);
+            return;
+        }
 
-            if (!id || !companyId || !placement_cycle_id || !role) {
-                apiHelpers.badRequest(res)
-                return;
-            }
+        const { id, company_id, placement_cycle_id, role, pdf_name, is_active, keep_existing_pdf, domains } = parsedBody.data;
 
-            let pdf_path = "";
-            let firebase_path = "";
+        let pdf_path = "";
+        let firebase_path = "";
 
-            if (files.pdf) {
-                const file = files.pdf[0];
-                const fileBuffer = fs.readFileSync(file.filepath);
+        if (files.pdf && !keep_existing_pdf) {
+            const file = files.pdf[0];
+            const orig = file.originalFilename || "jd.pdf"
+            const dest = `jds/${Date.now()}-${orig}`;
+            const fileRef = bucket.file(dest);
 
-                firebase_path = `jds/${Date.now()}-${file.originalFilename}`;
-                const fileRef = bucket.file(firebase_path);
-
-                await fileRef.save(fileBuffer, {
-                    metadata: {
-                        contentType: file.mimetype || "application/pdf",
-                    },
-                });
-
-                await fileRef.makePublic();
-
-                const publicUrl = fileRef.publicUrl();
-                // getting signed makes the file more private 
-
-                // const [signedUrl] = await fileRef.getSignedUrl({
-                //     action: "read",
-                //     expires: "03-01-2030",
-                // });
-
-                pdf_path = publicUrl;
-            }
-
-            if (keep_existing_pdf) {
-                await prisma.company_jd.update({
-                    where: { id },
-                    data: {
-                        company_id: companyId,
-                        placement_cycle_id,
-                        role,
-                        is_active
-                    },
-                });
-            } else {
-                await prisma.company_jd.update({
-                    where: { id },
-                    data: {
-                        company_id: companyId,
-                        placement_cycle_id,
-                        role,
-                        pdf_path,
-                        is_active,
-                        pdf_name,
-                        firebase_path
-                    },
-                });
-            }
-
-            // Update domains
-            await prisma.companyjd_domain.deleteMany({
-                where: { company_jd_id: id },
+            await new Promise<void>((resolve, reject) => {
+                fs.createReadStream(file.filepath)
+                    .pipe(
+                        fileRef.createWriteStream({
+                            metadata: { contentType: file.mimetype || "application/pdf" },
+                        })
+                    )
+                    .on("error", reject)
+                    .on("finish", resolve);
             });
 
-            const domainList: DOMAIN[] = JSON.parse(domains);
-            await prisma.companyjd_domain.createMany({
-                data: domainList.map((d) => ({
-                    company_jd_id: id,
-                    domain: d,
-                })),
-                skipDuplicates: true,
+
+            // await fileRef.makePublic();
+            // const publicUrl = fileRef.publicUrl();
+
+            const [signedUrl] = await fileRef.getSignedUrl({
+                action: "read",
+                expires: "03-01-2030",
             });
 
-            const refreshedJD = await prisma.company_jd.findUnique({
-                where: { id },
-                include: {
-                    company: true,
-                    placement_cycle: true,
-                    domains: true,
-                },
-            });
+            pdf_path = signedUrl;
+            firebase_path = dest;
 
-            const secureUrlResp = await generateSecureURL("COMPANY", companyId)
+            fs.promises.unlink(file.filepath).catch(() => { });
+        }
+
+        const oldJd = await getJDByID(id);
+
+        const refreshedJD = await updateJD(id, {
+            company_id,
+            placement_cycle_id,
+            role,
+            pdf_path,
+            pdf_name,
+            firebase_path,
+            is_active,
+            keep_existing_pdf,
+            domains: domains.map((d) => d as DOMAIN),
+        });
+
+        if (is_active) {
+            const secureUrlResp = await generateSecureURL("COMPANY", company_id)
 
             if (secureUrlResp.success) {
-                        createNotification({
-                            type: NOTIFICATION_TYPE.CONTENT,
-                            subtype: NOTIFICATION_SUBTYPE.UPDATED,
-                            companyId: companyId,
-                            links: [{
-                                link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Job+Description`,
-                                link_name: "Job Description"
-                            }]
-                        });
-            } else {
-                console.error(secureUrlResp.error)
+                createNotification({
+                    type: NOTIFICATION_TYPE.COMPANY_CONTENT,
+                    subtype: NOTIFICATION_SUBTYPE.JD,
+                    initiator: oldJd.is_active ? NOTIFICATION_SOURCE_INITIATOR.UPDATED : NOTIFICATION_SOURCE_INITIATOR.ADDED,
+                    companyId: company_id,
+                    links: [{
+                        link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Job+Description`,
+                        link_name: "job_description"
+                    }]
+                });
             }
-
-            apiHelpers.success(res, { refreshedJD })
-            return;
-        } catch (error) {
-            apiHelpers.error(res, "Failed to update JD", 500)
-            return;
         }
+
+        apiHelpers.success(res, { data: refreshedJD })
+        return;
     }
     else if (req.method === "GET") {
-        try {
-            const { cid } = req.query;
+        const parsedQuery = GetQuerySchema.safeParse(req.query);
 
-            const permissionFilter = (req as any).filter ?? {};
-            const filters: any = {
-                ...permissionFilter
-            };
-
-            if (cid) {
-                filters.company_id = parseInt(Array.isArray(cid) ? cid[0] : cid);
-            }
-
-            const allJDs = await prisma.company_jd.findMany({
-                where: filters,
-                include: {
-                    company: {
-                        include: {
-                            domains: true,
-                        },
-                    },
-                    placement_cycle: true,
-                    domains: true,
-                },
-                orderBy: {
-                    updated_at: "desc",
-                },
-            });
-
-            apiHelpers.success(res, { allJDs })
-            return;
-        } catch (error) {
-            console.error("Error fetching JDs:", error);
-            apiHelpers.error(res, "Failed to fetch JD", 500)
+        if (!parsedQuery.success) {
+            apiHelpers.badRequest(res, `Invalid query parameters: ${parsedQuery.error.message}`);
             return;
         }
+
+        const { cid } = parsedQuery.data;
+
+        const permissionFilter = (req as any).filter ?? {};
+        const filters: any = {
+            ...permissionFilter
+        };
+
+        if (cid) {
+            filters.company_id = cid;
+        }
+
+        const allJDs = await prisma.company_jd.findMany({
+            where: {
+                ...filters,
+            },
+            include: {
+                company: {
+                    include: {
+                        domains: true,
+                    },
+                },
+                placement_cycle: true,
+                domains: true,
+            },
+            orderBy: {
+                updated_at: "desc",
+            },
+        });
+
+        apiHelpers.success(res, { data: allJDs })
+        return;
     }
     else if (req.method === "DELETE") {
-        try {
-            const jdId = req.query.id;
+        const parsedQuery = DeleteQuerySchema.safeParse(req.query);
 
-            if (!jdId || typeof jdId !== "string") {
-                apiHelpers.badRequest(res)
-                return;
-            }
-
-            const jd = await prisma.company_jd.findUnique({
-                where: { id: jdId },
-            });
-
-            if (!jd) {
-                apiHelpers.notFound(res)
-                return;
-            }
-
-            if (jd.firebase_path) {
-                const fileRef = bucket.file(jd.firebase_path);
-                try {
-                    await fileRef.delete();
-                } catch (err: any) {
-                    console.warn("Failed to delete file from Firebase:", err.message);
-                }
-            }
-
-            await prisma.companyjd_domain.deleteMany({
-                where: { company_jd_id: jdId },
-            });
-
-            await prisma.company_jd.delete({
-                where: { id: jdId },
-            });
-
-            apiHelpers.success(res, {})
-            return;
-        } catch (err) {
-            console.error("Error deleting JD:", err);
-            apiHelpers.error(res, "Failed to delete JD")
+        if (!parsedQuery.success) {
+            apiHelpers.badRequest(res, `Invalid query parameters: ${parsedQuery.error.message}`);
             return;
         }
-    }
 
+        const { id: jdId } = parsedQuery.data;
+        const jd = await getJDByID(jdId);
+
+        if (jd.firebase_path) {
+            const fileRef = bucket.file(jd.firebase_path);
+            try {
+                await fileRef.delete();
+            } catch (err: any) {
+                console.warn("Failed to delete file from Firebase:", err.message);
+            }
+        }
+
+        const oldJd = await getJDByID(jdId);
+
+        await deleteDomainsByJDId(jdId);
+        await deleteJD(jdId);
+
+        if (oldJd.is_active) {
+            const secureUrlResp = await generateSecureURL("COMPANY", oldJd.company_id);
+
+            if (secureUrlResp.success) {
+                createNotification({
+                    type: NOTIFICATION_TYPE.COMPANY_CONTENT,
+                    subtype: NOTIFICATION_SUBTYPE.JD,
+                    initiator: NOTIFICATION_SOURCE_INITIATOR.DELETED,
+                    companyId: oldJd.company_id,
+                    links: [{
+                        link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Job+Description`,
+                        link_name: "job_description"
+                    }]
+                });
+            }
+        }
+
+        apiHelpers.success(res, {})
+        return;
+    }
     else {
         apiHelpers.methodNotAllowed(res, req.method);
         return;

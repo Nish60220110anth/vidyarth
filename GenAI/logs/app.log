@@ -1,0 +1,884 @@
+2025-07-31 12:10:45,626 [INFO] app - Running in development  mode
+2025-07-31 12:10:48,067 [INFO] werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-07-31 12:10:48,067 [INFO] werkzeug - [33mPress CTRL+C to quit[0m
+2025-07-31 12:13:33,292 [INFO] app - Running in development  mode
+2025-07-31 12:13:36,164 [INFO] werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-07-31 12:13:36,165 [INFO] werkzeug - [33mPress CTRL+C to quit[0m
+2025-07-31 12:15:40,816 [INFO] controllers.chat - Request domain: 127.0.0.1
+2025-07-31 12:15:40,817 [INFO] controllers.chat - Request payload {'companyId': '358', 'fullName': 'HSBC', 'jdLinks': ['https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/jds%2FAdobe%20Product%20Management%20Intern.pdf?alt=media&token=c737bfc9-dfd8-489f-a2b7-1b2bea0c4aa9', 'https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/jds%2FAdobe%20Product%20Management%20Intern.pdf?alt=media&token=c737bfc9-dfd8-489f-a2b7-1b2bea0c4aa9'], 'compendiumLinks': ['https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/compendium%2Fadobe%2Fadobe-compendium.pdf?alt=media&token=627cd45e-6bb7-4945-9ab7-aafa94f7788c']}
+2025-07-31 12:15:40,817 [INFO] models.openai_integration - Reading from folder: overview
+2025-07-31 12:15:40,818 [ERROR] models.openai_integration - File for company id : 358, 'C:\Users\PC\Desktop\Systems\vidyarth\public\content\overview\358.txt' not found.
+2025-07-31 12:15:40,818 [INFO] models.openai_integration - Reading from folder: compendium
+2025-07-31 12:15:40,818 [ERROR] models.openai_integration - File for company id : 358, 'C:\Users\PC\Desktop\Systems\vidyarth\public\content\compendium\358.txt' not found.
+2025-07-31 12:15:43,308 [INFO] models.read_document - Request successful for url https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/jds%2FAdobe%20Product%20Management%20Intern.pdf?alt=media&token=c737bfc9-dfd8-489f-a2b7-1b2bea0c4aa9
+2025-07-31 12:15:43,308 [INFO] models.read_document - Detected Content-Type: application/pdf
+2025-07-31 12:15:43,552 [INFO] models.read_document - Read PDF file from stream
+2025-07-31 12:15:43,553 [INFO] models.read_document - Read PDF file form web Page 1 of 2 Our Company  
+Changing t he world through digital  experiences is what  Adobe’s al l about . We giv e everyone—from 
+emerging ar tists to global brands— everythi ng they nee d to de sign an d deliver e xceptional  digital  
+experiences . We’re passionat e about empowering peopl e to creat e beautifu l and powerfu l images, 
+videos, and apps, and transform how companies i nteract with customers across every screen.  
+We’re on a mission to hire the very best and are committed to creating exceptional  employee 
+experiences where everyone i s respected and has access to equal opportunity. We realize that new ideas 
+can come from everywhere i n the organization, and we know the next bi g idea coul d be yours.  
+Adobe’s Digita l Media Business Unit 
+Adobe’s Di gital Media Business Unit focuses on advancing state of the art content and driving digital 
+transformation of industries. It provides tools and services that enable individuals, small businesses,  and 
+enterprises to create, publish, promote, manage and monetize  their content anywhere through the 
+Adobe Creative Cloud  and Document Cloud .  
+Adobe’s Digital Experience Business Unit 
+Adobe’s Digital  Experience Business Unit provides solutions that empower businesses to make, manage, 
+measure, and monetize online, offline, and multichannel business initiatives.  
+Through the Adobe Experience Cloud which includes our Advertising, Analytics and Marketing Clouds, 
+companies have everything they need to deliver a well -designed, personal  and consistent experience to 
+their customers at the right time, regardless of the channel.  
+Adobe Document Services 
+Adobe Document S ervices is the epicentre of some of Adobe’s greatest brands and is singularly focused 
+on one goal: to continue revolutionizing the way businesses and people communicate with documents. 
+We created the Portable Document Format (PDF), Adobe Acrobat, Adobe Si gn and Acrobat Reader—t he 
+latter is used by more than one billion people. These essential  document tools, as well  as powerful mobile 
+apps, make up the Adobe Document Cloud, a modern way to manage critical documents at home, in the 
+office and across devices, extending a l egacy that began more than 25 years ago.  
+As a Product Management Intern, you will work on some of the valuable, exciting customer problems 
+across Adobe’s cloud businesses spanning Content, Data and Artificial Intelligence.  Product Management Intern 
+Product Management Intern  Page 2 of 2 What you will do  
+• Conduct primary and secondary research to identify user needs and emerging trends
+• Understand competitor and partner landscape and generate meaningf ul insights
+• Pitch and validate new product ideas for internal and external partners
+• Contribute to Product, Go to Market vision and strategy
+• Build requirement documents and specs, detailing out user journey and use cases.
+• Collaborate with Design and Engineering teams to create proof of concept, actual implementation
+What you will need  
+•Current first year MBA student with outstanding academic record and 
+graduating in year 2026
+•Strong communication and interpersonal  skills
+•Passion for technology
+•Aptitude and motivation for a product management role
+•Ability to manage ambiguity
+•Strong analytical,  problem solving and data management skills
+•Customer centricity and focus on user experience
+•Prior technical  and relevant experience would be a plus
+•Available to do a full-time internship for 10 weeks starti ng April or May 2025
+What yo u will gain 
+• Mentoring and guidance from an experienced Adobe employee
+• Opportunities to be creative, be a leader and be focused
+• Wellbeing resources
+• Professional learning and development
+• A market competitive stipend
+At
+ Adobe, you will be immersed in an exceptional work environment that is recognized throughout the 
+world on  Best Companies lists. You will also be surrounded by colleagues who are committed to helping 
+each other grow through our unique  Check -In approach  where ongoing feedback flows freely.   
+If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying 
+about their career experiences on the Adobe Life blog  and explore the meaningful  benefits  we offer.  
+Adobe is an equal opportunity employer. We welcome and encourage diversity in the workplace regardless of gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, or veteran status.   
+
+2025-07-31 12:15:45,745 [INFO] models.read_document - Request successful for url https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/jds%2FAdobe%20Product%20Management%20Intern.pdf?alt=media&token=c737bfc9-dfd8-489f-a2b7-1b2bea0c4aa9
+2025-07-31 12:15:45,745 [INFO] models.read_document - Detected Content-Type: application/pdf
+2025-07-31 12:15:46,010 [INFO] models.read_document - Read PDF file from stream
+2025-07-31 12:15:46,011 [INFO] models.read_document - Read PDF file form web Page 1 of 2 Our Company  
+Changing t he world through digital  experiences is what  Adobe’s al l about . We giv e everyone—from 
+emerging ar tists to global brands— everythi ng they nee d to de sign an d deliver e xceptional  digital  
+experiences . We’re passionat e about empowering peopl e to creat e beautifu l and powerfu l images, 
+videos, and apps, and transform how companies i nteract with customers across every screen.  
+We’re on a mission to hire the very best and are committed to creating exceptional  employee 
+experiences where everyone i s respected and has access to equal opportunity. We realize that new ideas 
+can come from everywhere i n the organization, and we know the next bi g idea coul d be yours.  
+Adobe’s Digita l Media Business Unit 
+Adobe’s Di gital Media Business Unit focuses on advancing state of the art content and driving digital 
+transformation of industries. It provides tools and services that enable individuals, small businesses,  and 
+enterprises to create, publish, promote, manage and monetize  their content anywhere through the 
+Adobe Creative Cloud  and Document Cloud .  
+Adobe’s Digital Experience Business Unit 
+Adobe’s Digital  Experience Business Unit provides solutions that empower businesses to make, manage, 
+measure, and monetize online, offline, and multichannel business initiatives.  
+Through the Adobe Experience Cloud which includes our Advertising, Analytics and Marketing Clouds, 
+companies have everything they need to deliver a well -designed, personal  and consistent experience to 
+their customers at the right time, regardless of the channel.  
+Adobe Document Services 
+Adobe Document S ervices is the epicentre of some of Adobe’s greatest brands and is singularly focused 
+on one goal: to continue revolutionizing the way businesses and people communicate with documents. 
+We created the Portable Document Format (PDF), Adobe Acrobat, Adobe Si gn and Acrobat Reader—t he 
+latter is used by more than one billion people. These essential  document tools, as well  as powerful mobile 
+apps, make up the Adobe Document Cloud, a modern way to manage critical documents at home, in the 
+office and across devices, extending a l egacy that began more than 25 years ago.  
+As a Product Management Intern, you will work on some of the valuable, exciting customer problems 
+across Adobe’s cloud businesses spanning Content, Data and Artificial Intelligence.  Product Management Intern 
+Product Management Intern  Page 2 of 2 What you will do  
+• Conduct primary and secondary research to identify user needs and emerging trends
+• Understand competitor and partner landscape and generate meaningf ul insights
+• Pitch and validate new product ideas for internal and external partners
+• Contribute to Product, Go to Market vision and strategy
+• Build requirement documents and specs, detailing out user journey and use cases.
+• Collaborate with Design and Engineering teams to create proof of concept, actual implementation
+What you will need  
+•Current first year MBA student with outstanding academic record and 
+graduating in year 2026
+•Strong communication and interpersonal  skills
+•Passion for technology
+•Aptitude and motivation for a product management role
+•Ability to manage ambiguity
+•Strong analytical,  problem solving and data management skills
+•Customer centricity and focus on user experience
+•Prior technical  and relevant experience would be a plus
+•Available to do a full-time internship for 10 weeks starti ng April or May 2025
+What yo u will gain 
+• Mentoring and guidance from an experienced Adobe employee
+• Opportunities to be creative, be a leader and be focused
+• Wellbeing resources
+• Professional learning and development
+• A market competitive stipend
+At
+ Adobe, you will be immersed in an exceptional work environment that is recognized throughout the 
+world on  Best Companies lists. You will also be surrounded by colleagues who are committed to helping 
+each other grow through our unique  Check -In approach  where ongoing feedback flows freely.   
+If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying 
+about their career experiences on the Adobe Life blog  and explore the meaningful  benefits  we offer.  
+Adobe is an equal opportunity employer. We welcome and encourage diversity in the workplace regardless of gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, or veteran status.   
+Page 1 of 2 Our Company  
+Changing t he world through digital  experiences is what  Adobe’s al l about . We giv e everyone—from 
+emerging ar tists to global brands— everythi ng they nee d to de sign an d deliver e xceptional  digital  
+experiences . We’re passionat e about empowering peopl e to creat e beautifu l and powerfu l images, 
+videos, and apps, and transform how companies i nteract with customers across every screen.  
+We’re on a mission to hire the very best and are committed to creating exceptional  employee 
+experiences where everyone i s respected and has access to equal opportunity. We realize that new ideas 
+can come from everywhere i n the organization, and we know the next bi g idea coul d be yours.  
+Adobe’s Digita l Media Business Unit 
+Adobe’s Di gital Media Business Unit focuses on advancing state of the art content and driving digital 
+transformation of industries. It provides tools and services that enable individuals, small businesses,  and 
+enterprises to create, publish, promote, manage and monetize  their content anywhere through the 
+Adobe Creative Cloud  and Document Cloud .  
+Adobe’s Digital Experience Business Unit 
+Adobe’s Digital  Experience Business Unit provides solutions that empower businesses to make, manage, 
+measure, and monetize online, offline, and multichannel business initiatives.  
+Through the Adobe Experience Cloud which includes our Advertising, Analytics and Marketing Clouds, 
+companies have everything they need to deliver a well -designed, personal  and consistent experience to 
+their customers at the right time, regardless of the channel.  
+Adobe Document Services 
+Adobe Document S ervices is the epicentre of some of Adobe’s greatest brands and is singularly focused 
+on one goal: to continue revolutionizing the way businesses and people communicate with documents. 
+We created the Portable Document Format (PDF), Adobe Acrobat, Adobe Si gn and Acrobat Reader—t he 
+latter is used by more than one billion people. These essential  document tools, as well  as powerful mobile 
+apps, make up the Adobe Document Cloud, a modern way to manage critical documents at home, in the 
+office and across devices, extending a l egacy that began more than 25 years ago.  
+As a Product Management Intern, you will work on some of the valuable, exciting customer problems 
+across Adobe’s cloud businesses spanning Content, Data and Artificial Intelligence.  Product Management Intern 
+Product Management Intern  Page 2 of 2 What you will do  
+• Conduct primary and secondary research to identify user needs and emerging trends
+• Understand competitor and partner landscape and generate meaningf ul insights
+• Pitch and validate new product ideas for internal and external partners
+• Contribute to Product, Go to Market vision and strategy
+• Build requirement documents and specs, detailing out user journey and use cases.
+• Collaborate with Design and Engineering teams to create proof of concept, actual implementation
+What you will need  
+•Current first year MBA student with outstanding academic record and 
+graduating in year 2026
+•Strong communication and interpersonal  skills
+•Passion for technology
+•Aptitude and motivation for a product management role
+•Ability to manage ambiguity
+•Strong analytical,  problem solving and data management skills
+•Customer centricity and focus on user experience
+•Prior technical  and relevant experience would be a plus
+•Available to do a full-time internship for 10 weeks starti ng April or May 2025
+What yo u will gain 
+• Mentoring and guidance from an experienced Adobe employee
+• Opportunities to be creative, be a leader and be focused
+• Wellbeing resources
+• Professional learning and development
+• A market competitive stipend
+At
+ Adobe, you will be immersed in an exceptional work environment that is recognized throughout the 
+world on  Best Companies lists. You will also be surrounded by colleagues who are committed to helping 
+each other grow through our unique  Check -In approach  where ongoing feedback flows freely.   
+If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying 
+about their career experiences on the Adobe Life blog  and explore the meaningful  benefits  we offer.  
+Adobe is an equal opportunity employer. We welcome and encourage diversity in the workplace regardless of gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, or veteran status.   
+
+2025-07-31 12:15:46,011 [INFO] models.read_document - Firebase context text Page 1 of 2 Our Company  
+Changing t he world through digital  experiences is what  Adobe’s al l about . We giv e everyone—from 
+emerging ar tists to global brands— everythi ng they nee d to de sign an d deliver e xceptional  digital  
+experiences . We’re passionat e about empowering peopl e to creat e beautifu l and powerfu l images, 
+videos, and apps, and transform how companies i nteract with customers across every screen.  
+We’re on a mission to hire the very best and are committed to creating exceptional  employee 
+experiences where everyone i s respected and has access to equal opportunity. We realize that new ideas 
+can come from everywhere i n the organization, and we know the next bi g idea coul d be yours.  
+Adobe’s Digita l Media Business Unit 
+Adobe’s Di gital Media Business Unit focuses on advancing state of the art content and driving digital 
+transformation of industries. It provides tools and services that enable individuals, small businesses,  and 
+enterprises to create, publish, promote, manage and monetize  their content anywhere through the 
+Adobe Creative Cloud  and Document Cloud .  
+Adobe’s Digital Experience Business Unit 
+Adobe’s Digital  Experience Business Unit provides solutions that empower businesses to make, manage, 
+measure, and monetize online, offline, and multichannel business initiatives.  
+Through the Adobe Experience Cloud which includes our Advertising, Analytics and Marketing Clouds, 
+companies have everything they need to deliver a well -designed, personal  and consistent experience to 
+their customers at the right time, regardless of the channel.  
+Adobe Document Services 
+Adobe Document S ervices is the epicentre of some of Adobe’s greatest brands and is singularly focused 
+on one goal: to continue revolutionizing the way businesses and people communicate with documents. 
+We created the Portable Document Format (PDF), Adobe Acrobat, Adobe Si gn and Acrobat Reader—t he 
+latter is used by more than one billion people. These essential  document tools, as well  as powerful mobile 
+apps, make up the Adobe Document Cloud, a modern way to manage critical documents at home, in the 
+office and across devices, extending a l egacy that began more than 25 years ago.  
+As a Product Management Intern, you will work on some of the valuable, exciting customer problems 
+across Adobe’s cloud businesses spanning Content, Data and Artificial Intelligence.  Product Management Intern 
+Product Management Intern  Page 2 of 2 What you will do  
+• Conduct primary and secondary research to identify user needs and emerging trends
+• Understand competitor and partner landscape and generate meaningf ul insights
+• Pitch and validate new product ideas for internal and external partners
+• Contribute to Product, Go to Market vision and strategy
+• Build requirement documents and specs, detailing out user journey and use cases.
+• Collaborate with Design and Engineering teams to create proof of concept, actual implementation
+What you will need  
+•Current first year MBA student with outstanding academic record and 
+graduating in year 2026
+•Strong communication and interpersonal  skills
+•Passion for technology
+•Aptitude and motivation for a product management role
+•Ability to manage ambiguity
+•Strong analytical,  problem solving and data management skills
+•Customer centricity and focus on user experience
+•Prior technical  and relevant experience would be a plus
+•Available to do a full-time internship for 10 weeks starti ng April or May 2025
+What yo u will gain 
+• Mentoring and guidance from an experienced Adobe employee
+• Opportunities to be creative, be a leader and be focused
+• Wellbeing resources
+• Professional learning and development
+• A market competitive stipend
+At
+ Adobe, you will be immersed in an exceptional work environment that is recognized throughout the 
+world on  Best Companies lists. You will also be surrounded by colleagues who are committed to helping 
+each other grow through our unique  Check -In approach  where ongoing feedback flows freely.   
+If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying 
+about their career experiences on the Adobe Life blog  and explore the meaningful  benefits  we offer.  
+Adobe is an equal opportunity employer. We welcome and encourage diversity in the workplace regardless of gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, or veteran status.   
+Page 1 of 2 Our Company  
+Changing t he world through digital  experiences is what  Adobe’s al l about . We giv e everyone—from 
+emerging ar tists to global brands— everythi ng they nee d to de sign an d deliver e xceptional  digital  
+experiences . We’re passionat e about empowering peopl e to creat e beautifu l and powerfu l images, 
+videos, and apps, and transform how companies i nteract with customers across every screen.  
+We’re on a mission to hire the very best and are committed to creating exceptional  employee 
+experiences where everyone i s respected and has access to equal opportunity. We realize that new ideas 
+can come from everywhere i n the organization, and we know the next bi g idea coul d be yours.  
+Adobe’s Digita l Media Business Unit 
+Adobe’s Di gital Media Business Unit focuses on advancing state of the art content and driving digital 
+transformation of industries. It provides tools and services that enable individuals, small businesses,  and 
+enterprises to create, publish, promote, manage and monetize  their content anywhere through the 
+Adobe Creative Cloud  and Document Cloud .  
+Adobe’s Digital Experience Business Unit 
+Adobe’s Digital  Experience Business Unit provides solutions that empower businesses to make, manage, 
+measure, and monetize online, offline, and multichannel business initiatives.  
+Through the Adobe Experience Cloud which includes our Advertising, Analytics and Marketing Clouds, 
+companies have everything they need to deliver a well -designed, personal  and consistent experience to 
+their customers at the right time, regardless of the channel.  
+Adobe Document Services 
+Adobe Document S ervices is the epicentre of some of Adobe’s greatest brands and is singularly focused 
+on one goal: to continue revolutionizing the way businesses and people communicate with documents. 
+We created the Portable Document Format (PDF), Adobe Acrobat, Adobe Si gn and Acrobat Reader—t he 
+latter is used by more than one billion people. These essential  document tools, as well  as powerful mobile 
+apps, make up the Adobe Document Cloud, a modern way to manage critical documents at home, in the 
+office and across devices, extending a l egacy that began more than 25 years ago.  
+As a Product Management Intern, you will work on some of the valuable, exciting customer problems 
+across Adobe’s cloud businesses spanning Content, Data and Artificial Intelligence.  Product Management Intern 
+Product Management Intern  Page 2 of 2 What you will do  
+• Conduct primary and secondary research to identify user needs and emerging trends
+• Understand competitor and partner landscape and generate meaningf ul insights
+• Pitch and validate new product ideas for internal and external partners
+• Contribute to Product, Go to Market vision and strategy
+• Build requirement documents and specs, detailing out user journey and use cases.
+• Collaborate with Design and Engineering teams to create proof of concept, actual implementation
+What you will need  
+•Current first year MBA student with outstanding academic record and 
+graduating in year 2026
+•Strong communication and interpersonal  skills
+•Passion for technology
+•Aptitude and motivation for a product management role
+•Ability to manage ambiguity
+•Strong analytical,  problem solving and data management skills
+•Customer centricity and focus on user experience
+•Prior technical  and relevant experience would be a plus
+•Available to do a full-time internship for 10 weeks starti ng April or May 2025
+What yo u will gain 
+• Mentoring and guidance from an experienced Adobe employee
+• Opportunities to be creative, be a leader and be focused
+• Wellbeing resources
+• Professional learning and development
+• A market competitive stipend
+At
+ Adobe, you will be immersed in an exceptional work environment that is recognized throughout the 
+world on  Best Companies lists. You will also be surrounded by colleagues who are committed to helping 
+each other grow through our unique  Check -In approach  where ongoing feedback flows freely.   
+If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying 
+about their career experiences on the Adobe Life blog  and explore the meaningful  benefits  we offer.  
+Adobe is an equal opportunity employer. We welcome and encourage diversity in the workplace regardless of gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, or veteran status.   
+
+2025-07-31 12:15:47,145 [INFO] models.read_document - Request successful for url https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/compendium%2Fadobe%2Fadobe-compendium.pdf?alt=media&token=627cd45e-6bb7-4945-9ab7-aafa94f7788c
+2025-07-31 12:15:47,145 [INFO] models.read_document - Detected Content-Type: application/pdf
+2025-07-31 12:15:47,174 [INFO] models.read_document - Read PDF file from stream
+2025-07-31 12:15:47,174 [INFO] models.read_document - Read PDF file form web adobe-compendium.md 2025-07-21
+1 / 2Selection Process (Adobe):
+1. Online Aptitude T est (Duration: 1.5 hrs.):
+First, there was an online round of 1 hr. 30 min. 1hr was for aptitude which consisted of 60 questions based on
+mental ability, OOPS, probability, reasoning and next 30 min was for 2 coding questions that were of easy
+level. Coding questions were easy so overall shortlisting was done based on aptitude. Shortlisted candidates
+were called for interviews.
+2. Interview (Duration: 45 mins):
+We had only a single round and I was asked questions based on my projects, DSA, OOPS, CN and puzzles.
+Question 1. What is the difference between SQL and NoSQL database?
+Question 2. Why did you choose MongoDB for your project and not other databases?
+Question 3. What happens when you type something in search bar of google and hit enter?
+Question 4. Given an array of positive integers and you have to multiply all the elements and print the answer
+but the time complexity should be less than O(n).
+Question 5. What is the difference between compile-time and run-time polymorphism?
+Question 6. Given N teams and you have to organise a knockout football tournament. What will be the
+number of matches that will be played in the entire tournament?
+Question 7. Y ou have 10 boxes of balls (each ball weighing exactly 10 gm) with one box with defective balls
+(each one of the defective balls weigh 9 gm). Y ou are given an electronic weighing machine and only one
+chance at it. How will you find out which box has the defective balls?
+Question 8. Given an array of lowercase English alphabet letters and you have to print the elements
+lexicographically. T ry to optimise your approach.
+Question 9. Given are N ropes of different lengths, the task is to connect these ropes into one rope with
+minimum cost, such that the cost to connect two ropes is equal to the multiplication of their lengths.
+Question 10. A binary tree and a number k are given. Print every path in the tree with sum of the nodes in the
+path as k. A path can start from any node and end at any node. They need not be root node and leaf node;
+and negative numbers can also be there in the tree.
+Question 11. Given a binary tree and two node values, your task is to find the minimum distance between
+them. The given two nodes are guaranteed to be in the binary tree and nodes are numbered from 1 to N.
+Please note that the given two nodes are not always leaf nodes.
+Tips for juniors:
+1. Do your utmost to keep CPI over 8 because it will help you a lot in becoming eligible for all companies
+that will be opened for mechanical.
+2. Try to make 2–3 projects for CV as it makes a good impression and questions from projects are
+comparatively easier as only standard questions are asked.
+adobe-compendium.md 2025-07-21
+2 / 23. Try to give at least one contest every week and practice as much DSA as you can.
+4. Be patient while explaining your approach, don’t get excited if you already know the solution. T ry to
+begin with naïve approach and slowly proceed to your most optimized solution. This will definitely
+impress the interviewer.
+5. In my opinion PORs and extracurriculars are not that much important.
+6. Try to be confident during interviews and practice mock interviews with your friends. I wish you good
+luck for internship season.
+
+2025-07-31 12:15:47,174 [INFO] models.read_document - Firebase context text adobe-compendium.md 2025-07-21
+1 / 2Selection Process (Adobe):
+1. Online Aptitude T est (Duration: 1.5 hrs.):
+First, there was an online round of 1 hr. 30 min. 1hr was for aptitude which consisted of 60 questions based on
+mental ability, OOPS, probability, reasoning and next 30 min was for 2 coding questions that were of easy
+level. Coding questions were easy so overall shortlisting was done based on aptitude. Shortlisted candidates
+were called for interviews.
+2. Interview (Duration: 45 mins):
+We had only a single round and I was asked questions based on my projects, DSA, OOPS, CN and puzzles.
+Question 1. What is the difference between SQL and NoSQL database?
+Question 2. Why did you choose MongoDB for your project and not other databases?
+Question 3. What happens when you type something in search bar of google and hit enter?
+Question 4. Given an array of positive integers and you have to multiply all the elements and print the answer
+but the time complexity should be less than O(n).
+Question 5. What is the difference between compile-time and run-time polymorphism?
+Question 6. Given N teams and you have to organise a knockout football tournament. What will be the
+number of matches that will be played in the entire tournament?
+Question 7. Y ou have 10 boxes of balls (each ball weighing exactly 10 gm) with one box with defective balls
+(each one of the defective balls weigh 9 gm). Y ou are given an electronic weighing machine and only one
+chance at it. How will you find out which box has the defective balls?
+Question 8. Given an array of lowercase English alphabet letters and you have to print the elements
+lexicographically. T ry to optimise your approach.
+Question 9. Given are N ropes of different lengths, the task is to connect these ropes into one rope with
+minimum cost, such that the cost to connect two ropes is equal to the multiplication of their lengths.
+Question 10. A binary tree and a number k are given. Print every path in the tree with sum of the nodes in the
+path as k. A path can start from any node and end at any node. They need not be root node and leaf node;
+and negative numbers can also be there in the tree.
+Question 11. Given a binary tree and two node values, your task is to find the minimum distance between
+them. The given two nodes are guaranteed to be in the binary tree and nodes are numbered from 1 to N.
+Please note that the given two nodes are not always leaf nodes.
+Tips for juniors:
+1. Do your utmost to keep CPI over 8 because it will help you a lot in becoming eligible for all companies
+that will be opened for mechanical.
+2. Try to make 2–3 projects for CV as it makes a good impression and questions from projects are
+comparatively easier as only standard questions are asked.
+adobe-compendium.md 2025-07-21
+2 / 23. Try to give at least one contest every week and practice as much DSA as you can.
+4. Be patient while explaining your approach, don’t get excited if you already know the solution. T ry to
+begin with naïve approach and slowly proceed to your most optimized solution. This will definitely
+impress the interviewer.
+5. In my opinion PORs and extracurriculars are not that much important.
+6. Try to be confident during interviews and practice mock interviews with your friends. I wish you good
+luck for internship season.
+
+2025-07-31 12:15:59,574 [INFO] httpx - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-31 12:15:59,593 [INFO] models.openai_integration - Open API company summary respone  for company: HSBC is 
+### Summary of Adobe Inc. for Placement Preparation at IIM Lucknow
+
+**Company Overview:**
+Adobe Inc. is a leading technology company renowned for changing the world through digital experiences. It provides innovative tools and services that empower artists and enterprises alike to design and deliver exceptional digital content. Through its comprehensive suite of products, including Adobe Creative Cloud, Document Cloud, and Experience Cloud, Adobe enables various stakeholders—from individuals to global brands—to manage and monetize their content effectively. The company promotes a collaborative work environment that values creativity, diversity, and equal opportunity.
+
+**Roles Offered:**
+Adobe is hiring for the position of **Product Management Intern** within its Digital Media and Experience Business Units. This role involves:
+- Conducting primary and secondary user research to identify needs and trends.
+- Analyzing competitor landscapes to derive insights.
+- Pitching and validating new product ideas.
+- Contributing to product and go-to-market strategies.
+- Collaborating with design and engineering teams to build requirements documents and prototypes.
+
+**Compensation:**
+The role offers a **market competitive stipend**, although specific compensation details are not provided in the job description.
+
+**Interview Compendium Insights:**
+The selection process consists of:
+1. **Online Aptitude Test (1.5 hours)**: This includes 60 mental ability questions and 2 coding challenges, focused on fundamental programming concepts.
+  
+2. **Interview (45 minutes)**: Candidates are generally questioned on their projects, data structures and algorithms (DSA), object-oriented programming (OOP), computer networks, and situational puzzles. Key topics from past interviews include:
+   - Differences between SQL and NoSQL databases.
+   - Use cases for choosing certain technologies in projects (e.g., MongoDB).
+   - Problem-solving questions related to time complexity and paths in binary trees.
+
+**Preparation Tips for Candidates:**
+- Maintain a strong academic record (CPI above 8) to qualify for opportunities.
+- Engage in 2-3 projects to enhance resume attractiveness and facilitate easier interview questions.
+- Regular practice of DSA and participation in coding contests is highly recommended.
+- Maintain patience when explaining solutions, and start with a naïve approach before discussing optimizations.
+- Confidence and mock interview practice can significantly improve performance in real interviews.
+
+In summary, Adobe Inc. offers an exciting opportunity for aspiring product managers to impact the digital landscape while fostering professional growth in a dynamic environment. Candidates are encouraged to prepare effectively to excel in the rigorous selection process.
+
+2025-07-31 12:15:59,602 [INFO] werkzeug - 127.0.0.1 - - [31/Jul/2025 12:15:59] "POST /company/summary HTTP/1.1" 200 -
+2025-07-31 12:16:55,681 [INFO] controllers.chat - Request domain: 127.0.0.1
+2025-07-31 12:16:55,681 [INFO] controllers.chat - Request payload {'companyId': '57', 'fullName': 'Adobe', 'jdLinks': ['https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/jds%2FAdobe%20Product%20Management%20Intern.pdf?alt=media&token=c737bfc9-dfd8-489f-a2b7-1b2bea0c4aa9', 'https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/jds%2FAdobe%20Product%20Management%20Intern.pdf?alt=media&token=c737bfc9-dfd8-489f-a2b7-1b2bea0c4aa9'], 'compendiumLinks': ['https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/compendium%2Fadobe%2Fadobe-compendium.pdf?alt=media&token=627cd45e-6bb7-4945-9ab7-aafa94f7788c']}
+2025-07-31 12:16:55,681 [INFO] models.openai_integration - Reading from folder: overview
+2025-07-31 12:16:55,682 [INFO] models.openai_integration - reading all document: C:\Users\PC\Desktop\Systems\vidyarth\public\content\overview\57.txt
+2025-07-31 12:16:55,707 [INFO] models.openai_integration - document content: Companyoverview
+{"root":{"children":[{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""}],"direction":null,"format":"","indent":0,"type":"root","version":1}}
+
+2025-07-31 12:16:55,707 [INFO] models.openai_integration - Reading from folder: compendium
+2025-07-31 12:16:55,708 [INFO] models.openai_integration - reading all document: C:\Users\PC\Desktop\Systems\vidyarth\public\content\compendium\57.txt
+2025-07-31 12:16:55,711 [INFO] models.openai_integration - document content: Companyoverview
+{"root":{"children":[{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""}],"direction":null,"format":"","indent":0,"type":"root","version":1}}
+Companycompendium
+{"root":{"children":[{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""}],"direction":null,"format":"","indent":0,"type":"root","version":1}}
+
+2025-07-31 12:16:57,712 [INFO] models.read_document - Request successful for url https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/jds%2FAdobe%20Product%20Management%20Intern.pdf?alt=media&token=c737bfc9-dfd8-489f-a2b7-1b2bea0c4aa9
+2025-07-31 12:16:57,713 [INFO] models.read_document - Detected Content-Type: application/pdf
+2025-07-31 12:16:57,955 [INFO] models.read_document - Read PDF file from stream
+2025-07-31 12:16:57,955 [INFO] models.read_document - Read PDF file form web Page 1 of 2 Our Company  
+Changing t he world through digital  experiences is what  Adobe’s al l about . We giv e everyone—from 
+emerging ar tists to global brands— everythi ng they nee d to de sign an d deliver e xceptional  digital  
+experiences . We’re passionat e about empowering peopl e to creat e beautifu l and powerfu l images, 
+videos, and apps, and transform how companies i nteract with customers across every screen.  
+We’re on a mission to hire the very best and are committed to creating exceptional  employee 
+experiences where everyone i s respected and has access to equal opportunity. We realize that new ideas 
+can come from everywhere i n the organization, and we know the next bi g idea coul d be yours.  
+Adobe’s Digita l Media Business Unit 
+Adobe’s Di gital Media Business Unit focuses on advancing state of the art content and driving digital 
+transformation of industries. It provides tools and services that enable individuals, small businesses,  and 
+enterprises to create, publish, promote, manage and monetize  their content anywhere through the 
+Adobe Creative Cloud  and Document Cloud .  
+Adobe’s Digital Experience Business Unit 
+Adobe’s Digital  Experience Business Unit provides solutions that empower businesses to make, manage, 
+measure, and monetize online, offline, and multichannel business initiatives.  
+Through the Adobe Experience Cloud which includes our Advertising, Analytics and Marketing Clouds, 
+companies have everything they need to deliver a well -designed, personal  and consistent experience to 
+their customers at the right time, regardless of the channel.  
+Adobe Document Services 
+Adobe Document S ervices is the epicentre of some of Adobe’s greatest brands and is singularly focused 
+on one goal: to continue revolutionizing the way businesses and people communicate with documents. 
+We created the Portable Document Format (PDF), Adobe Acrobat, Adobe Si gn and Acrobat Reader—t he 
+latter is used by more than one billion people. These essential  document tools, as well  as powerful mobile 
+apps, make up the Adobe Document Cloud, a modern way to manage critical documents at home, in the 
+office and across devices, extending a l egacy that began more than 25 years ago.  
+As a Product Management Intern, you will work on some of the valuable, exciting customer problems 
+across Adobe’s cloud businesses spanning Content, Data and Artificial Intelligence.  Product Management Intern 
+Product Management Intern  Page 2 of 2 What you will do  
+• Conduct primary and secondary research to identify user needs and emerging trends
+• Understand competitor and partner landscape and generate meaningf ul insights
+• Pitch and validate new product ideas for internal and external partners
+• Contribute to Product, Go to Market vision and strategy
+• Build requirement documents and specs, detailing out user journey and use cases.
+• Collaborate with Design and Engineering teams to create proof of concept, actual implementation
+What you will need  
+•Current first year MBA student with outstanding academic record and 
+graduating in year 2026
+•Strong communication and interpersonal  skills
+•Passion for technology
+•Aptitude and motivation for a product management role
+•Ability to manage ambiguity
+•Strong analytical,  problem solving and data management skills
+•Customer centricity and focus on user experience
+•Prior technical  and relevant experience would be a plus
+•Available to do a full-time internship for 10 weeks starti ng April or May 2025
+What yo u will gain 
+• Mentoring and guidance from an experienced Adobe employee
+• Opportunities to be creative, be a leader and be focused
+• Wellbeing resources
+• Professional learning and development
+• A market competitive stipend
+At
+ Adobe, you will be immersed in an exceptional work environment that is recognized throughout the 
+world on  Best Companies lists. You will also be surrounded by colleagues who are committed to helping 
+each other grow through our unique  Check -In approach  where ongoing feedback flows freely.   
+If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying 
+about their career experiences on the Adobe Life blog  and explore the meaningful  benefits  we offer.  
+Adobe is an equal opportunity employer. We welcome and encourage diversity in the workplace regardless of gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, or veteran status.   
+
+2025-07-31 12:16:59,973 [INFO] models.read_document - Request successful for url https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/jds%2FAdobe%20Product%20Management%20Intern.pdf?alt=media&token=c737bfc9-dfd8-489f-a2b7-1b2bea0c4aa9
+2025-07-31 12:16:59,974 [INFO] models.read_document - Detected Content-Type: application/pdf
+2025-07-31 12:17:00,310 [INFO] models.read_document - Read PDF file from stream
+2025-07-31 12:17:00,311 [INFO] models.read_document - Read PDF file form web Page 1 of 2 Our Company  
+Changing t he world through digital  experiences is what  Adobe’s al l about . We giv e everyone—from 
+emerging ar tists to global brands— everythi ng they nee d to de sign an d deliver e xceptional  digital  
+experiences . We’re passionat e about empowering peopl e to creat e beautifu l and powerfu l images, 
+videos, and apps, and transform how companies i nteract with customers across every screen.  
+We’re on a mission to hire the very best and are committed to creating exceptional  employee 
+experiences where everyone i s respected and has access to equal opportunity. We realize that new ideas 
+can come from everywhere i n the organization, and we know the next bi g idea coul d be yours.  
+Adobe’s Digita l Media Business Unit 
+Adobe’s Di gital Media Business Unit focuses on advancing state of the art content and driving digital 
+transformation of industries. It provides tools and services that enable individuals, small businesses,  and 
+enterprises to create, publish, promote, manage and monetize  their content anywhere through the 
+Adobe Creative Cloud  and Document Cloud .  
+Adobe’s Digital Experience Business Unit 
+Adobe’s Digital  Experience Business Unit provides solutions that empower businesses to make, manage, 
+measure, and monetize online, offline, and multichannel business initiatives.  
+Through the Adobe Experience Cloud which includes our Advertising, Analytics and Marketing Clouds, 
+companies have everything they need to deliver a well -designed, personal  and consistent experience to 
+their customers at the right time, regardless of the channel.  
+Adobe Document Services 
+Adobe Document S ervices is the epicentre of some of Adobe’s greatest brands and is singularly focused 
+on one goal: to continue revolutionizing the way businesses and people communicate with documents. 
+We created the Portable Document Format (PDF), Adobe Acrobat, Adobe Si gn and Acrobat Reader—t he 
+latter is used by more than one billion people. These essential  document tools, as well  as powerful mobile 
+apps, make up the Adobe Document Cloud, a modern way to manage critical documents at home, in the 
+office and across devices, extending a l egacy that began more than 25 years ago.  
+As a Product Management Intern, you will work on some of the valuable, exciting customer problems 
+across Adobe’s cloud businesses spanning Content, Data and Artificial Intelligence.  Product Management Intern 
+Product Management Intern  Page 2 of 2 What you will do  
+• Conduct primary and secondary research to identify user needs and emerging trends
+• Understand competitor and partner landscape and generate meaningf ul insights
+• Pitch and validate new product ideas for internal and external partners
+• Contribute to Product, Go to Market vision and strategy
+• Build requirement documents and specs, detailing out user journey and use cases.
+• Collaborate with Design and Engineering teams to create proof of concept, actual implementation
+What you will need  
+•Current first year MBA student with outstanding academic record and 
+graduating in year 2026
+•Strong communication and interpersonal  skills
+•Passion for technology
+•Aptitude and motivation for a product management role
+•Ability to manage ambiguity
+•Strong analytical,  problem solving and data management skills
+•Customer centricity and focus on user experience
+•Prior technical  and relevant experience would be a plus
+•Available to do a full-time internship for 10 weeks starti ng April or May 2025
+What yo u will gain 
+• Mentoring and guidance from an experienced Adobe employee
+• Opportunities to be creative, be a leader and be focused
+• Wellbeing resources
+• Professional learning and development
+• A market competitive stipend
+At
+ Adobe, you will be immersed in an exceptional work environment that is recognized throughout the 
+world on  Best Companies lists. You will also be surrounded by colleagues who are committed to helping 
+each other grow through our unique  Check -In approach  where ongoing feedback flows freely.   
+If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying 
+about their career experiences on the Adobe Life blog  and explore the meaningful  benefits  we offer.  
+Adobe is an equal opportunity employer. We welcome and encourage diversity in the workplace regardless of gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, or veteran status.   
+Page 1 of 2 Our Company  
+Changing t he world through digital  experiences is what  Adobe’s al l about . We giv e everyone—from 
+emerging ar tists to global brands— everythi ng they nee d to de sign an d deliver e xceptional  digital  
+experiences . We’re passionat e about empowering peopl e to creat e beautifu l and powerfu l images, 
+videos, and apps, and transform how companies i nteract with customers across every screen.  
+We’re on a mission to hire the very best and are committed to creating exceptional  employee 
+experiences where everyone i s respected and has access to equal opportunity. We realize that new ideas 
+can come from everywhere i n the organization, and we know the next bi g idea coul d be yours.  
+Adobe’s Digita l Media Business Unit 
+Adobe’s Di gital Media Business Unit focuses on advancing state of the art content and driving digital 
+transformation of industries. It provides tools and services that enable individuals, small businesses,  and 
+enterprises to create, publish, promote, manage and monetize  their content anywhere through the 
+Adobe Creative Cloud  and Document Cloud .  
+Adobe’s Digital Experience Business Unit 
+Adobe’s Digital  Experience Business Unit provides solutions that empower businesses to make, manage, 
+measure, and monetize online, offline, and multichannel business initiatives.  
+Through the Adobe Experience Cloud which includes our Advertising, Analytics and Marketing Clouds, 
+companies have everything they need to deliver a well -designed, personal  and consistent experience to 
+their customers at the right time, regardless of the channel.  
+Adobe Document Services 
+Adobe Document S ervices is the epicentre of some of Adobe’s greatest brands and is singularly focused 
+on one goal: to continue revolutionizing the way businesses and people communicate with documents. 
+We created the Portable Document Format (PDF), Adobe Acrobat, Adobe Si gn and Acrobat Reader—t he 
+latter is used by more than one billion people. These essential  document tools, as well  as powerful mobile 
+apps, make up the Adobe Document Cloud, a modern way to manage critical documents at home, in the 
+office and across devices, extending a l egacy that began more than 25 years ago.  
+As a Product Management Intern, you will work on some of the valuable, exciting customer problems 
+across Adobe’s cloud businesses spanning Content, Data and Artificial Intelligence.  Product Management Intern 
+Product Management Intern  Page 2 of 2 What you will do  
+• Conduct primary and secondary research to identify user needs and emerging trends
+• Understand competitor and partner landscape and generate meaningf ul insights
+• Pitch and validate new product ideas for internal and external partners
+• Contribute to Product, Go to Market vision and strategy
+• Build requirement documents and specs, detailing out user journey and use cases.
+• Collaborate with Design and Engineering teams to create proof of concept, actual implementation
+What you will need  
+•Current first year MBA student with outstanding academic record and 
+graduating in year 2026
+•Strong communication and interpersonal  skills
+•Passion for technology
+•Aptitude and motivation for a product management role
+•Ability to manage ambiguity
+•Strong analytical,  problem solving and data management skills
+•Customer centricity and focus on user experience
+•Prior technical  and relevant experience would be a plus
+•Available to do a full-time internship for 10 weeks starti ng April or May 2025
+What yo u will gain 
+• Mentoring and guidance from an experienced Adobe employee
+• Opportunities to be creative, be a leader and be focused
+• Wellbeing resources
+• Professional learning and development
+• A market competitive stipend
+At
+ Adobe, you will be immersed in an exceptional work environment that is recognized throughout the 
+world on  Best Companies lists. You will also be surrounded by colleagues who are committed to helping 
+each other grow through our unique  Check -In approach  where ongoing feedback flows freely.   
+If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying 
+about their career experiences on the Adobe Life blog  and explore the meaningful  benefits  we offer.  
+Adobe is an equal opportunity employer. We welcome and encourage diversity in the workplace regardless of gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, or veteran status.   
+
+2025-07-31 12:17:00,312 [INFO] models.read_document - Firebase context text Page 1 of 2 Our Company  
+Changing t he world through digital  experiences is what  Adobe’s al l about . We giv e everyone—from 
+emerging ar tists to global brands— everythi ng they nee d to de sign an d deliver e xceptional  digital  
+experiences . We’re passionat e about empowering peopl e to creat e beautifu l and powerfu l images, 
+videos, and apps, and transform how companies i nteract with customers across every screen.  
+We’re on a mission to hire the very best and are committed to creating exceptional  employee 
+experiences where everyone i s respected and has access to equal opportunity. We realize that new ideas 
+can come from everywhere i n the organization, and we know the next bi g idea coul d be yours.  
+Adobe’s Digita l Media Business Unit 
+Adobe’s Di gital Media Business Unit focuses on advancing state of the art content and driving digital 
+transformation of industries. It provides tools and services that enable individuals, small businesses,  and 
+enterprises to create, publish, promote, manage and monetize  their content anywhere through the 
+Adobe Creative Cloud  and Document Cloud .  
+Adobe’s Digital Experience Business Unit 
+Adobe’s Digital  Experience Business Unit provides solutions that empower businesses to make, manage, 
+measure, and monetize online, offline, and multichannel business initiatives.  
+Through the Adobe Experience Cloud which includes our Advertising, Analytics and Marketing Clouds, 
+companies have everything they need to deliver a well -designed, personal  and consistent experience to 
+their customers at the right time, regardless of the channel.  
+Adobe Document Services 
+Adobe Document S ervices is the epicentre of some of Adobe’s greatest brands and is singularly focused 
+on one goal: to continue revolutionizing the way businesses and people communicate with documents. 
+We created the Portable Document Format (PDF), Adobe Acrobat, Adobe Si gn and Acrobat Reader—t he 
+latter is used by more than one billion people. These essential  document tools, as well  as powerful mobile 
+apps, make up the Adobe Document Cloud, a modern way to manage critical documents at home, in the 
+office and across devices, extending a l egacy that began more than 25 years ago.  
+As a Product Management Intern, you will work on some of the valuable, exciting customer problems 
+across Adobe’s cloud businesses spanning Content, Data and Artificial Intelligence.  Product Management Intern 
+Product Management Intern  Page 2 of 2 What you will do  
+• Conduct primary and secondary research to identify user needs and emerging trends
+• Understand competitor and partner landscape and generate meaningf ul insights
+• Pitch and validate new product ideas for internal and external partners
+• Contribute to Product, Go to Market vision and strategy
+• Build requirement documents and specs, detailing out user journey and use cases.
+• Collaborate with Design and Engineering teams to create proof of concept, actual implementation
+What you will need  
+•Current first year MBA student with outstanding academic record and 
+graduating in year 2026
+•Strong communication and interpersonal  skills
+•Passion for technology
+•Aptitude and motivation for a product management role
+•Ability to manage ambiguity
+•Strong analytical,  problem solving and data management skills
+•Customer centricity and focus on user experience
+•Prior technical  and relevant experience would be a plus
+•Available to do a full-time internship for 10 weeks starti ng April or May 2025
+What yo u will gain 
+• Mentoring and guidance from an experienced Adobe employee
+• Opportunities to be creative, be a leader and be focused
+• Wellbeing resources
+• Professional learning and development
+• A market competitive stipend
+At
+ Adobe, you will be immersed in an exceptional work environment that is recognized throughout the 
+world on  Best Companies lists. You will also be surrounded by colleagues who are committed to helping 
+each other grow through our unique  Check -In approach  where ongoing feedback flows freely.   
+If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying 
+about their career experiences on the Adobe Life blog  and explore the meaningful  benefits  we offer.  
+Adobe is an equal opportunity employer. We welcome and encourage diversity in the workplace regardless of gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, or veteran status.   
+Page 1 of 2 Our Company  
+Changing t he world through digital  experiences is what  Adobe’s al l about . We giv e everyone—from 
+emerging ar tists to global brands— everythi ng they nee d to de sign an d deliver e xceptional  digital  
+experiences . We’re passionat e about empowering peopl e to creat e beautifu l and powerfu l images, 
+videos, and apps, and transform how companies i nteract with customers across every screen.  
+We’re on a mission to hire the very best and are committed to creating exceptional  employee 
+experiences where everyone i s respected and has access to equal opportunity. We realize that new ideas 
+can come from everywhere i n the organization, and we know the next bi g idea coul d be yours.  
+Adobe’s Digita l Media Business Unit 
+Adobe’s Di gital Media Business Unit focuses on advancing state of the art content and driving digital 
+transformation of industries. It provides tools and services that enable individuals, small businesses,  and 
+enterprises to create, publish, promote, manage and monetize  their content anywhere through the 
+Adobe Creative Cloud  and Document Cloud .  
+Adobe’s Digital Experience Business Unit 
+Adobe’s Digital  Experience Business Unit provides solutions that empower businesses to make, manage, 
+measure, and monetize online, offline, and multichannel business initiatives.  
+Through the Adobe Experience Cloud which includes our Advertising, Analytics and Marketing Clouds, 
+companies have everything they need to deliver a well -designed, personal  and consistent experience to 
+their customers at the right time, regardless of the channel.  
+Adobe Document Services 
+Adobe Document S ervices is the epicentre of some of Adobe’s greatest brands and is singularly focused 
+on one goal: to continue revolutionizing the way businesses and people communicate with documents. 
+We created the Portable Document Format (PDF), Adobe Acrobat, Adobe Si gn and Acrobat Reader—t he 
+latter is used by more than one billion people. These essential  document tools, as well  as powerful mobile 
+apps, make up the Adobe Document Cloud, a modern way to manage critical documents at home, in the 
+office and across devices, extending a l egacy that began more than 25 years ago.  
+As a Product Management Intern, you will work on some of the valuable, exciting customer problems 
+across Adobe’s cloud businesses spanning Content, Data and Artificial Intelligence.  Product Management Intern 
+Product Management Intern  Page 2 of 2 What you will do  
+• Conduct primary and secondary research to identify user needs and emerging trends
+• Understand competitor and partner landscape and generate meaningf ul insights
+• Pitch and validate new product ideas for internal and external partners
+• Contribute to Product, Go to Market vision and strategy
+• Build requirement documents and specs, detailing out user journey and use cases.
+• Collaborate with Design and Engineering teams to create proof of concept, actual implementation
+What you will need  
+•Current first year MBA student with outstanding academic record and 
+graduating in year 2026
+•Strong communication and interpersonal  skills
+•Passion for technology
+•Aptitude and motivation for a product management role
+•Ability to manage ambiguity
+•Strong analytical,  problem solving and data management skills
+•Customer centricity and focus on user experience
+•Prior technical  and relevant experience would be a plus
+•Available to do a full-time internship for 10 weeks starti ng April or May 2025
+What yo u will gain 
+• Mentoring and guidance from an experienced Adobe employee
+• Opportunities to be creative, be a leader and be focused
+• Wellbeing resources
+• Professional learning and development
+• A market competitive stipend
+At
+ Adobe, you will be immersed in an exceptional work environment that is recognized throughout the 
+world on  Best Companies lists. You will also be surrounded by colleagues who are committed to helping 
+each other grow through our unique  Check -In approach  where ongoing feedback flows freely.   
+If you’re looking to make an impact, Adobe's the place for you. Discover what our employees are saying 
+about their career experiences on the Adobe Life blog  and explore the meaningful  benefits  we offer.  
+Adobe is an equal opportunity employer. We welcome and encourage diversity in the workplace regardless of gender, race or color, ethnicity or national origin, age, disability, religion, sexual orientation, gender identity or expression, or veteran status.   
+
+2025-07-31 12:17:01,488 [INFO] models.read_document - Request successful for url https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/compendium%2Fadobe%2Fadobe-compendium.pdf?alt=media&token=627cd45e-6bb7-4945-9ab7-aafa94f7788c
+2025-07-31 12:17:01,489 [INFO] models.read_document - Detected Content-Type: application/pdf
+2025-07-31 12:17:01,520 [INFO] models.read_document - Read PDF file from stream
+2025-07-31 12:17:01,521 [INFO] models.read_document - Read PDF file form web adobe-compendium.md 2025-07-21
+1 / 2Selection Process (Adobe):
+1. Online Aptitude T est (Duration: 1.5 hrs.):
+First, there was an online round of 1 hr. 30 min. 1hr was for aptitude which consisted of 60 questions based on
+mental ability, OOPS, probability, reasoning and next 30 min was for 2 coding questions that were of easy
+level. Coding questions were easy so overall shortlisting was done based on aptitude. Shortlisted candidates
+were called for interviews.
+2. Interview (Duration: 45 mins):
+We had only a single round and I was asked questions based on my projects, DSA, OOPS, CN and puzzles.
+Question 1. What is the difference between SQL and NoSQL database?
+Question 2. Why did you choose MongoDB for your project and not other databases?
+Question 3. What happens when you type something in search bar of google and hit enter?
+Question 4. Given an array of positive integers and you have to multiply all the elements and print the answer
+but the time complexity should be less than O(n).
+Question 5. What is the difference between compile-time and run-time polymorphism?
+Question 6. Given N teams and you have to organise a knockout football tournament. What will be the
+number of matches that will be played in the entire tournament?
+Question 7. Y ou have 10 boxes of balls (each ball weighing exactly 10 gm) with one box with defective balls
+(each one of the defective balls weigh 9 gm). Y ou are given an electronic weighing machine and only one
+chance at it. How will you find out which box has the defective balls?
+Question 8. Given an array of lowercase English alphabet letters and you have to print the elements
+lexicographically. T ry to optimise your approach.
+Question 9. Given are N ropes of different lengths, the task is to connect these ropes into one rope with
+minimum cost, such that the cost to connect two ropes is equal to the multiplication of their lengths.
+Question 10. A binary tree and a number k are given. Print every path in the tree with sum of the nodes in the
+path as k. A path can start from any node and end at any node. They need not be root node and leaf node;
+and negative numbers can also be there in the tree.
+Question 11. Given a binary tree and two node values, your task is to find the minimum distance between
+them. The given two nodes are guaranteed to be in the binary tree and nodes are numbered from 1 to N.
+Please note that the given two nodes are not always leaf nodes.
+Tips for juniors:
+1. Do your utmost to keep CPI over 8 because it will help you a lot in becoming eligible for all companies
+that will be opened for mechanical.
+2. Try to make 2–3 projects for CV as it makes a good impression and questions from projects are
+comparatively easier as only standard questions are asked.
+adobe-compendium.md 2025-07-21
+2 / 23. Try to give at least one contest every week and practice as much DSA as you can.
+4. Be patient while explaining your approach, don’t get excited if you already know the solution. T ry to
+begin with naïve approach and slowly proceed to your most optimized solution. This will definitely
+impress the interviewer.
+5. In my opinion PORs and extracurriculars are not that much important.
+6. Try to be confident during interviews and practice mock interviews with your friends. I wish you good
+luck for internship season.
+
+2025-07-31 12:17:01,521 [INFO] models.read_document - Firebase context text adobe-compendium.md 2025-07-21
+1 / 2Selection Process (Adobe):
+1. Online Aptitude T est (Duration: 1.5 hrs.):
+First, there was an online round of 1 hr. 30 min. 1hr was for aptitude which consisted of 60 questions based on
+mental ability, OOPS, probability, reasoning and next 30 min was for 2 coding questions that were of easy
+level. Coding questions were easy so overall shortlisting was done based on aptitude. Shortlisted candidates
+were called for interviews.
+2. Interview (Duration: 45 mins):
+We had only a single round and I was asked questions based on my projects, DSA, OOPS, CN and puzzles.
+Question 1. What is the difference between SQL and NoSQL database?
+Question 2. Why did you choose MongoDB for your project and not other databases?
+Question 3. What happens when you type something in search bar of google and hit enter?
+Question 4. Given an array of positive integers and you have to multiply all the elements and print the answer
+but the time complexity should be less than O(n).
+Question 5. What is the difference between compile-time and run-time polymorphism?
+Question 6. Given N teams and you have to organise a knockout football tournament. What will be the
+number of matches that will be played in the entire tournament?
+Question 7. Y ou have 10 boxes of balls (each ball weighing exactly 10 gm) with one box with defective balls
+(each one of the defective balls weigh 9 gm). Y ou are given an electronic weighing machine and only one
+chance at it. How will you find out which box has the defective balls?
+Question 8. Given an array of lowercase English alphabet letters and you have to print the elements
+lexicographically. T ry to optimise your approach.
+Question 9. Given are N ropes of different lengths, the task is to connect these ropes into one rope with
+minimum cost, such that the cost to connect two ropes is equal to the multiplication of their lengths.
+Question 10. A binary tree and a number k are given. Print every path in the tree with sum of the nodes in the
+path as k. A path can start from any node and end at any node. They need not be root node and leaf node;
+and negative numbers can also be there in the tree.
+Question 11. Given a binary tree and two node values, your task is to find the minimum distance between
+them. The given two nodes are guaranteed to be in the binary tree and nodes are numbered from 1 to N.
+Please note that the given two nodes are not always leaf nodes.
+Tips for juniors:
+1. Do your utmost to keep CPI over 8 because it will help you a lot in becoming eligible for all companies
+that will be opened for mechanical.
+2. Try to make 2–3 projects for CV as it makes a good impression and questions from projects are
+comparatively easier as only standard questions are asked.
+adobe-compendium.md 2025-07-21
+2 / 23. Try to give at least one contest every week and practice as much DSA as you can.
+4. Be patient while explaining your approach, don’t get excited if you already know the solution. T ry to
+begin with naïve approach and slowly proceed to your most optimized solution. This will definitely
+impress the interviewer.
+5. In my opinion PORs and extracurriculars are not that much important.
+6. Try to be confident during interviews and practice mock interviews with your friends. I wish you good
+luck for internship season.
+
+2025-07-31 12:17:11,927 [INFO] httpx - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-31 12:17:11,930 [INFO] models.openai_integration - Open API company summary respone  for company: Adobe is 
+**Company Overview:**
+Adobe Inc. is a leading global software company renowned for its innovative offerings aimed at enhancing digital experiences across various platforms. The company caters to a diverse range of customers, from emerging artists to large enterprises, providing them with comprehensive tools to design and deliver exceptional digital content. Adobe is committed to fostering an inclusive workplace culture where respect and equal opportunity are paramount, encouraging creativity and collaboration to drive innovation. Key business units include Adobe Digital Media, Adobe Digital Experience, and Adobe Document Services, each focused on pioneering solutions in content creation, customer experience management, and document handling, respectively.
+
+**Roles Offered:**
+Adobe is currently seeking candidates for the position of **Product Management Intern**. The responsibilities of this role include:
+- Conducting research to identify user needs and emerging trends
+- Understanding the competitive landscape and generating insights
+- Pitching and validating new product ideas
+- Contributing to product strategy and requirements documentation
+- Collaborating with design and engineering teams for implementation
+
+Candidates should be current first-year MBA students with excellent academic credentials graduating in 2026, possessing strong communication skills, a passion for technology, and analytical abilities. The internship duration is 10 weeks, starting in April or May 2025.
+
+**Compensation:** 
+While specific compensation details such as the CTC were not explicitly mentioned in the job description, it is stated that the internship offers a "market competitive stipend," indicating a remuneration structure that aligns with industry standards.
+
+**Interview Compendium:**
+The selection process for Adobe includes an online aptitude test followed by an interview:
+1. **Online Aptitude Test:** Lasting 1.5 hours, candidates face a series of 60 mental ability questions and 2 coding questions, which determine initial shortlisting.
+2. **Interview:** The interview lasts approximately 45 minutes, focusing on the candidate's projects, data structures, algorithms, object-oriented programming, communication networks, and problem-solving capabilities.
+
+Candidates may expect technical questions related to databases, algorithms, binary trees, and scenarios requiring optimized solutions, reflecting a depth of analytical and technical proficiency.
+
+**Key Takeaway for Candidates:**
+Prospective candidates should maintain a high academic performance (CPI over 8) and engage in practical projects to strengthen their resumes. Continuous practice in data structures and algorithms is essential, along with effective communication skills to articulate problem-solving approaches during interviews.
+
+2025-07-31 12:17:11,933 [INFO] werkzeug - 127.0.0.1 - - [31/Jul/2025 12:17:11] "POST /company/summary HTTP/1.1" 200 -

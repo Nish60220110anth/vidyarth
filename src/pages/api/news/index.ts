@@ -131,7 +131,7 @@ async function handler(
                 orderBy: { created_at: "desc" },
             });
 
-            apiHelpers.success(res, { newsList })
+            apiHelpers.success(res, { data: newsList })
             return;
 
         } catch (err: any) {
@@ -270,7 +270,7 @@ async function handler(
                     },
                 });
 
-                apiHelpers.created(res, { news })
+                apiHelpers.created(res, { data: news })
                 return;
             } else {
                 apiHelpers.forbidden(res)
