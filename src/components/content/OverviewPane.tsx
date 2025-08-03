@@ -50,8 +50,8 @@ export default function Overview({ props }: { props: OverviewEntry }) {
                 return;
             }
 
-            setContent(res.data.content);
-            setOriginalContent(res.data.content);
+            setContent(res.data.data);
+            setOriginalContent(res.data.data);
 
         } catch (err: any) {
             toast.error(err)

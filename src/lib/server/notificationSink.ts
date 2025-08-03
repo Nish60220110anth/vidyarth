@@ -4,7 +4,7 @@ import z from "zod";
 
 export type CreateNotificationDTO = {
     type: NOTIFICATION_TYPE;
-    subtype: NOTIFICATION_SUBTYPE;
+    subtype?: NOTIFICATION_SUBTYPE | null | undefined;
     initiator: NOTIFICATION_SOURCE_INITIATOR;
     shortlistId?: number | null | undefined;
     companyId?: number | null | undefined;
@@ -31,6 +31,17 @@ export async function createNotification(input: CreateNotificationDTO) {
     if (!parsed.success) {
         console.error("Invalid notification data:", parsed.error);
         throw new Error(`Invalid notification data: ${parsed.error.message}`);
+    }
+
+    if (parsed.data.type === NOTIFICATION_TYPE.COMPANY_CONTENT && parsed.data.initiator === NOTIFICATION_SOURCE_INITIATOR.UPDATED && parsed.data.companyId) {
+        await prisma.summary.updateMany({
+            where: {
+                companyId: parsed.data.companyId,
+            },
+            data: {
+                is_changed: true,
+            },
+        });
     }
 
     return prisma.notification.create({

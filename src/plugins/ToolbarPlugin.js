@@ -62,6 +62,7 @@ import { DropDownItem, DropDown } from "@/ui/DropDown";
 import { useModal } from "@/hooks/useModal";
 
 import { InsertInlineImageDialog } from "./InlineImagePlugin";
+import { INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND } from "lexical";
 
 const LowPriority = 1;
 
@@ -109,6 +110,85 @@ function dropDownActiveClass(active) {
   if (active) return 'active dropdown-item-active'
   else return ''
 }
+
+import { $getRoot } from "lexical";
+import {  $isListItemNode } from "@lexical/list";
+
+function isWrapperEmptyListItem(li) {
+  const text = li.getTextContent().trim();
+  const nonListChildren = li.getChildren().filter((c) => !$isListNode(c));
+  console.log("State ", text, text.length, nonListChildren.length);
+  return text.length === 0 && nonListChildren.length === 0;
+}
+
+function findNestedList(li) {
+  const nested = li.getChildren().find((c) => $isListNode(c));
+  return (nested) ?? null;
+}
+
+function moveNestedListIntoPrevSibling(li) {
+  const prev = li.getPreviousSibling();
+  if (prev && $isListItemNode(prev)) {
+    const nested = findNestedList(li);
+    if (nested) {
+      prev.append(nested);
+      li.remove();
+      return true;
+    }
+  }
+  return false;
+}
+
+
+function normalizeNestedLists() {
+  const root = $getRoot();
+  const stack = [...root.getChildren()];
+  while (stack.length) {
+    const node = stack.pop();
+    if ($isListNode(node)) {
+      for (const child of node.getChildren()) {
+        if ($isListItemNode(child) && isWrapperEmptyListItem(child) && findNestedList(child)) {
+          // Try to attach nested list to the previous real item
+          if (!moveNestedListIntoPrevSibling(child)) {
+            // Fallback: if no previous sibling, try next sibling
+            const next = child.getNextSibling();
+            const nested = findNestedList(child);
+            if (next && $isListItemNode(next) && nested) {
+              next.insertBefore(nested);
+              child.remove();
+            }
+          }
+        }
+      }
+    }
+    // DFS
+    for (const c of node.getChildren?.() ?? []) stack.push(c);
+  }
+}
+
+function normalizeAroundSelection() {
+  const sel = $getSelection();
+  if (!$isRangeSelection(sel)) return;
+  const top = sel.anchor.getNode().getTopLevelElementOrThrow();
+  const list = top.getType?.() === "list" ? top : top.getParents().find((p) => $isListNode(p));
+  if ($isListNode(list)) {
+    for (const child of list.getChildren()) {
+      if ($isListItemNode(child) && isWrapperEmptyListItem(child) && findNestedList(child)) {
+        if (!moveNestedListIntoPrevSibling(child)) {
+          const next = child.getNextSibling();
+          const nested = findNestedList(child);
+          if (next && $isListItemNode(next) && nested) {
+            next.insertBefore(nested);
+            child.remove();
+          }
+        }
+      }
+    }
+  } else {
+    normalizeNestedLists();
+  }
+}
+
 
 function FloatingLinkEditor({ editor }) {
   const editorRef = useRef(null);
@@ -438,6 +518,9 @@ function BlockOptionsDropdownList({
     } else {
       editor.dispatchCommand(REMOVE_LIST_COMMAND);
     }
+    queueMicrotask(() => {
+      editor.update(() => normalizeAroundSelection());
+    });
     setShowBlockOptionsDropDown(false);
   };
 
@@ -447,6 +530,9 @@ function BlockOptionsDropdownList({
     } else {
       editor.dispatchCommand(REMOVE_LIST_COMMAND);
     }
+    queueMicrotask(() => {
+      editor.update(() => normalizeAroundSelection());
+    });
     setShowBlockOptionsDropDown(false);
   };
 
@@ -648,6 +734,34 @@ export default function ToolbarPlugin() {
       LowPriority,
     )
   }, [editor, updateToolbar])
+
+  // inside a useEffect that already returns mergeRegister(...)
+  useEffect(() => {
+    return mergeRegister(
+      editor.registerCommand(
+        INDENT_CONTENT_COMMAND,
+        () => {
+          // After Lexical indents, clean structure
+          queueMicrotask(() => {
+            editor.update(() => normalizeAroundSelection());
+          });
+          return false; // keep default behavior
+        },
+        1
+      ),
+      editor.registerCommand(
+        OUTDENT_CONTENT_COMMAND,
+        () => {
+          queueMicrotask(() => {
+            editor.update(() => normalizeAroundSelection());
+          });
+          return false;
+        },
+        1
+      )
+    );
+  }, [editor]);
+
 
   const clearFormatting = useCallback(() => {
     activeEditor.update(() => {

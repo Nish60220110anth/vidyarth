@@ -173,6 +173,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             const [signedUrl] = await fileRef.getSignedUrl({
                 action: "read",
                 expires: "03-01-2030",
+                responseDisposition: `inline; filename="${file.originalFilename || "thumbnail.png"}"`,
             });
 
             image_path = signedUrl;

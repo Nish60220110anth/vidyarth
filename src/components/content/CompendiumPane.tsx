@@ -6,10 +6,14 @@ import { RichTextPane } from "../RichTextPane";
 import axios from "axios";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import { CompendiumEntry } from "@/types/panes";
-import { DocumentArrowUpIcon, EyeIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/solid";
-import { motion } from "framer-motion";
+import { DocumentArrowUpIcon, ExclamationTriangleIcon, EyeIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/solid";
+import { AnimatePresence, motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/useMobile";
 import { convertListsToParagraphs } from "@/utils/convertListToPara";
+import { openPdfInAppViewer } from "@/utils/openPdfInViewer";
+import { fetchPermissions } from "@/lib/api/user";
+import { baseUrl } from "@/lib/config";
+import { fetchCompendiumByCompanyID, updateCompendium } from "@/lib/api/panes/compendium";
 
 export default function Compendium({ props }: { props: CompendiumEntry }) {
     const isMobile = useIsMobile();
@@ -52,61 +56,36 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
         setSession(data.data);
     };
 
-    const fetchPermissions = async () => {
-        const res = await axios.get(`/api/permissions`, {
-            headers: {
-                "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
-            }
-        });
-        setPermissions(res.data.permissions);
+    const _fetchPermissions = async () => {
+        const res = await fetchPermissions(ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY);
+        setPermissions(res);
     };
 
-    const fetchCompendium = async (company_id: number) => {
+    const _fetchCompendium = async (company_id: number) => {
         setLoading(true);
-        try {
-            const res = await axios.get(`/api/compendium`, {
-                params: { cid: company_id },
-                headers: {
-                    "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
-                }
-            });
+        const res = await fetchCompendiumByCompanyID(company_id);
+        setContent(res.content);
+        setOriginalValue({
+            content: res.content,
+            pdfs: res.pdfs,
+        });
 
-            if (!res.data.success) {
-                toast.error(res.data.error || "Failed to fetch compendium");
-                return;
-            }
+        setUploadedFiles([]);
+        setUploadedNames([]);
 
-            setContent(res.data.content);
-            setOriginalValue({
-                content: res.data.content,
-                pdfs: res.data.pdfs,
-            });
-
-            setUploadedFiles([]);
-            setUploadedNames([]);
-
-            setLoading(false);
-        } catch (err) {
-            toast.error("Failed to load compendium");
-        }
+        setLoading(false);
     };
+
+    const isSaveDisabled = uploadedFiles.length === 0 && deletedPdfs.length === 0 && (content === originalValue.content);
 
     const saveCompendium = async () => {
-
-        if (
-            uploadedFiles.length === 0 &&
-            deletedPdfs.length === 0 &&
-            content === originalValue.content
-        ) {
-            toast("No changes made");
-            return { success: undefined };
-        }
 
         setIsUploading(true);
         setUploadPercent(0);
         setCurrentFileIndex(0);
 
         const company_id = props.company_id;
+        let _res = true;
 
         if (deletedPdfs.length > 0) {
             setUploadMode("deleting");
@@ -120,18 +99,10 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
                 baseFormData.append(`pdf_deleted_id_${i + 1}`, id.toString());
             });
 
-            try {
-                await axios.put("/api/compendium", baseFormData, {
-                    headers: {
-                        "x-access-permission": ACCESS_PERMISSION.MANAGE_MY_COHORT
-                    }
-                });
-            } catch (err: any) {
-                toast.error("Failed to delete PDFs or save content");
-                setIsUploading(false);
-                setUploadMode("done");
-                return { success: false, error: err.message };
-            }
+            _res = _res && await updateCompendium(company_id, baseFormData);
+
+            setIsUploading(false);
+            setUploadMode("done");
         }
 
         if (uploadedFiles.length === 0) {
@@ -143,19 +114,9 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
             formData.append("total_new_entries", "0");
             formData.append("total_deleted_entries", "0");
 
-            try {
-                await axios.put("/api/compendium", formData, {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                        "x-access-permission": ACCESS_PERMISSION.MANAGE_MY_COHORT
-                    }
-                });
-            } catch (err: any) {
-                toast.error(`Upload failed: ${err}`);
-                return { success: false, error: err.message };
-            } finally {
-                setTimeout(() => setIsUploading(false), 500);
-            }
+            _res = _res && (await updateCompendium(company_id, formData));
+
+            setTimeout(() => setIsUploading(false), 500);
         }
         else if (uploadedFiles.length > 0) {
             setUploadMode("uploading");
@@ -172,7 +133,7 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
                 formData.append("total_deleted_entries", "0");
 
                 try {
-                    await axios.put("/api/compendium", formData, {
+                    const out = await axios.put(`${baseUrl}/api/compendium`, formData, {
                         headers: {
                             "Content-Type": "multipart/form-data",
                             "x-access-permission": ACCESS_PERMISSION.MANAGE_MY_COHORT
@@ -189,11 +150,17 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
                             }
                         },
                     });
+
+                    if (!out.data.success) {
+                        toast.error("Upload failed");
+                        _res = false;
+                    }
+
                 } catch (err: any) {
                     toast.error(`Upload failed for ${uploadedNames[i]}`);
                     setIsUploading(false);
                     setUploadMode("done");
-                    return { success: false, error: err.message };
+                    _res = false;
                 }
             }
         }
@@ -201,7 +168,15 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
         setUploadPercent(100);
         setUploadMode("done");
         setTimeout(() => setIsUploading(false), 500);
-        return { success: true };
+
+        if (_res) {
+            await _fetchCompendium(props.company_id);
+            setUploadedFiles([]);
+            setUploadedNames([]);
+            setDeletedPdfs([]);
+        }
+
+        setIsEditing(false);
     };
 
     const allDeleted = originalValue.pdfs.every((pdf) =>
@@ -225,7 +200,7 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
     useEffect(() => {
         const init = async () => {
             setLoading(true);
-            Promise.all([loadSession(), fetchPermissions(), fetchCompendium(props.company_id)])
+            Promise.all([loadSession(), _fetchPermissions(), _fetchCompendium(props.company_id)])
                 .finally(() => setLoading(false));
         };
         init();
@@ -236,42 +211,39 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[150px] bg-gray-50 border border-cyan-100 rounded-md text-sm text-cyan-600 font-medium gap-2 px-4 py-3 shadow-sm">
-                <svg
-                    className="w-4 h-4 animate-spin text-cyan-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 4v4m0 8v4m8-8h4M4 12H0m16.24-6.24l2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"
-                    />
-                </svg>
-                Loading content...
+            <div className="flex flex-col items-center justify-center min-w-full py-12 bg-gradient-to-r from-cyan-50 to-white border border-cyan-200 rounded-2xl shadow-xl animate-pulse">
+
+                <div className="flex items-center justify-center w-full py-12">
+                    <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+
+
+                {/* Loading text */}
+                <p className="mt-4 text-lg font-semibold text-cyan-700">
+                    Loading content…
+                </p>
+
+                {/* Skeleton lines to hint at structure */}
+                <div className="mt-6 space-y-2 w-3/4">
+                    <div className="h-3 bg-gray-200 rounded-full"></div>
+                    <div className="h-3 bg-gray-200 rounded-full w-5/6"></div>
+                    <div className="h-3 bg-gray-200 rounded-full w-2/3"></div>
+                </div>
             </div>
+
         );
     }
 
     if (!session) {
         return (
-            <div className="flex items-center justify-center min-h-[150px] bg-red-50 border border-red-200 rounded-md text-sm text-red-600 font-medium gap-2 px-4 py-3 shadow-sm">
-                <svg
-                    className="w-4 h-4 text-red-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 9v2m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z"
-                    />
-                </svg>
-                Unable to load content. Please try again.
+            <div className="flex flex-col items-center justify-center w-full min-h-[200px] bg-gradient-to-br from-red-50 to-white border border-red-200 rounded-2xl shadow-lg px-6 py-8">
+                <ExclamationTriangleIcon className="w-12 h-12 text-red-500 animate-bounce" />
+                <h3 className="mt-4 text-2xl font-semibold text-red-600">
+                    Unable to Load Content
+                </h3>
+                <p className="mt-2 text-red-500 text-center">
+                    Something went wrong on our end. Please try again.
+                </p>
             </div>
         );
     }
@@ -347,20 +319,8 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
                                         Cancel
                                     </button>
                                     <button
-                                        onClick={async () => {
-                                            const result = await saveCompendium();
-
-                                            if (result?.success === true) {
-                                                await fetchCompendium(props.company_id);
-                                                setUploadedFiles([]);
-                                                setUploadedNames([]);
-                                                setDeletedPdfs([]);
-                                            } else if (result?.success === false) {
-                                                toast.error(result.error || "Failed to save compendium");
-                                            }
-
-                                            setIsEditing(false);
-                                        }}
+                                        disabled={isSaveDisabled}
+                                        onClick={saveCompendium}
                                         className="px-4 py-1.5 text-sm rounded-md bg-cyan-600 text-white hover:bg-cyan-700 
                                     hover:shadow-md active:scale-95 transition-all w-full sm:w-auto"
                                     >
@@ -376,6 +336,7 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3 }}
+                        layout
                         className="rounded-lg bg-gray-50 border border-gray-200 p-3"
                     >
                         <RichTextPane
@@ -395,130 +356,132 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
                     </motion.div>
                 </div>
 
-                {showDocs && (
-                    <motion.div
-                        initial={{ opacity: 0, x: 30 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 30 }}
-                        transition={{ duration: 0.3 }}
-                        className="w-full sm:w-80 bg-white border border-gray-300 rounded-xl shadow relative overflow-hidden"
-                    >
-                        {/* Floating Action Bar */}
-                        {isEditing && (
-                            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 flex items-center justify-between gap-2 px-4 py-2">
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="p-2 rounded-lg hover:bg-cyan-50 transition group w-full sm:w-auto"
-                                    title="Upload PDF"
-                                >
-                                    <PlusIcon className="w-5 h-5 text-cyan-600 group-hover:scale-110 group-hover:text-cyan-800 transition-transform" />
-                                </button>
-                                <button
-                                    disabled={allDeleted}
-                                    onClick={() => {
-                                        const remainingIds = originalValue.pdfs
-                                            .filter((pdf) => !deletedPdfs.includes(pdf.id))
-                                            .map((pdf) => pdf.id);
-                                        setDeletedPdfs((prev) => [...prev, ...remainingIds]);
-                                    }}
-                                    className="p-2 rounded-lg hover:bg-red-50 transition group w-full sm:w-auto"
-                                    title="Delete All PDFs"
-                                >
-                                    <TrashIcon className="w-5 h-5 text-red-500 group-hover:scale-110 group-hover:text-red-700 transition-transform" />
-                                </button>
-                                <input
-                                    type="file"
-                                    accept="application/pdf"
-                                    ref={fileInputRef}
-                                    multiple
-                                    className="hidden"
-                                    onChange={(e) => {
-                                        const newFiles = Array.from(e.target.files || []);
-                                        const getBaseName = (name: string) => name.replace(/\.pdf$/i, "");
-                                        setUploadedFiles((prev) => [...prev, ...newFiles]);
-                                        setUploadedNames((prev) => [
-                                            ...prev,
-                                            ...newFiles.map((f) => getBaseName(f.name)),
-                                        ]);
-                                    }}
-                                />
-                            </div>
-                        )}
-
-                        {/* Header */}
-                        <div className="px-4 pt-4 pb-2 border-b border-gray-200">
-                            <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
-                        </div>
-
-                        {/* Scrollable PDF List */}
-                        <div className="space-y-2 max-h-[300px] px-4 py-3 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-500">
-                            {visiblePDFs.length === 0 && uploadedFiles.length === 0 && (
-                                <div className="flex flex-col items-center justify-center text-gray-400 text-sm text-center py-8">
-                                    <DocumentArrowUpIcon className="w-8 h-8 mb-2" />
-                                    <p>No documents available.</p>
+                <AnimatePresence initial={false}>
+                    {showDocs && (
+                        <motion.div
+                            initial={{ opacity: 0, x: 30 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 30 }}
+                            transition={{ duration: 0.3 }}
+                            className="w-full sm:w-80 bg-white border border-gray-300 rounded-xl shadow relative overflow-hidden"
+                        >
+                            {/* Floating Action Bar */}
+                            {isEditing && (
+                                <div className="sticky top-0 z-10 bg-white border-b border-gray-200 flex items-center justify-between gap-2 px-4 py-2">
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="p-2 rounded-lg hover:bg-cyan-50 transition group w-full sm:w-auto"
+                                        title="Upload PDF"
+                                    >
+                                        <PlusIcon className="w-5 h-5 text-cyan-600 group-hover:scale-110 group-hover:text-cyan-800 transition-transform" />
+                                    </button>
+                                    <button
+                                        disabled={allDeleted}
+                                        onClick={() => {
+                                            const remainingIds = originalValue.pdfs
+                                                .filter((pdf) => !deletedPdfs.includes(pdf.id))
+                                                .map((pdf) => pdf.id);
+                                            setDeletedPdfs((prev) => [...prev, ...remainingIds]);
+                                        }}
+                                        className="p-2 rounded-lg hover:bg-red-50 transition group w-full sm:w-auto"
+                                        title="Delete All PDFs"
+                                    >
+                                        <TrashIcon className="w-5 h-5 text-red-500 group-hover:scale-110 group-hover:text-red-700 transition-transform" />
+                                    </button>
+                                    <input
+                                        type="file"
+                                        accept="application/pdf"
+                                        ref={fileInputRef}
+                                        multiple
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const newFiles = Array.from(e.target.files || []);
+                                            const getBaseName = (name: string) => name.replace(/\.pdf$/i, "");
+                                            setUploadedFiles((prev) => [...prev, ...newFiles]);
+                                            setUploadedNames((prev) => [
+                                                ...prev,
+                                                ...newFiles.map((f) => getBaseName(f.name)),
+                                            ]);
+                                        }}
+                                    />
                                 </div>
                             )}
 
-                            {/* Existing PDFs */}
-                            {originalValue.pdfs.map((pdf) => {
-                                const isDeleted = deletedPdfs.includes(pdf.id);
-                                return (
-                                    <div
-                                        key={pdf.id}
-                                        className={`flex justify-between items-center px-3 py-2 rounded-md text-sm transition group 
+                            {/* Header */}
+                            <div className="px-4 pt-4 pb-2 border-b border-gray-200">
+                                <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
+                            </div>
+
+                            {/* Scrollable PDF List */}
+                            <div className="space-y-2 max-h-[300px] px-4 py-3 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-500">
+                                {visiblePDFs.length === 0 && uploadedFiles.length === 0 && (
+                                    <div className="flex flex-col items-center justify-center text-gray-400 text-sm text-center py-8">
+                                        <DocumentArrowUpIcon className="w-8 h-8 mb-2" />
+                                        <p>No documents available.</p>
+                                    </div>
+                                )}
+
+                                {/* Existing PDFs */}
+                                {originalValue.pdfs.map((pdf) => {
+                                    const isDeleted = deletedPdfs.includes(pdf.id);
+                                    return (
+                                        <div
+                                            key={pdf.id}
+                                            className={`flex justify-between items-center px-3 py-2 rounded-md text-sm transition group 
             ${isDeleted
-                                                ? "bg-red-50 border border-red-200 text-red-400 line-through"
-                                                : "bg-gray-50 text-gray-800 hover:shadow"
-                                            }`}
-                                    >
-                                        <span className="truncate w-4/5">{pdf.pdf_name}</span>
-                                        <div className="flex gap-2 items-center">
-                                            {!isDeleted && (
-                                                <EyeIcon
-                                                    onClick={() => window.open(pdf.pdf_path, "_blank")}
-                                                    className="w-5 h-5 text-cyan-600 hover:text-cyan-800 hover:scale-110 transition-transform cursor-pointer"
-                                                    title="Preview PDF"
-                                                />
-                                            )}
-                                            {isEditing && (
-                                                <TrashIcon
-                                                    onClick={() => deletePdf(pdf.id)}
-                                                    className={`w-5 h-5 hover:scale-110 transition-transform cursor-pointer ${isDeleted
-                                                        ? "text-gray-400"
-                                                        : "text-red-500 hover:text-red-700"
-                                                        }`}
-                                                    title="Delete PDF"
-                                                />
-                                            )}
+                                                    ? "bg-red-50 border border-red-200 text-red-400 line-through"
+                                                    : "bg-gray-50 text-gray-800 hover:shadow"
+                                                }`}
+                                        >
+                                            <span className="truncate w-4/5">{pdf.pdf_name}</span>
+                                            <div className="flex gap-2 items-center">
+                                                {!isDeleted && (
+                                                    <EyeIcon
+                                                        onClick={() => openPdfInAppViewer(pdf.pdf_path)}
+                                                        className="w-5 h-5 text-cyan-600 hover:text-cyan-800 hover:scale-110 transition-transform cursor-pointer"
+                                                        title="Preview PDF"
+                                                    />
+                                                )}
+                                                {isEditing && (
+                                                    <TrashIcon
+                                                        onClick={() => deletePdf(pdf.id)}
+                                                        className={`w-5 h-5 hover:scale-110 transition-transform cursor-pointer ${isDeleted
+                                                            ? "text-gray-400"
+                                                            : "text-red-500 hover:text-red-700"
+                                                            }`}
+                                                        title="Delete PDF"
+                                                    />
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
 
-                            {/* New Uploads */}
-                            {isEditing &&
-                                uploadedFiles.map((f, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="flex justify-between items-center px-3 py-2 rounded-md bg-cyan-50 text-cyan-900 border border-cyan-200 text-xs transition group"
-                                    >
-                                        <span className="truncate w-4/5">{f.name.replace(".pdf", "")}</span>
-                                        <TrashIcon
-                                            onClick={() => deletePdf(undefined, f.name.replace(".pdf", ""))}
-                                            className="w-4 h-4 text-red-500 hover:text-red-700 hover:scale-110 transition-transform 
+                                {/* New Uploads */}
+                                {isEditing &&
+                                    uploadedFiles.map((f, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="flex justify-between items-center px-3 py-2 rounded-md bg-cyan-50 text-cyan-900 border border-cyan-200 text-xs transition group"
+                                        >
+                                            <span className="truncate w-4/5">{f.name.replace(".pdf", "")}</span>
+                                            <TrashIcon
+                                                onClick={() => deletePdf(undefined, f.name.replace(".pdf", ""))}
+                                                className="w-4 h-4 text-red-500 hover:text-red-700 hover:scale-110 transition-transform 
                                     cursor-pointer"
-                                            title="Remove this file"
-                                        />
-                                    </div>
-                                ))}
-                        </div>
+                                                title="Remove this file"
+                                            />
+                                        </div>
+                                    ))}
+                            </div>
 
 
-                    </motion.div>
-                )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {isUploading && (
-                    <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in text-center px-6">
+                    <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in text-center px-6 w-full">
                         <div className="relative w-16 h-16 mb-4">
                             {!(uploadMode === "deleting") ? (
                                 <div

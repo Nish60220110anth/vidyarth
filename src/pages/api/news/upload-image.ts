@@ -83,6 +83,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 const [signedUrl] = await fileRef.getSignedUrl({
                     action: "read",
                     expires: "03-01-2030",
+                    responseDisposition: `inline; filename="${newFilename}"`,
                 });
 
                 await prisma.news.update({
@@ -94,8 +95,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 return;
 
             } catch (e) {
-                console.error("File processing error:", e);
-                return res.status(500).json({ error: "Failed to process file" });
+                console.error("Error uploading image:", e);
+                apiHelpers.error(res, "Failed to upload image", 500, { error: e });
+                return;
             }
         });
     }

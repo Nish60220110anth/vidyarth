@@ -24,7 +24,7 @@ class NewsScraper:
         results = self.cursor.fetchall()
         company_names = [[row["id"], row["company_full"]] for row in results]
         logger.info(f"List of companies to scrap the news for {company_names}")
-        for name in company_names:
+        for name in company_names[:5]:
             logger.info(f"Fetching the news of {name}")
             self.news.get_news(name)
 

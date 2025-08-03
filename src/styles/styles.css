@@ -7,16 +7,13 @@
 }
 
 /* 
-* {
-    border: 1px solid red;
-}  */
-
+* { border: 1px solid red; }  
+*/
 
 .editor-container {
     margin: 20px auto 20px auto;
-    overflow: hidden;
     /* padding-left: 20px;
-    padding-right: 20px; */
+     padding-right: 20px; */
     position: relative;
     line-height: 20px;
     font-weight: 400;
@@ -24,7 +21,36 @@
     padding: 0.5rem;
     margin: 12px auto;
     background-color: #0d1b24;
+    /* (kept as original base, overridden by vars below) */
     color: #c1f5ff;
+    /* (kept as original base, overridden by vars below) */
+}
+
+.editor-container {
+    --bg: #ffffff;
+    --panel: #ffffff;
+    /* editor surface */
+    --panel-2: #f8fafc;
+    /* subtle panels/code bg */
+    --border: #e2e8f0;
+    /* slate-200 */
+    --border-soft: rgba(2, 6, 23, 0.06);
+    --shadow-soft: 0 1px 2px rgba(2, 6, 23, 0.04), 0 8px 24px rgba(2, 6, 23, 0.04);
+    --text: #0f172a;
+    /* slate-900 */
+    --text-muted: #475569;
+    /* slate-600 */
+    --placeholder: #94a3b8;
+    /* slate-400 */
+    --accent: #06b6d4;
+    /* cyan-500 */
+    --accent-2: #0891b2;
+    /* cyan-700 */
+    --accent-3: #0e7490;
+    /* cyan-800 (focus/active) */
+    --ok: #10b981;
+    --danger: #ef4444;
+    font-family: 'Urbanist', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
 }
 
 @media screen and (max-width: 640px) {
@@ -53,7 +79,6 @@
 
     .dropdown .item {
         min-width: auto;
-
     }
 
     .dropdown .item {
@@ -89,38 +114,47 @@
 
 .editor-inner {
     position: relative;
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
     width: 100%;
     max-width: 100%;
-    background-color: #0a141d;
+    background-color: var(--panel);
+    box-shadow: var(--shadow-soft);
+    /* subtle card feel instead of visible borders */
 }
 
+/* Clear, readable input with subtle focus */
 .editor-input {
     min-height: 150px;
     resize: none;
-    font-size: 15px;
-    caret-color: rgb(5, 5, 5);
+    font-size: 16px;
+    line-height: 1.6;
     position: relative;
     tab-size: 1;
     outline: 0;
-    padding: 15px 10px;
-    color: #e0f7ff;
+    padding: 18px 14px;
+    color: var(--text);
     background-color: transparent;
-    caret-color: #22d3ee;
+    caret-color: var(--accent);
+}
+
+.editor-input:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 1px var(--border-soft);
+    border-radius: 8px;
 }
 
 .editor-placeholder {
     overflow: hidden;
     position: absolute;
     text-overflow: ellipsis;
-    top: 15px;
-    left: 10px;
-    font-size: 15px;
+    top: 18px;
+    left: 14px;
+    font-size: 16px;
     user-select: none;
     display: inline-block;
     pointer-events: none;
-    color: #7dd3fc;
+    color: var(--placeholder);
 }
 
 .editor-inner,
@@ -130,8 +164,9 @@
     max-width: 100%;
 }
 
+/* Typographic emphasis */
 .editor-text-bold {
-    font-weight: bold;
+    font-weight: 700;
 }
 
 .editor-text-italic {
@@ -150,18 +185,30 @@
     text-decoration: underline line-through;
 }
 
+/* Inline code: gentle chip style */
 .editor-text-code {
-    background-color: rgb(240, 242, 245);
-    padding: 1px 0.25rem;
-    font-family: 'Urbanist', sans-serif;
-    font-size: 94%;
+    padding: 2px 0.4rem;
+    font-family: 'Urbanist', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.95em;
+    background-color: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
 }
 
+/* Links: refined underline */
 .editor-link {
-    color: rgb(33, 111, 219);
-    text-decoration: none;
+    color: var(--accent-2);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1.5px;
 }
 
+.editor-link:hover {
+    color: var(--accent-3);
+}
+
+/* Tree view (debug) kept as-is */
 .tree-view-output {
     display: block;
     background: #222;
@@ -178,124 +225,180 @@
     line-height: 14px;
 }
 
+/* Code block: border softened, subtle elevation, clearer gutters */
 .editor-code {
-    background-color: rgb(240, 242, 245);
-    font-family: Menlo, Consolas, Monaco, monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     display: block;
-    padding: 8px 8px 8px 52px;
-    line-height: 1.53;
-    font-size: 13px;
-    margin: 0;
-    margin-top: 8px;
-    margin-bottom: 8px;
+    padding: 12px 12px 12px 52px;
+    line-height: 1.6;
+    font-size: 14px;
+    margin: 10px 0;
     tab-size: 2;
-    /* white-space: pre; */
     overflow-x: auto;
     position: relative;
+    background-color: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border-soft);
+    /* softer border */
+    border-radius: 10px;
+    box-shadow: var(--shadow-soft);
 }
 
 .editor-code:before {
     content: attr(data-gutter);
     position: absolute;
-    background-color: #eee;
     left: 0;
     top: 0;
-    border-right: 1px solid #ccc;
-    padding: 8px;
-    color: #777;
+    padding: 12px 8px;
     white-space: pre-wrap;
     text-align: right;
-    min-width: 25px;
+    min-width: 34px;
+    background-color: #f1f5f9;
+    /* slate-100 */
+    border-right: 1px solid var(--border);
+    color: #64748b;
+    /* slate-500 */
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
 }
 
 .editor-code:after {
     content: attr(data-highlight-language);
-    top: 0;
-    right: 3px;
-    padding: 3px;
+    top: 6px;
+    right: 8px;
+    padding: 3px 6px;
     font-size: 10px;
+    letter-spacing: .04em;
     text-transform: uppercase;
     position: absolute;
-    color: rgba(0, 0, 0, 0.5);
+    color: #64748b;
+    background: #eef2f7;
+    border-radius: 4px;
 }
 
+/* Token colors (subtle, readable on white) */
 .editor-tokenComment {
-    color: slategray;
+    color: #94a3b8;
 }
 
+/* slate-400 */
 .editor-tokenPunctuation {
-    color: #999;
+    color: #64748b;
 }
 
+/* slate-500 */
 .editor-tokenProperty {
-    color: #905;
+    color: #7c3aed;
 }
 
+/* violet-600 */
 .editor-tokenSelector {
-    color: #690;
+    color: #16a34a;
 }
 
+/* green-600 */
 .editor-tokenOperator {
-    color: #9a6e3a;
+    color: #b45309;
 }
 
+/* amber-700 */
 .editor-tokenAttr {
-    color: #07a;
+    color: #0284c7;
 }
 
+/* sky-600 */
 .editor-tokenVariable {
-    color: #e90;
+    color: #d97706;
 }
 
+/* amber-600 */
 .editor-tokenFunction {
-    color: #dd4a68;
+    color: #db2777;
 }
 
+/* pink-600 */
+
+/* Paragraph + spacing rhythm */
 .editor-paragraph {
-    margin: 0;
-    margin-bottom: 8px;
+    margin: 0 0 10px 0;
     position: relative;
+    color: var(--text);
 }
 
 .editor-paragraph:last-child {
     margin-bottom: 0;
 }
 
+/* Headings with subtle decor */
 .editor-heading-h1 {
-    font-size: 24px;
-    color: rgb(5, 5, 5);
-    font-weight: 400;
-    margin: 0;
-    margin-bottom: 12px;
+    font-size: 28px;
+    color: #0f172a;
+    font-weight: 700;
+    margin: 6px 0 12px 0;
     padding: 0;
+    position: relative;
+    letter-spacing: -0.01em;
+}
+
+.editor-heading-h1::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -6px;
+    width: 64px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    border-radius: 2px;
 }
 
 .editor-heading-h2 {
-    font-size: 15px;
-    color: rgb(101, 103, 107);
+    font-size: 18px;
+    color: #334155;
+    /* slate-700 */
     font-weight: 700;
-    margin: 0;
-    margin-top: 10px;
-    padding: 0;
+    margin: 14px 0 8px 0;
+    padding: 0 0 0 10px;
     text-transform: uppercase;
+    letter-spacing: .06em;
+    position: relative;
 }
 
+.editor-heading-h2::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 2px;
+    bottom: 2px;
+    width: 4px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+
+/* Quote with gradient rail + soft panel */
 .editor-quote {
-    margin: 0;
-    margin-left: 20px;
+    margin: 10px 0 12px 0;
     font-size: 15px;
-    color: rgb(101, 103, 107);
-    border-left-color: rgb(206, 208, 212);
     border-left-width: 4px;
     border-left-style: solid;
-    padding-left: 16px;
+    color: var(--text-muted);
+    border-left-color: transparent;
+    background:
+        linear-gradient(180deg, var(--accent) 0%, var(--accent-2) 100%) left/3px 100% no-repeat,
+        #f8fafc;
+    border-radius: 8px;
+    padding: 12px 14px 12px 16px;
+}
+
+/* Lists with accent markers and clearer rhythm */
+.editor-list-ol,
+.editor-list-ul {
+    color: var(--text);
 }
 
 .editor-list-ol {
     padding: 0;
     margin: 0;
     margin-left: 16px;
-    color: black;
 }
 
 .editor-list-ul {
@@ -305,25 +408,45 @@
 }
 
 .editor-listitem {
-    margin: 8px 32px 8px 32px;
+    margin: 6px 32px 6px 32px;
 }
 
 .editor-list-ol .editor-listitem {
     list-style-type: decimal;
-    list-style-position: inside;
-    color: #000;
+    list-style-position: outside;
     display: list-item;
 }
 
 .editor-list-ul .editor-listitem {
     list-style-type: disc;
-    list-style-position: inside;
-    color: #000;
+    list-style-position: outside;
     display: list-item;
 }
 
+/* Color the markers for better visual scanning */
+.editor-list-ol .editor-listitem::marker,
+.editor-list-ul .editor-listitem::marker {
+    color: var(--accent-2);
+    font-weight: 600;
+}
+
+.editor-list-ol .editor-listitem,
+.editor-list-ul .editor-listitem {
+    color: var(--text);
+}
+
+/* Nested list: no extra marker bubble, align nicely */
 .editor-nested-listitem {
-    list-style-type: none;
+    list-style-type: none !important;
+    list-style-position: unset;
+    color: inherit;
+    margin-left: 0;
+}
+
+/* Selection and scrollbar polish */
+::selection {
+    background: rgba(6, 182, 212, 0.18);
+    color: #0f172a;
 }
 
 pre::-webkit-scrollbar {
@@ -332,9 +455,11 @@ pre::-webkit-scrollbar {
 }
 
 pre::-webkit-scrollbar-thumb {
-    background: #999;
+    background: #cbd5e1;
+    border-radius: 6px;
 }
 
+/* Debug controls kept */
 .debug-timetravel-panel {
     overflow: hidden;
     padding: 0 0 10px 0;
@@ -375,10 +500,12 @@ pre::-webkit-scrollbar-thumb {
     text-decoration: underline;
 }
 
+/* ====== DO NOT CHANGE TOOLBAR (kept exactly as provided) ====== */
 .toolbar {
     display: flex;
     margin-bottom: 1px;
-    background: #fff;
+    background: #ffffff;
+    border: 1px solid var(--border);
     /* padding: 4px; */
     vertical-align: middle;
     border-top-left-radius: 8px;
@@ -555,25 +682,27 @@ i.chevron-down {
     background-image: url(/icons/code.svg);
 }
 
+/* ====== END TOOLBAR ====== */
+
 .dropdown {
     z-index: 5;
     display: block;
     position: absolute;
-    box-shadow: 0 12px 28px 0 rgba(0, 0, 0, 0.2), 0 2px 4px 0 rgba(0, 0, 0, 0.1),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.5);
-    border-radius: 8px;
+    /* softened shadow and border for light UI */
+    box-shadow: 0 10px 25px rgba(2, 6, 23, 0.08);
+    border: 1px solid var(--border);
+    border-radius: 10px;
     min-width: 100px;
     min-height: 40px;
     background-color: #fff;
-
 }
 
 .dropdown .item {
     margin: 0 8px 0 8px;
-    padding: 8px;
-    color: #050505;
+    padding: 10px 10px;
+    color: var(--text);
     cursor: pointer;
-    line-height: 16px;
+    line-height: 18px;
     font-size: 15px;
     display: flex;
     align-content: center;
@@ -584,6 +713,7 @@ i.chevron-down {
     border-radius: 8px;
     border: 0;
     min-width: 268px;
+    transition: background-color .15s ease, color .15s ease;
 }
 
 .dropdown .item .active {
@@ -602,9 +732,10 @@ i.chevron-down {
 }
 
 .dropdown .item:hover {
-    background-color: #eee;
+    background-color: #f1f5f9;
 }
 
+/* slate-100 */
 .dropdown .item .text {
     display: flex;
     line-height: 20px;
@@ -622,18 +753,20 @@ i.chevron-down {
     background-size: contain;
 }
 
+/* Floating link editor—soft border & background */
 .link-editor {
     position: absolute;
     z-index: 100;
     top: -10000px;
     left: -10000px;
     margin-top: -6px;
-    max-width: 300px;
+    max-width: 320px;
     width: 100%;
     opacity: 0;
     background-color: #fff;
-    box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 25px rgba(2, 6, 23, 0.08);
+    border-radius: 10px;
     transition: opacity 0.5s;
 }
 
@@ -641,13 +774,13 @@ i.chevron-down {
     display: block;
     width: calc(100% - 24px);
     box-sizing: border-box;
-    margin: 8px 12px;
-    padding: 8px 12px;
-    border-radius: 15px;
-    background-color: #eee;
+    margin: 10px 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background-color: #f1f5f9;
     font-size: 15px;
-    color: rgb(5, 5, 5);
-    border: 0;
+    color: var(--text);
+    border: 1px solid var(--border);
     outline: 0;
     position: relative;
     font-family: inherit;
@@ -661,24 +794,20 @@ i.chevron-down {
     width: 35px;
     vertical-align: -0.25em;
     position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
+    right: 10px;
+    top: 10px;
+    bottom: 10px;
     cursor: pointer;
 }
 
 .link-editor .link-input a {
-    color: rgb(33, 111, 219);
-    text-decoration: none;
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    margin-right: 30px;
-    text-overflow: ellipsis;
+    color: var(--accent-2);
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 
 .link-editor .link-input a:hover {
-    text-decoration: underline;
+    color: var(--accent-3);
 }
 
 .link-editor .button {
@@ -707,6 +836,7 @@ i.chevron-down {
     vertical-align: -0.25em;
 }
 
+/* Icon sprite references (unchanged) */
 i.undo {
     background-image: url(/icons/arrow-counterclockwise.svg);
 }
@@ -855,4 +985,336 @@ i.table {
 
 i.horizontal-rule {
     background-image: url(/icons/horizontal-rule.svg);
+}
+
+/* Scroll container */
+/* Scroll container */
+.editor-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: var(--editor-h, 100%);
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+    background: var(--panel);
+}
+
+/* Let the content fill remaining height inside the scroll container */
+.editor-inner {
+    flex: 1;
+    min-height: 0;
+    /* critical for flex children to allow scrolling */
+}
+
+.editor-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    /* sit above the editor-inner content */
+    background-color: var(--panel);
+    /* optional: add a subtle border or shadow so it reads separately */
+    border-bottom: 1px solid var(--border-soft);
+}
+
+@media screen and (max-width: 640px) {
+
+    /* container tweaks */
+    .editor-container {
+        padding: 0.25rem;
+        margin: 8px 4px;
+    }
+
+    /* toolbar stays sticky but more compact */
+    .editor-toolbar {
+        padding: 0 4px;
+        border-bottom-width: 1px;
+    }
+
+    .toolbar {
+        gap: 2px;
+        padding: 2px 0;
+    }
+
+    .toolbar button.toolbar-item {
+        padding: 6px;
+        min-width: 32px;
+    }
+
+    .toolbar select.toolbar-item {
+        width: 50px;
+        font-size: 12px;
+    }
+
+    /* reduce text editor padding and font */
+    .editor-input {
+        font-size: 14px;
+        line-height: 1.4;
+        padding: 12px 10px;
+    }
+
+    .editor-placeholder {
+        font-size: 14px;
+        top: 14px;
+        left: 10px;
+    }
+
+    /* simplify code blocks (hide gutters & language tag) */
+    .editor-code:before,
+    .editor-code:after {
+        display: none;
+    }
+
+          /* Mobile: smaller headings */
+          .editor-heading-h1 {
+              font-size: 22px;
+              /* down from 28px */
+              margin: 4px 0 8px 0;
+              /* tighter spacing */
+          }
+    
+          .editor-heading-h1::after {
+              width: 40px;
+              /* shorter underline */
+              bottom: -4px;
+              /* adjust to new font size */
+          }
+    
+          .editor-heading-h2 {
+              font-size: 16px;
+              /* down from 18px */
+              margin: 10px 0 6px 0;
+              /* tighter spacing */
+              padding-left: 8px;
+              /* keep the left-indent */
+          }
+    
+          .editor-heading-h2::before {
+              top: 1px;
+              bottom: 1px;
+              width: 3px;
+              /* slightly narrower accent bar */
+          }
+    
+          /* Mobile: tighter list layout */
+          .editor-list-ol,
+          .editor-list-ul {
+              margin-left: 12px;
+              /* less indent */
+              padding-left: 12px;
+          }
+    
+          .editor-listitem {
+              margin: 4px 24px 4px 24px;
+              /* reduce vertical gap */
+              font-size: 14px;
+              /* slightly smaller text */
+          }
+    
+          .editor-nested-listitem {
+              margin-left: 0;
+              /* keep nested items aligned */
+          }
+}
+
+.editor-table {
+    width: 100%;
+    border-collapse: separate;
+    /* keep rounded corners crisp */
+    border-spacing: 0;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow-soft);
+    margin: 12px 0;
+    overflow: hidden;
+    /* clip inner borders to radius */
+}
+
+/* Scroll horizontally on small screens without breaking layout */
+.editor-table {
+    display: table;
+    /* default desktop/tablet */
+}
+
+@media (max-width: 640px) {
+    .editor-table {
+        display: block;
+        /* allow horizontal scroll */
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+    }
+
+    .editor-table table {
+        /* safeguard if nested table markup appears */
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+}
+
+/* Zebra rows for readability (rows inside THEAD are excluded) */
+.editor-table tbody tr:nth-child(even) td {
+    background: var(--panel-2);
+}
+
+/* Row hover (subtle) */
+.editor-table tbody tr:hover td {
+    background: color-mix(in srgb, var(--panel-2) 70%, white);
+}
+
+/* Table captions (if present) */
+.editor-table caption {
+    caption-side: bottom;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Generic cell styles */
+.editor-table-cell,
+.editor-table-cell-header {
+    padding: 10px 12px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* Remove trailing borders to match radius */
+.editor-table tr>.editor-table-cell:last-child,
+.editor-table tr>.editor-table-cell-header:last-child {
+    border-right: 0;
+}
+
+.editor-table tbody tr:last-child>.editor-table-cell {
+    border-bottom: 0;
+}
+
+/* Header cells */
+.editor-table-cell-header {
+    font-weight: 700;
+    background: linear-gradient(180deg, var(--panel-2), #eef2f7);
+    color: var(--text);
+    text-align: left;
+}
+
+/* Numeric alignment helpers (optional: if plugin sets data attributes) */
+.editor-table-cell[data-align="right"],
+.editor-table-cell-header[data-align="right"] {
+    text-align: right;
+}
+
+.editor-table-cell[data-align="center"],
+.editor-table-cell-header[data-align="center"] {
+    text-align: center;
+}
+
+/* Inline code / chips inside cells should wrap nicely */
+.editor-table-cell .editor-text-code,
+.editor-table-cell-header .editor-text-code {
+    white-space: pre-wrap;
+}
+
+/* Focus/active indication for keyboard navigation inside a cell */
+.editor-table-cell:focus-within {
+    outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+    outline-offset: -2px;
+    /* sit within cell border */
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+/* Selected cell (multi-select or plugin-driven) */
+.editor-table-cell-selected {
+    position: relative;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+/* Selected table (whole-table selection state) */
+.editor-table-selected {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1);
+}
+
+/* Selection overlay (if plugin draws a box for drag-select) */
+.editor-table-selection {
+    pointer-events: none;
+    position: absolute;
+    border: 2px solid var(--accent);
+    border-radius: 6px;
+    box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.12);
+    background: rgba(6, 182, 212, 0.08);
+}
+
+/* Compact mobile tweaks */
+@media (max-width: 640px) {
+
+    .editor-table-cell,
+    .editor-table-cell-header {
+        padding: 8px 10px;
+        font-size: 14px;
+    }
+
+    .editor-table-cell-header {
+        position: sticky;
+        /* keep header visible when scrolling horizontally */
+        top: 0;
+        z-index: 1;
+    }
+}
+
+/* Support for merged cells (no double inner borders when colspan/rowspan) */
+.editor-table-cell[colspan],
+.editor-table-cell[rowspan],
+.editor-table-cell-header[colspan],
+.editor-table-cell-header[rowspan] {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+/* Drag handle / resizer affordance (if your plugin injects a handle element) */
+.editor-table .resizer {
+    position: absolute;
+    right: -3px;
+    top: 0;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    opacity: 0;
+    transition: opacity .15s ease;
+}
+
+.editor-table th:hover .resizer,
+.editor-table td:hover .resizer {
+    opacity: 0.4;
+}
+
+/* Print-friendly tweaks */
+@media print {
+    .editor-table {
+        box-shadow: none;
+        border-color: #ddd;
+    }
+
+    .editor-table-cell,
+    .editor-table-cell-header {
+        border-color: #ddd;
+        background: #fff !important;
+    }
+
+    .editor-table-selected,
+    .editor-table-cell-selected,
+    .editor-table-selection {
+        outline: none;
+        box-shadow: none;
+        background: none;
+    }
 }

@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
 import toast from "react-hot-toast";
 import NewsCard from "@/components/NewsCard";
 import axios from "axios";
 import { ALL_DOMAINS } from "./ManageCompanyList";
-import { ACCESS_PERMISSION, News, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG } from "@prisma/client";
+import { ACCESS_PERMISSION, news, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG } from "@prisma/client";
 import { ArrowUturnLeftIcon } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
+import { debounceAsync } from "@/utils/debounce";
+import { getNewsOnQuery } from "@/lib/api/manage_news";
 
-export default function ManageNews() {
+export default function LatestNews() {
 
-    const [newsList, setNewsList] = useState<News[]>([]);
+    const [newsList, setNewsList] = useState<news[]>([]);
     const [search, setSearch] = useState("");
     const [selectedDomain, setSelectedDomain] = useState("ALL");
     const [dateRange, setDateRange] = useState({ from: "", to: "" });
@@ -22,77 +24,47 @@ export default function ManageNews() {
     const [newsSubdomainTag, setNewsSubdomainTag] = useState("ALL");
 
 
-    const fetchNews = async () => {
-        try {
-            setIsRefreshing(true);
+    const buildQuery = useCallback(
+        (overrides?: { id?: number; search?: string }) => {
+            const q = new URLSearchParams();
+            const s = overrides?.search ?? search;
 
-            const query = new URLSearchParams();
+            if (selectedDomain !== "ALL") q.append("domain", selectedDomain);
+            if (s.trim()) q.append("title", s.trim());
+            if (dateRange.from) q.append("from", dateRange.from);
+            if (dateRange.to) q.append("to", dateRange.to);
+            if (newsDomainTag !== "ALL") q.append("domain_tag", newsDomainTag);
+            if (newsSubdomainTag !== "ALL") q.append("subdomain_tag", newsSubdomainTag);
+            if (overrides?.id) q.append("id", String(overrides.id));
 
-            if (selectedDomain !== "ALL") query.append("domain", selectedDomain);
-            if (search.trim()) query.append("title", search);
-            if (dateRange.from) query.append("from", dateRange.from);
-            if (dateRange.to) query.append("to", dateRange.to);
-            if (newsDomainTag !== "ALL") query.append("domain_tag", newsDomainTag);
-            if (newsSubdomainTag !== "ALL") query.append("subdomain_tag", newsSubdomainTag);
+            return q;
+        },
+        [
+            selectedDomain,
+            search,
+            dateRange.from,
+            dateRange.to,
+            newsDomainTag,
+            newsSubdomainTag,
+        ]
+    );
 
-            const res = await axios.get("/api/news", {
-                params: query,
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-access-permission": ACCESS_PERMISSION.ENABLE_NEWS
-                },
-            });
+    const debouncedRefresh = useMemo(
+        () =>
+            debounceAsync(async (opts?: { id?: number; search?: string }) => {
+                setIsRefreshing(true);
+                try {
+                    const q = buildQuery(opts);
+                    const data = await getNewsOnQuery(q);
+                    setNewsList(data);
+                } finally {
+                    setIsRefreshing(false);
+                }
+            }, 400),
+        [buildQuery]
+    );
 
-            if (!res.data.success) {
-                toast.error(res.data.error)
-                return;
-            }
-
-            setNewsList(res.data.newsList);
-        } catch (err: any) {
-            toast.error("Failed to load news");
-        } finally {
-            setTimeout(() => setIsRefreshing(false), 400);
-        }
-    };
-
-    const fetchNewsOnId = async (id: string) => {
-        try {
-            setIsRefreshing(true);
-
-            const query = new URLSearchParams();
-
-            if (selectedDomain !== "ALL") query.append("domain", selectedDomain);
-            if (search.trim()) query.append("title", search);
-            if (dateRange.from) query.append("from", dateRange.from);
-            if (dateRange.to) query.append("to", dateRange.to);
-            if (newsDomainTag !== "ALL") query.append("domain_tag", newsDomainTag);
-            if (newsSubdomainTag !== "ALL") query.append("subdomain_tag", newsSubdomainTag);
-
-            const res = await axios.get(`/api/news?id=${id}`, {
-                params: query,
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-access-permission": "MANAGE_NEWS"
-                },
-            });
-
-            const { news } = res.data;
-
-            if (news) {
-                setNewsList((prevList) =>
-                    prevList.map((item) =>
-                        item.id === news.id ? news : item
-                    )
-                );
-            }
-
-        } catch {
-            toast.error("Failed to load news");
-        } finally {
-            setTimeout(() => setIsRefreshing(false), 400);
-        }
-    };
+    const fetchNews = useCallback(() => debouncedRefresh(), [debouncedRefresh]);
 
     useEffect(() => {
         const timeout = setTimeout(() => {
@@ -103,7 +75,7 @@ export default function ManageNews() {
     }, [search]);
 
     const groupedNews = useMemo(() => {
-        const grouped: Record<string, News[]> = {};
+        const grouped: Record<string, news[]> = {};
 
         newsList.forEach((item) => {
             const date = format(new Date(item.created_at), "yyyy-MM-dd");
@@ -268,14 +240,14 @@ export default function ManageNews() {
 
                             {/* News Cards in 3-column layout */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {newsItems.map((news: News) => (
+                                {newsItems.map((news: news) => (
                                     <div key={`${news.id}-${news.updated_at}`}>
                                         <NewsCard
                                             news={news}
-                                            fetchAllNews={fetchNews}
-                                            fetchNewsOnId={fetchNewsOnId}
                                             search={search}
                                             is_read={true}
+                                            OnNewsDelete={() => {}}
+                                            OnNewsUpdate={()=>{}}
                                         />
                                     </div>
                                 ))}

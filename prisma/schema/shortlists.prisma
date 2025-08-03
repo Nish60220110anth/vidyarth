@@ -20,4 +20,6 @@ model shortlist {
   updated_at   DateTime       @updatedAt
   
   notification notification[]
+
+   @@unique([shortlist_id, company_id], name: "shortlist_unique_pair")
 }

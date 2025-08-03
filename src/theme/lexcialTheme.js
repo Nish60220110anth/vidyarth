@@ -19,6 +19,12 @@ const lexicalTheme = {
         ul: "editor-list-ul",
         listitem: "editor-listitem"
     },
+    table: 'editor-table',
+    tableCell: 'editor-table-cell',
+    tableCellHeader: 'editor-table-cell-header',
+    tableCellSelected: 'editor-table-cell-selected',
+    tableSelected: 'editor-table-selected',
+    tableSelection: 'editor-table-selection',
     image: "editor-image",
     link: "editor-link",
     text: {

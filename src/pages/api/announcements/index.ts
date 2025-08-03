@@ -4,8 +4,9 @@ import { ACCESS_PERMISSION } from "@prisma/client";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { getIronSession, IronSessionData } from "iron-session";
 import { sessionOptions } from "@/lib/session";
-import { getFieldValue } from "@/utils/parseApiField";
 import { apiHelpers } from "@/lib/server/responseHelpers";
+import { z } from "zod";
+import { ToInt } from "@/lib/server/zod_utils";
 
 // GET: ?userId=123
 // POST: { userId, title, brief, is_link, where_to_look, link_name }
@@ -14,41 +15,69 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
         permissions: [
             ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY,
+            ACCESS_PERMISSION.ENABLE_PROFILE,
+            ACCESS_PERMISSION.MANAGE_ANNOUNCEMENTS
         ],
         filters: {
             [ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY]: {
+                priority: 2,
+                filter: {},
+            },
+            [ACCESS_PERMISSION.ENABLE_PROFILE]: {
+                priority: 2,
+                filter: {},
+            },
+            [ACCESS_PERMISSION.MANAGE_ANNOUNCEMENTS]: {
                 priority: 1,
                 filter: {},
-            }
+            },
         },
     }
 };
 
+const GetQuerySchema = z.object({
+    userId: ToInt.refine((val) => val > 0, {
+        message: "userId must be a positive integer",
+    }),
+}).strict();
+
+const PostBodySchema = z.object({
+    userId: ToInt.refine((val) => val > 0, {
+        message: "userId must be a positive integer",
+    }),
+    title: z.string().min(1, "Title is required"),
+    brief: z.string().min(1, "Brief is required"),
+    is_link: z.boolean(),
+    where_to_look: z.string().min(1, "Where to look is required"),
+    link_name: z.string().min(1, "Link name is required"),
+}).strict();
+
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
         if (req.method === "GET") {
-            const { userId } = req.query;
+            const parsedQuery = GetQuerySchema.safeParse(req.query);
+
+            if (!parsedQuery.success) {
+                apiHelpers.badRequest(res, `Invalid query parameters: ${parsedQuery.error.message}`);
+                return;
+            }
 
             const session: IronSessionData = await getIronSession<IronSessionData>(req, res, sessionOptions);
 
             const user = await prisma.user.findUnique({
                 where: {
-                    id: parseInt(getFieldValue(userId))
+                    id: parsedQuery.data.userId
                 }
             })
 
-            if (user?.email_id !== session.email) {
-                apiHelpers.forbidden(res, "Your not allowed to get this data")
+            if ((user?.email_id !== session.email) || !user?.is_active || !user?.is_verified) {
+                apiHelpers.forbidden(res, "You do not have permission to access this user's announcements");
                 return;
-            }
-
-            if (!userId || Array.isArray(userId)) {
-                return res.status(400).json({ error: "Missing or invalid userId" });
             }
 
             const announcements = await prisma.announcements.findMany({
                 where: {
-                    userId: parseInt(userId),
+                    userId: parsedQuery.data.userId,
                 },
                 orderBy: {
                     created_at: "desc",
@@ -58,17 +87,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             apiHelpers.success(res, { data: announcements })
             return;
         }
+        else if (req.method === "POST") {
 
-        if (req.method === "POST") {
-            const { userId, title, brief, is_link, where_to_look, link_name } = req.body;
-
-            if (!userId || !title || !brief || !is_link || !where_to_look) {
-                return res.status(400).json({ error: "All fields are required" });
+            const parsedBody = PostBodySchema.safeParse(req.body);
+            if (!parsedBody.success) {
+                apiHelpers.badRequest(res, `Invalid request body: ${parsedBody.error.message}`);
+                return;
             }
+
+            const { userId, title, brief, is_link, where_to_look, link_name } = parsedBody.data;
 
             const newAnnouncement = await prisma.announcements.create({
                 data: {
-                    userId: parseInt(userId),
+                    userId,
                     title,
                     brief,
                     is_link,

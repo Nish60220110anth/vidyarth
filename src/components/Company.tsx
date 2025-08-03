@@ -49,49 +49,37 @@ export const PANE_CONFIG: {
         {
             label: "Summary",
             icon: <ChartBarSquareIcon className="w-4 h-4 mr-1" />,
-            component: ({ company_id }) => <SummaryPane props={{
-                company_id: company_id,
-            }} />,
+            component: ({ company_id }) => <SummaryPane props={{ company_id }} />,
             color: "bg-blue-100 text-blue-800",
         },
         {
             label: "Overview",
             icon: <DocumentTextIcon className="w-4 h-4 mr-1" />,
-            component: ({ company_id }) => <OverviewPane props={{
-                company_id: company_id,
-            }} />,
+            component: ({ company_id }) => <OverviewPane props={{ company_id }} />,
             color: "bg-purple-100 text-purple-800",
         },
         {
             label: "News",
             icon: <NewspaperIcon className="w-4 h-4 mr-1" />,
-            component: ({ allNews }) => <NewsPane props={{
-                news: allNews || []
-            }} />,
+            component: ({ allNews }) => <NewsPane props={{ news: allNews || [] }} />,
             color: "bg-yellow-100 text-yellow-800",
         },
         {
             label: "Job Description",
             icon: <ClipboardDocumentListIcon className="w-4 h-4 mr-1" />,
-            component: ({ allJds }) => <JDPane props={{
-                jds: allJds || []
-            }} />,
+            component: ({ allJds }) => <JDPane props={{ jds: allJds || [] }} />,
             color: "bg-green-100 text-green-800",
         },
         {
             label: "Compendium",
             icon: <BookOpenIcon className="w-4 h-4 mr-1" />,
-            component: ({ company_id }) => <CompendiumPane props={{
-                company_id: company_id,
-            }} />,
+            component: ({ company_id }) => <CompendiumPane props={{ company_id }} />,
             color: "bg-red-100 text-red-800",
         },
         {
             label: "Videos",
             icon: <VideoCameraIcon className="w-4 h-4 mr-1" />,
-            component: ({ allVideos }) => <VideoPane props={{
-                videos: allVideos || []
-            }} />,
+            component: ({ allVideos }) => <VideoPane props={{ videos: allVideos || [] }} />,
             color: "bg-indigo-100 text-indigo-800",
         },
         {
@@ -105,37 +93,35 @@ export const PANE_CONFIG: {
 export default function CompanyPage() {
     const router = useRouter();
 
-    // Tab state
     const [activeTab, setActiveTab] = useState<PaneKey>(PANE_CONFIG[0].label);
     const currentTabIndex = PANE_CONFIG.findIndex((p) => p.label === activeTab);
     const [prevTabIndex, setPrevTabIndex] = useState(0);
     const [direction, setDirection] = useState(0);
 
-    // Pane config
     const activePane = PANE_CONFIG.find((p) => p.label === activeTab);
 
-    // Page readiness
     const [isPageReady, setIsPageReady] = useState(false);
 
-    // Company-specific data
     const [companyId, setCompanyId] = useState<number>(0);
     const [allJds, setAllJDS] = useState<Partial<JDEntry>[]>();
     const [allVideos, setAllVideos] = useState<Partial<VideoEntry>[]>();
     const [allNews, setAllNews] = useState<Partial<NewsEntry>[]>();
 
-    // UI flags
     const [isDownloading, setIsDownloading] = useState(false);
 
-    const hasValidJDs = (allJds ?? []).some(jd => jd?.jd_pdf_path);
-    const paneProps: Record<PaneKey, JSX.Element> = useMemo(() => ({
-        "Job Description": <JDPane props={{ jds: allJds || [] }} />,
-        "Videos": <VideoPane props={{ videos: allVideos || [] }} />,
-        "News": <NewsPane props={{ news: allNews || [] }} />,
-        "Overview": <OverviewPane props={{ company_id: companyId }} />,
-        "Summary": <SummaryPane props={{ company_id: companyId }} />,
-        "Compendium": <CompendiumPane props={{ company_id: companyId }} />,
-        "Alum Exp": <AlumExpPane />,
-    }), [allJds, allVideos, allNews, companyId]);
+    const hasValidJDs = (allJds ?? []).some((jd) => jd?.jd_pdf_path);
+    const paneProps: Record<PaneKey, JSX.Element> = useMemo(
+        () => ({
+            "Job Description": <JDPane props={{ jds: allJds || [] }} />,
+            Videos: <VideoPane props={{ videos: allVideos || [] }} />,
+            News: <NewsPane props={{ news: allNews || [] }} />,
+            Overview: <OverviewPane props={{ company_id: companyId }} />,
+            Summary: <SummaryPane props={{ company_id: companyId }} />,
+            Compendium: <CompendiumPane props={{ company_id: companyId }} />,
+            "Alum Exp": <AlumExpPane />,
+        }),
+        [allJds, allVideos, allNews, companyId]
+    );
 
     useEffect(() => {
         if (!router.isReady) return;
@@ -150,11 +136,7 @@ export default function CompanyPage() {
 
             try {
                 const decrypted = await decodeSecureURL(decodeURIComponent(auth));
-                const valid =
-                    decrypted.success &&
-                    decrypted.key.toUpperCase() === "COMPANY" &&
-                    typeof decrypted.id === "number";
-
+                const valid = decrypted.success && decrypted.key.toUpperCase() === "COMPANY" && typeof decrypted.id === "number";
                 setCompanyId(valid ? decrypted.id : 0);
             } catch (err) {
                 console.error("Failed to decode URL", err);
@@ -208,7 +190,7 @@ export default function CompanyPage() {
         if (!companyId || isNaN(companyId)) return;
 
         const fetchCompany = async () => {
-            const res = await fetchCompanyInfo(companyId, ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY)
+            const res = await fetchCompanyInfo(companyId, ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY);
             setCompany(res);
         };
 
@@ -220,12 +202,12 @@ export default function CompanyPage() {
         const fetchVideos = async () => {
             const res = await fetchVideosByCompanyID(companyId);
             setAllVideos(res);
-        }
+        };
 
         const fetchNews = async () => {
             const res = await fetchNewsByCompanyID(companyId);
             setAllNews(res);
-        }
+        };
 
         fetchCompany();
         fetchJDs();
@@ -244,11 +226,9 @@ export default function CompanyPage() {
                 return;
             }
 
-            const getExtension = (path: string): string =>
-                path?.split(".").pop()?.toLowerCase() || "pdf";
-
+            const getExtension = (path: string): string => path?.split(".").pop()?.toLowerCase() || "pdf";
             const getFilename = (jd: Partial<JDEntry>) =>
-                 `${jd.company}_${jd.role}(${jd.cycle_type}_${jd.year}).${getExtension(jd.jd_pdf_path || "")}`;
+                `${jd.company}_${jd.role}(${jd.cycle_type}_${jd.year}).${getExtension(jd.jd_pdf_path || "")}`;
 
             if (entries.length === 1) {
                 const jd = entries[0];
@@ -282,14 +262,11 @@ export default function CompanyPage() {
         }
     };
 
-
     if (!isPageReady) {
         return (
-            <div className="min-h-screen flex flex-col bg-gray-100 font-[Urbanist]">
+            <div className="h-screen flex flex-col bg-gray-100 font-[Urbanist]"> {/* ★ full viewport height while loading */}
                 <div className="sticky top-0 z-40 w-full px-4 sm:px-6 py-4 bg-white shadow-sm flex gap-4 items-center">
-
                     <div className="w-16 h-16 rounded-md bg-gray-200 animate-pulse" />
-
                     <div className="flex flex-col gap-2">
                         <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
                         <div className="flex gap-2 flex-wrap">
@@ -300,11 +277,11 @@ export default function CompanyPage() {
                     </div>
                 </div>
 
-
                 <div className="w-full px-6 py-2 bg-white shadow">
                     <div className="h-6 w-1/2 bg-gray-200 rounded animate-pulse" />
                 </div>
-                <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-y-auto bg-gray-50">
+
+                <div className="flex-1 min-h-0 px-3 sm:px-6 py-3 sm:py-4 overflow-y-auto bg-gray-50"> {/* ★ flex child that scrolls */}
                     <div className="bg-white rounded-xl p-6 shadow-md space-y-4">
                         <div className="h-6 w-3/4 bg-gray-200 animate-pulse rounded" />
                         <div className="h-4 w-full bg-gray-100 animate-pulse rounded" />
@@ -326,20 +303,23 @@ export default function CompanyPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.4 }}
-                className="min-h-screen flex flex-col bg-gray-100 font-[Urbanist] scroll-smooth">
-                {/* Header */}
+                className="
+          h-screen                          /* ★ fill viewport */
+          flex flex-col
+          bg-gray-100 font-[Urbanist]
+          scroll-smooth
+          pt-1                               /* ★ a bit of top padding as requested */
+        "
+            >
+                {/* Header (static above the scrolling area) */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, ease: [0.25, 1, 0.5, 1] }}
-                    className="sticky top-0 z-40 w-full px-4 sm:px-6 py-3 sm:py-4 bg-white shadow-sm flex flex-col 
-                    sm:flex-row justify-between sm:items-start gap-4">
-                    {/* Left: Logo + Info */}
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-white shadow-sm flex flex-col sm:flex-row justify-between sm:items-start gap-4"
+                >
                     <div className="flex items-center gap-4">
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.3, delay: 0.1 }}>
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.3, delay: 0.1 }}>
                             <Image
                                 src={company?.logo_url || "/company-logo/0.png"}
                                 alt="Logo"
@@ -350,21 +330,17 @@ export default function CompanyPage() {
                         </motion.div>
 
                         <div className="flex flex-col">
-                            <motion.h1
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.2 }}
-                                className="text-xl font-bold text-gray-800"
-                            >
+                            <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="text-xl font-bold text-gray-800">
                                 {company?.company_full}
                             </motion.h1>
 
                             <div className="flex flex-wrap gap-1 sm:gap-2 mt-1 justify-center sm:justify-start">
                                 {company?.domains?.map((d, i) => {
-                                    const color = DOMAIN_COLORS[d.domain?.toUpperCase()] || {
-                                        bg: "bg-gray-100",
-                                        text: "text-gray-800",
-                                    };
+                                    const color =
+                                        DOMAIN_COLORS[d.domain?.toUpperCase()] || {
+                                            bg: "bg-gray-100",
+                                            text: "text-gray-800",
+                                        };
 
                                     return (
                                         <motion.span
@@ -378,34 +354,30 @@ export default function CompanyPage() {
                                         </motion.span>
                                     );
                                 })}
-
                             </div>
                         </div>
                     </div>
 
-                    {/* Right: Action Buttons (stacked) */}
                     <motion.div
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="flex flex-col sm:flex-row flex-wrap gap-2 items-center justify-center sm:justify-end w-full sm:w-auto">
+                        className="flex flex-col sm:flex-row flex-wrap gap-2 items-center justify-center sm:justify-end w-full sm:w-auto"
+                    >
                         <div className="relative inline-block">
-                            {/* Button */}
                             <button
                                 onClick={async () => {
                                     if (hasValidJDs) handleDownloadJDs();
                                 }}
                                 disabled={!hasValidJDs}
                                 className={`group flex items-center gap-2 px-4 py-2 rounded-md text-sm shadow-sm transition-all duration-200 ease-out
-        ${hasValidJDs
+                  ${hasValidJDs
                                         ? "border border-gray-300 text-gray-700 bg-white hover:shadow-md hover:ring-1 hover:ring-cyan-400"
                                         : "border border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed"
                                     }`}
                             >
                                 <ArrowDownTrayIcon
-                                    className={`w-4 h-4 transition-transform duration-200 ${hasValidJDs
-                                        ? "text-gray-500 group-hover:-translate-y-0.5"
-                                        : "text-gray-400"
+                                    className={`w-4 h-4 transition-transform duration-200 ${hasValidJDs ? "text-gray-500 group-hover:-translate-y-0.5" : "text-gray-400"
                                         }`}
                                 />
                                 <span
@@ -416,7 +388,6 @@ export default function CompanyPage() {
                                 </span>
                             </button>
 
-                            {/* Badge */}
                             <AnimatePresence>
                                 {Array.isArray(allJds) && allJds.length > 0 && (
                                     <motion.span
@@ -431,9 +402,7 @@ export default function CompanyPage() {
                                     </motion.span>
                                 )}
                             </AnimatePresence>
-
                         </div>
-
 
                         <button
                             onClick={() => toast("Announcements opened")}
@@ -442,14 +411,11 @@ export default function CompanyPage() {
                             <SpeakerWaveIcon className="w-4 h-4 text-white group-hover:-translate-y-0.5 transition-transform duration-200" />
                             <span className="group-hover:brightness-110 transition duration-200">Announcements</span>
                         </button>
-
                     </motion.div>
-
                 </motion.div>
 
-
-                {/* Tabs */}
-                <div className="sticky top-[5.25rem] z-30 w-full bg-white shadow px-6 py-2">
+                {/* Tabs (kept outside the scrolling area) */}
+                <div className="w-full bg-white shadow px-6 py-2">
                     <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
                         {PANE_CONFIG.map((pane) => (
                             <button
@@ -469,13 +435,10 @@ export default function CompanyPage() {
                                         { shallow: true }
                                     );
                                 }}
-
-                                className={`relative flex items-center min-w-max px-3 py-1.5 text-xs sm:text-sm rounded-md
-  transition font-medium uppercase ${activeTab === pane.label
+                                className={`relative flex items-center min-w-max px-3 py-1.5 text-xs sm:text-sm rounded-md transition font-medium uppercase ${activeTab === pane.label
                                         ? `${pane.color} font-semibold after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-current`
                                         : "text-gray-600 hover:bg-gray-100"
                                     }`}
-
                             >
                                 {pane.icon}
                                 {pane.label}
@@ -484,8 +447,14 @@ export default function CompanyPage() {
                     </div>
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-y-auto bg-gray-50 max-h-[calc(100vh-10.5rem)]">
+                {/* Content area is the ONLY scroll container */}
+                <div
+                    className="
+            flex-1 min-h-0 min-w-0             /* ★ allow to grow and shrink, enable child scrolling */
+            px-3 sm:px-6 py-3 sm:py-4
+            overflow-y-auto bg-gray-50
+          "
+                >
                     <AnimatePresence mode="wait" initial={false}>
                         <motion.div
                             key={activeTab}
@@ -495,18 +464,20 @@ export default function CompanyPage() {
                             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                             className="bg-white rounded-xl p-6 shadow-lg"
                         >
-                            {paneProps[activeTab] ?? activePane?.component({})};
+                            {paneProps[activeTab] ?? activePane?.component({})}
                         </motion.div>
                     </AnimatePresence>
                 </div>
 
                 {isDownloading && (
-                    <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
+                    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
+                        {/* ★ fixed, so it covers entire viewport even if content scrolls */}
                         <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
-                        <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">Downloading ...</p>
+                        <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
+                            Downloading ...
+                        </p>
                     </div>
                 )}
-
             </motion.div>
         </>
     );

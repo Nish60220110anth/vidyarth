@@ -32,7 +32,8 @@ import { PlusIcon } from "@heroicons/react/24/solid";
 import CompanySearchDropdown from "./CompanySearchDropDown";
 import PortalWrapper from "./PortableWrapper";
 import { ALL_DOMAINS } from "./ManageCompanyList";
-import { ACCESS_PERMISSION, NEWS_SUBDOMAIN_TAG } from "@prisma/client";
+import { ACCESS_PERMISSION, NEWS_SUBDOMAIN_TAG, news } from "@prisma/client";
+import { deleteNewById, updateNews, uploadImage } from "@/lib/api/manage_news";
 
 const TAG_STYLES: Record<string, { icon: JSX.Element; color: string }> = {
     BUSINESS_ECONOMY: { icon: <ScaleIcon className="w-4 h-4" />, color: "text-gray-800" },
@@ -54,10 +55,10 @@ const TAG_STYLES: Record<string, { icon: JSX.Element; color: string }> = {
 };
 
 
-export default function NewsCard({ news, fetchAllNews, fetchNewsOnId, search,
+export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
     is_read = false
 }: {
-        news: any; fetchAllNews: () => void; fetchNewsOnId: (id: string) => void, search?: string,
+    news: any; search?: string, OnNewsUpdate: (unews: news) => void, OnNewsDelete: (id: number) => void
     is_read: boolean,
 }) {
 
@@ -145,50 +146,42 @@ export default function NewsCard({ news, fetchAllNews, fetchNewsOnId, search,
 
 
     const handleSave = async () => {
-        try {
+        setIsUploading(true);
 
-            setIsUploading(true);
-            await axios.put("/api/news", {
-                id: news.id,
-                title,
-                content,
-                is_active: isActive,
-                is_approved: isApproved,
-                newsTag: domainTag,
-                subdomainTag,
-                domains: domainList,
-                companies: companyList.map((c: any) => c.company.id),
-                link_to_source: link.trim(),
-            }, {
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-access-permission": ACCESS_PERMISSION.MANAGE_NEWS
-                },
-            });
+        const data = {
+            id: news.id,
+            title,
+            content,
+            is_active: isActive,
+            is_approved: isApproved,
+            newsTag: domainTag,
+            subdomainTag,
+            domains: domainList,
+            companies: companyList.map((c: any) => c.company.id),
+            link_to_source: link.trim()
+        };
 
-            if (imageFormData) {
-                const res = await axios.post("/api/news/upload-image", imageFormData, {
-                    headers: {
-                        "x-access-permission": ACCESS_PERMISSION.MANAGE_NEWS
-                    },
-                });
-
-                if(!res.data.success) {
-                    toast.error(res.data.error)
-                    return;
-                }
-
-                setImageFormData(null);
-            }
-
-            setEditMode(false);
-            fetchNewsOnId(news.id);
-        } catch {
-            toast.error("Update failed");
-        } finally {
-            setIsUploading(false);
+        const res = await updateNews(data.id, data);
+        if (res) {
+            OnNewsUpdate(res);
         }
+
+        if (imageFormData) {
+            const res = await uploadImage(imageFormData);
+            if (res) setImageFormData(null);
+        }
+
+        setEditMode(false);
+        setIsUploading(false);
     };
+
+    const handleDelete = async () => {
+        const res = await deleteNewById(news.id);
+        if (res) {
+            OnNewsDelete(news.id);
+        }
+        setShowDeleteConfirm(false);
+    }
 
     const formatDate = (isoString: string) => {
         const date = new Date(isoString);
@@ -216,6 +209,12 @@ export default function NewsCard({ news, fetchAllNews, fetchNewsOnId, search,
         }
     }, [imageFormData]);
 
+    useEffect(() => {
+        if (!showDeleteConfirm) return;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => { document.body.style.overflow = prev; };
+    }, [showDeleteConfirm]);
 
     return (
         <>
@@ -574,48 +573,48 @@ export default function NewsCard({ news, fetchAllNews, fetchNewsOnId, search,
                 }
 
 
-                {!is_read && showDeleteConfirm && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.2 }}
-                            className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full text-center space-y-4"
-                        >
-                            <p className="text-gray-800 text-lg font-medium">Are you sure you want to delete this news?</p>
+                <AnimatePresence>
+                    {!is_read && showDeleteConfirm && (
+                        <PortalWrapper>
+                            <div
+                                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                                onClick={() => setShowDeleteConfirm(false)}
+                            >
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                                    transition={{ duration: 0.18, ease: "easeOut" }}
+                                    className="w-full max-w-sm mx-4 rounded-xl bg-white p-6 shadow-xl"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <p className="text-gray-900 text-lg font-semibold text-center">
+                                        Delete this news?
+                                    </p>
+                                    <p className="mt-1 text-gray-600 text-sm text-center">
+                                        This action cannot be undone.
+                                    </p>
 
-                            <div className="flex justify-center gap-4 mt-4">
-                                <button
-                                    onClick={async () => {
-                                        try {
-                                            await axios.delete("/api/news", {
-                                                params: { id: news.id }, headers: {
-                                                    "x-access-permission": ACCESS_PERMISSION.MANAGE_NEWS
-                                                }
-                                            });
-                                            toast.success("News deleted");
-                                            fetchAllNews();
-                                            setShowDeleteConfirm(false);
-                                        } catch {
-                                            toast.error("Delete failed");
-                                            setShowDeleteConfirm(false);
-                                        }
-                                    }}
-                                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                                >
-                                    Yes, Delete
-                                </button>
-                                <button
-                                    onClick={() => setShowDeleteConfirm(false)}
-                                    className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
-                                >
-                                    Cancel
-                                </button>
+                                    <div className="mt-5 flex justify-center gap-3">
+                                        <button
+                                            onClick={handleDelete}
+                                            className="px-4 py-2.5 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-medium"
+                                        >
+                                            Yes, delete
+                                        </button>
+                                        <button
+                                            onClick={() => setShowDeleteConfirm(false)}
+                                            className="px-4 py-2.5 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </motion.div>
                             </div>
-                        </motion.div>
-                    </div>
-                )}
+                        </PortalWrapper>
+                    )}
+                </AnimatePresence>
+
 
             </motion.div>
 

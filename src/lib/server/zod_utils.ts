@@ -7,7 +7,7 @@ export const ToInt = z.preprocess((v) => {
     const x = asSingle(v);
     const n = typeof x === "number" ? x : Number(x);
     return Number.isFinite(n) ? n : undefined;
-}, z.number().int().positive());
+}, z.number().int());
 
 export const ToBool = z.preprocess((v) => {
     const x = asSingle(v);

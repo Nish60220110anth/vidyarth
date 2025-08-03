@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import { apiHelpers } from "@/lib/server/responseHelpers";
+import z from "zod";
+import { ToInt } from "@/lib/server/zod_utils";
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
@@ -21,16 +23,21 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     }
 };
 
+const GetQuerySchema = z.object({
+    count: ToInt.optional(),
+}).strict();
+
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
         const userSession = await getIronSession<IronSessionData>(req, res, sessionOptions);
-        const rawCount = req.query.count;
-        const count = rawCount ? Number(rawCount) : undefined;
+        const parsedQuery = GetQuerySchema.safeParse(req.query);
 
-        if (rawCount && count && isNaN(count)) {
-            apiHelpers.badRequest(res, "Count should be a number");
+        if (!parsedQuery.success) {
+            apiHelpers.badRequest(res, `Invalid query parameters: ${JSON.stringify(parsedQuery.error)}`);
             return;
         }
+
+        const { count } = parsedQuery.data;
 
         const user = await prisma.user.findUniqueOrThrow({
             where: { email_id: userSession.email },
@@ -65,11 +72,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             take: count
         });
 
-        apiHelpers.success(res, { shortlists })
+        apiHelpers.success(res, { data: shortlists });
         return;
     } catch (error) {
-        console.error("Error fetching user shortlists:", error);
-        return res.status(500).json({ success: false, message: "Internal Server Error" });
+        console.error("Error in server while fetching shortlists:", error);
+        apiHelpers.error(res, "An error occurred while processing your request.");
+        return;
     }
 }
 

@@ -1,45 +1,51 @@
 import { fetchSession, SessionInfo } from "@/utils/api";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { RichTextPane } from "./RichTextPane";
-import axios from "axios";
 import { ACCESS_PERMISSION, DOMAIN } from "@prisma/client";
 import { useIsMobile } from "@/hooks/useMobile";
 import { convertListsToParagraphs } from "@/utils/convertListToPara";
 import { motion } from "framer-motion";
-import { CheckCircleIcon, PencilSquareIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import {
+    CheckCircleIcon,
+    PencilSquareIcon,
+    XCircleIcon,
+    ArrowPathIcon,
+} from "@heroicons/react/24/solid";
 import { DOMAIN_COLORS } from "./ManageCompanyList";
 import { useRouter } from "next/router";
+import { fetchPermissions } from "@/lib/api/user";
+import { fetchDomainContent, updateDomainContent } from "@/lib/api/panes/domainprep";
 
-export default function HowToPrepareCV() {
+export default function DomainPrep() {
     const isMobile = useIsMobile();
     const router = useRouter();
 
     const [session, setSession] = useState<SessionInfo | null>(null);
     const [permissions, setPermissions] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedDomain, setSelectedDomain] = useState<DOMAIN>(DOMAIN.CONSULTING);
 
-    const [originalContent, setOriginalContent] = useState<string>("");
+    const [originalContent, setOriginalContent] = useState<Partial<Record<DOMAIN, string>>>({});
+    const [selectedDomain, setSelectedDomain] = useState<DOMAIN>(DOMAIN.CONSULTING);
     const [content, setContent] = useState<string>("");
 
     const [isEditing, setIsEditing] = useState(false);
 
-    const loadSession = async () => {
+    const loadSession = useCallback(async () => {
         const data = await fetchSession();
         if (!data.success) {
             toast.error("Failed to load session");
             return;
         }
         setSession(data.data);
-    };
+    }, []);
 
     useEffect(() => {
         if (!router.isReady) return;
 
         const domains = Object.keys(DOMAIN).map((p) => p.toLowerCase());
         const tabParam = (router.query.tab as string | undefined)?.toLowerCase();
-        const validTab = domains.find((p) => p.toLowerCase() === tabParam);
+        const validTab = domains.find((p) => p === tabParam);
 
         if (validTab) {
             setSelectedDomain(validTab.toUpperCase() as DOMAIN);
@@ -49,103 +55,91 @@ export default function HowToPrepareCV() {
 
             if (tabParam) {
                 router.replace(
-                    {
-                        pathname: router.pathname,
-                        query: { ...router.query, tab: defaultTab },
-                    },
+                    { pathname: router.pathname, query: { ...router.query, tab: defaultTab } },
                     undefined,
                     { shallow: true }
                 );
             }
         }
-
     }, [router.isReady, router.query.tab]);
 
-    const fetchPermissions = async () => {
-        const res = await axios.get(`/api/permissions`, {
-            headers: {
-                "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
-            }
-        });
-        setPermissions(res.data.permissions);
-    };
-
-    const fetchOverviewContent = async () => {
-        try {
-
-            const res = await axios.get(`/api/prep/?rType=domain&d=${selectedDomain}&t=${Date.now()}`, {
-                headers: {
-                    "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
-                }
-            });
-
-            if (!res.data.success) {
-                toast.error(res.data.error);
-                return;
-            }
-
-            setContent(res.data.content);
-            setOriginalContent(res.data.content);
-        } catch (err: any) {
-            toast.error("Error loading content");
-            setContent("");
-            setOriginalContent("");
-        }
-    };
-
-    const saveOverviewContent = async () => {
-        try {
-            const res = await axios.put(`/api/prep`, {
-                content,
-                rType: "domain",
-                d: selectedDomain
-            }, {
-                headers: {
-                    "x-access-permission": ACCESS_PERMISSION.EDIT_COMPANY_INFO,
-                }
-            });
-
-            if (!res.data.success) {
-                toast.error(res.data.error);
-                return;
-            }
-
-            setOriginalContent(content);
-            setIsEditing(false);
-        } catch (err) {
-            toast.error("Failed to save content");
-        }
-    };
-
-    useEffect(() => {
-        const init = async () => {
-            setLoading(true);
-            await loadSession();
-            await fetchPermissions();
-            setLoading(false);
-        };
-        init();
+    const _fetchPermissions = useCallback(async () => {
+        const res = await fetchPermissions();
+        setPermissions(res);
     }, []);
 
-    useEffect(() => {
-        if (session) {
-            fetchOverviewContent();
-        }
-    }, [selectedDomain, session]);
+    const fetchAndCacheDomain = useCallback(
+        async (domain: DOMAIN, opts?: { force?: boolean }) => {
+            const force = !!opts?.force;
+            if (!force && originalContent[domain] !== undefined) {
+                setContent(originalContent[domain] as string);
+                return;
+            }
 
-    const isEditor =
-        session?.role && permissions.includes(ACCESS_PERMISSION.EDIT_COMPANY_INFO);
+            setLoading(true);
+            try {
+                const res = await fetchDomainContent(domain);
+                const payload = res ?? "";
+                setOriginalContent((prev) => ({ ...prev, [domain]: payload }));
+                setContent(payload);
+            } catch {
+                toast.error(`Failed to load content for ${domain}`);
+                setContent("");
+            } finally {
+                setLoading(false);
+            }
+        },
+        [originalContent]
+    );
+
+    useEffect(() => {
+        (async () => {
+            setLoading(true);
+            await loadSession();
+            await _fetchPermissions();
+            setLoading(false);
+        })();
+    }, [loadSession, _fetchPermissions]);
+
+    useEffect(() => {
+        if (!session) return;
+        fetchAndCacheDomain(selectedDomain);
+    }, [session, selectedDomain, fetchAndCacheDomain]);
+
+    const saveOverviewContent = useCallback(async () => {
+        try {
+            const res = await updateDomainContent(selectedDomain, content);
+            if (res) {
+                setOriginalContent((prev) => ({ ...prev, [selectedDomain]: content }));
+                setIsEditing(false);
+                toast.success("Saved");
+            } else {
+                toast.error("Save failed");
+            }
+        } catch {
+            toast.error("Save failed");
+        }
+    }, [selectedDomain, content]);
+
+    const refreshCurrentDomain = useCallback(() => {
+        fetchAndCacheDomain(selectedDomain, { force: true });
+    }, [selectedDomain, fetchAndCacheDomain]);
+
+    const isEditor = session?.role && permissions.includes(ACCESS_PERMISSION.EDIT_COMPANY_INFO);
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[150px] bg-gradient-to-br from-[#0d1b24] to-[#0a141d] border border-cyan-800 rounded-md text-sm text-cyan-300 font-medium gap-3 px-4 py-3 shadow-inner">
-                <svg className="w-4 h-4 animate-spin text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                        d="M12 4v4m0 8v4m8-8h4M4 12H0m16.24-6.24l2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83" />
-                </svg>
-                Loading content...
+            <div className="flex flex-col items-center justify-center min-w-full py-12 bg-gradient-to-r from-cyan-50 to-white border border-cyan-200 rounded-2xl shadow-xl animate-pulse">
+                <div className="flex items-center justify-center w-full py-12">
+                    <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+                <p className="mt-4 text-lg font-semibold text-cyan-700">Loading content…</p>
+                <div className="mt-6 space-y-2 w-3/4">
+                    <div className="h-3 bg-gray-200 rounded-full"></div>
+                    <div className="h-3 bg-gray-200 rounded-full w-5/6"></div>
+                    <div className="h-3 bg-gray-200 rounded-full w-2/3"></div>
+                </div>
             </div>
-
         );
     }
 
@@ -165,12 +159,13 @@ export default function HowToPrepareCV() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="max-h-[calc(100vh-5.5rem)]"
+            className="h-full flex flex-col"              
         >
-            {/* Tabs for domain selection */}
+            {/* Tabs */}
             <div className="sticky top-0 z-20 bg-[#0c0f11] border-b border-cyan-900 px-2 sm:px-6 py-3 overflow-x-auto whitespace-nowrap flex gap-2 backdrop-blur supports-[backdrop-filter]:bg-[#0c0f11]/90">
                 {Object.values(DOMAIN).map((dom) => {
-                    const color = DOMAIN_COLORS[dom] ?? { bg: "bg-cyan-900", text: "text-cyan-300", border: "border-cyan-700" };
+                    const color =
+                        DOMAIN_COLORS[dom] ?? { bg: "bg-cyan-900", text: "text-cyan-300", border: "border-cyan-700" };
                     const isSelected = selectedDomain === dom;
 
                     return (
@@ -179,21 +174,18 @@ export default function HowToPrepareCV() {
                             onClick={() => {
                                 setIsEditing(false);
                                 router.replace(
-                                    {
-                                        pathname: router.pathname,
-                                        query: { ...router.query, tab: dom.toLowerCase() },
-                                    },
+                                    { pathname: router.pathname, query: { ...router.query, tab: dom.toLowerCase() } },
                                     undefined,
                                     { shallow: true }
                                 );
                             }}
                             className={`
-                        text-sm px-4 py-1.5 rounded-full font-medium border transition-all duration-200
-                        ${isSelected
+                text-sm px-4 py-1.5 rounded-full font-medium border transition-all duration-200
+                ${isSelected
                                     ? `${color.bg} ${color.text} ${color.border} border-transparent shadow-sm`
                                     : `bg-[#0c0f11] text-cyan-100 border-cyan-800 hover:${color.bg} hover:${color.text} hover:${color.border}`
                                 }
-                    `}
+              `}
                         >
                             {dom}
                         </button>
@@ -201,11 +193,25 @@ export default function HowToPrepareCV() {
                 })}
             </div>
 
-            {/* Content editor section */}
-            <div className="group bg-[#0a141d] border border-cyan-900 rounded-2xl shadow-lg px-4 sm:px-8 py-0 space-y-4 w-full transition-all duration-300 ease-in-out h-full overflow-hidden">
-                <div className="h-full overflow-y-auto">
+            {/* Content editor card */}
+            <div
+                className="
+          group bg-[#0a141d] border border-cyan-900 rounded-2xl shadow-lg
+          px-4 sm:px-8 py-0 w-full transition-all duration-300 ease-in-out
+          flex flex-col flex-1 min-h-0                  
+        "
+            >
+                <div className="flex flex-col flex-1 min-h-0"> 
                     {isEditor && (
-                        <div className="sticky top-0 z-10 border-b border-cyan-800 py-3 flex flex-col sm:flex-row justify-end items-start sm:items-center gap-2">
+                        <div className="sticky top-0 z-10 border-b border-cyan-800 py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-[#0a141d]">
+                            <button
+                                onClick={refreshCurrentDomain}
+                                className="px-4 py-1.5 text-sm rounded-md border border-cyan-500 text-cyan-300 bg-transparent hover:bg-cyan-900/30 hover:shadow-md transition-all duration-200 font-medium flex items-center gap-2"
+                            >
+                                <ArrowPathIcon className="w-4 h-4" />
+                                Refresh
+                            </button>
+
                             {!isEditing ? (
                                 <button
                                     onClick={() => setIsEditing(true)}
@@ -218,7 +224,7 @@ export default function HowToPrepareCV() {
                                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                                     <button
                                         onClick={() => {
-                                            setContent(originalContent);
+                                            setContent(originalContent[selectedDomain] ?? "");
                                             setIsEditing(false);
                                         }}
                                         className="px-4 py-1.5 text-sm rounded-md border border-red-400 text-red-400 bg-transparent hover:bg-red-800/20 hover:shadow transition-all duration-200 w-full sm:w-auto font-medium flex items-center gap-2"
@@ -238,24 +244,24 @@ export default function HowToPrepareCV() {
                         </div>
                     )}
 
-                    <div className="pb-6">
-                        <RichTextPane
-                            key={selectedDomain}
-                            editable={isEditing}
-                            lexicalState={
-                                !isEditing
-                                    ? isMobile
-                                        ? convertListsToParagraphs(content)
-                                        : content
-                                    : content
-                            }
-                            OnSetContent={(f: string) => setContent(f)}
-                            placeholder={isEditor ? "Enter content here..." : "Content not available yet"}
-                        />
+                    {/* Editor area fills the rest */}
+                    <div className="flex-1 min-h-0 overflow-y-auto pb-6">   {/* ★ grows and scrolls; min-h-0 is critical */}
+                        <div className="h-full">                               {/* ★ ensure 100% height for the editor wrapper */}
+                            <RichTextPane
+                                key={selectedDomain}
+                                editable={isEditing}
+                                lexicalState={
+                                    !isEditing ? (isMobile ? convertListsToParagraphs(content) : content) : content
+                                }
+                                OnSetContent={(f: string) => setContent(f)}
+                                placeholder={isEditor ? "Enter content here..." : "Content not available yet"}
+                            // If RichTextPane supports a className or style for its root, you can enforce height too:
+                            // className="h-full" or style={{ height: '100%' }}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
         </motion.div>
-
     );
 }

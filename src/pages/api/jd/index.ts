@@ -13,6 +13,7 @@ import { z } from "zod";
 import { getActiveCycle } from "@/lib/server/services/cycle";
 import { createDefaultJD, createDefaultJDDomain, deleteDomainsByJDId, deleteJD, getJDByID, updateJD } from "@/lib/server/services/jd";
 import { ToBool, ToDomains, ToInt, ToStr } from "@/lib/server/zod_utils";
+import path from "path";
 
 export const config = {
     api: {
@@ -171,6 +172,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             const orig = file.originalFilename || "jd.pdf"
             const dest = `jds/${Date.now()}-${orig}`;
             const fileRef = bucket.file(dest);
+            const ext = path.extname(file.originalFilename ?? ".pdf");
 
             await new Promise<void>((resolve, reject) => {
                 fs.createReadStream(file.filepath)
@@ -190,6 +192,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             const [signedUrl] = await fileRef.getSignedUrl({
                 action: "read",
                 expires: "03-01-2030",
+                responseDisposition: `inline; filename="document.${ext}"`,
             });
 
             pdf_path = signedUrl;

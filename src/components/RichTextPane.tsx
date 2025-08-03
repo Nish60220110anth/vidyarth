@@ -1,6 +1,6 @@
 'use client';
 
-import { JSX, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 /* Lexical Design System */
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
@@ -8,7 +8,6 @@ import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
-import {InlineImageNode} from "@/plugins/InlineImageNode";
 import { TRANSFORMERS } from "@lexical/markdown";
 
 /* Lexical Plugins Local */
@@ -16,7 +15,7 @@ import TreeViewPlugin from "@/plugins/TreeViewPlugin";
 import ToolbarPlugin from "@/plugins/ToolbarPlugin";
 import AutoLinkPlugin from "@/plugins/AutoLinkPlugin";
 import CodeHighlightPlugin from "@/plugins/CodeHighlightPlugin";
-import ImagePlugin from "@/plugins/InlineImagePlugin";
+import ListMaxIndentLevelPlugin from "@/plugins/ListMaxIndentLevelPlugin";
 
 /* Lexical Plugins Remote */
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -27,7 +26,7 @@ import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
 import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
 import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin";
-import { HorizontalRulePlugin } from '@lexical/react/LexicalHorizontalRulePlugin'
+import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
 
 /* Lexical Others */
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
@@ -36,11 +35,9 @@ import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import { lexicalTheme } from "@/theme/lexcialTheme";
 
 
-import { customLexicalTree } from "@/utils/CustomLexicalTree";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { EditorState, LexicalEditor } from "lexical";
 import { toast } from "react-hot-toast";
-import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
 
 
 function Placeholder(placeholder: { placeholder: string }) {
@@ -120,8 +117,8 @@ function LoadLexicalStatePlugin({
 }
 
 
-export function RichTextPane({ OnSetContent, editable, lexicalState, placeholder }:
-    { OnSetContent?: (arg0: string) => void, editable: boolean, lexicalState?: string, placeholder: string }) {
+export function RichTextPane({ OnSetContent, editable, lexicalState, placeholder, height = '72vh', }:
+    { OnSetContent?: (arg0: string) => void, editable: boolean, lexicalState?: string, placeholder: string, height?: string }) {
 
     const [isMounted, setIsMounted] = useState(false)
 
@@ -138,15 +135,19 @@ export function RichTextPane({ OnSetContent, editable, lexicalState, placeholder
 
     return (
         <div className="font-[Urbanist] flex flex-col items-center justify-center">
-            <LexicalComposer initialConfig={
-                {
-                    ...editorConfig,
-                }
-            }>
-                <div className="editor-container w-full">
-                    {editable && <ToolbarPlugin />}
+            <LexicalComposer initialConfig={{ ...editorConfig }}>
+                <div
+                    className="editor-container w-full"
+                    // style={{ ['--editor-h' as any]: height }}
+                >
+                    {editable && (
+                        <div className="editor-toolbar">
+                            <ToolbarPlugin />
+                        </div>
+                    )}
                     <ReadOnlyPlugin editable={editable} />
                     <LoadLexicalStatePlugin lexicalState={lexicalState} editable={editable} />
+
                     <div className="editor-inner">
                         <RichTextPlugin
                             contentEditable={<ContentEditable className="editor-input w-full" />}
@@ -158,14 +159,14 @@ export function RichTextPane({ OnSetContent, editable, lexicalState, placeholder
                         <AutoFocusPlugin />
                         <CodeHighlightPlugin />
                         <LinkPlugin />
-                        <TabIndentationPlugin />
+                        <TabIndentationPlugin maxIndent={2} />
                         <AutoLinkPlugin />
                         <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
                         <ClearEditorPlugin />
+                        <ListMaxIndentLevelPlugin maxDepth={7} />
                         <OnChangePlugin onChange={OnChange} />
-                        {/* <ImagePlugin captionsEnabled={true}/> */}
-                        {/* <HorizontalRulePlugin /> */}
-                        {process.env.NODE_ENV === "development" && false && <TreeViewPlugin />}
+                        {process.env.NODE_ENV === 'development' && false && <TreeViewPlugin />}
+                        <TablePlugin />
                     </div>
                 </div>
             </LexicalComposer>

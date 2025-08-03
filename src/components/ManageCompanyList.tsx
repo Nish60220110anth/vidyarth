@@ -10,6 +10,7 @@ import { ArrowPathIcon, ArrowUpTrayIcon, CheckCircleIcon, CheckIcon, PencilIcon,
 import { debounce } from "lodash";
 import { fetchCompanyListWithPermission } from "@/lib/api/company";
 import { ACCESS_PERMISSION } from "@prisma/client";
+import { baseUrl } from "@/lib/config";
 
 interface Company {
     id: number;
@@ -169,7 +170,7 @@ export default function ManageCompanyList() {
         let newLogoUrl = originalCompany.logo_url;
 
         try {
-            await axios.put(`/api/company`, {
+            await axios.put(`${baseUrl}/api/company`, {
                 id: editId,
                 company_name: editedCompany.company_name,
                 company_full: editedCompany.company_full,
@@ -181,7 +182,7 @@ export default function ManageCompanyList() {
                 }
             });
 
-            await axios.post("/api/company/set-domain", {
+            await axios.post(`${baseUrl}/api/company/set-domain`, {
                 company_id: editId,
                 domains: editedDomains,
             }, {
@@ -195,7 +196,7 @@ export default function ManageCompanyList() {
                 formData.append("logo", editedLogoFile);
 
                 try {
-                    const res = await axios.post(`/api/company/upload-logo/${editId}`, formData, {
+                    const res = await axios.post(`${baseUrl}/api/company/upload-logo/${editId}`, formData, {
                         headers: {
                             "x-access-permission": "MANAGE_COMPANY_LIST"
                         }
@@ -305,7 +306,7 @@ export default function ManageCompanyList() {
 
     const handleDelete = async (id: number) => {
         try {
-            const res = await axios.delete(`/api/company?cid=${id}`, {
+            const res = await axios.delete(`${baseUrl}/api/company?cid=${id}`, {
                 headers: {
                     "x-access-permission": "MANAGE_COMPANY_LIST"
                 }
@@ -474,7 +475,7 @@ export default function ManageCompanyList() {
 
                         onClick={async () => {
                             try {
-                                const res = await axios.post("/api/company/create-default");
+                                const res = await axios.post(`${baseUrl}/api/company/create-default`);
                                 toast.success("Company added");
                                 await fetchCompanies();
                                 setEditId(res.data.id);

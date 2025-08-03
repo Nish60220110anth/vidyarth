@@ -1,5 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/prisma";
 import { ACCESS_PERMISSION, DOMAIN, USER_ROLE } from "@prisma/client";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { apiHelpers } from "@/lib/server/responseHelpers";
@@ -71,8 +70,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         try {
 
+            const user = await getUserByEmail(session.email);
+
             if (session.role === USER_ROLE.STUDENT) {
-                const user = await getUserByEmail(session.email);
                 const cv_user_id = await getStudentIDByCVId(ncvid);
 
                 if (cv_user_id !== user.id) {
@@ -81,6 +81,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 }
             }
 
+            const existingDomains = (await getStudentCVs(user.id)).map(cv => cv.domain);
+            if (domain && existingDomains.includes(domain as DOMAIN)) {
+                apiHelpers.badRequest(res, `Domain '${domain}' already exists in the CV.`);
+                return;
+            }
             const updated = await updateStudentCV(ncvid, domain, comment);
 
             apiHelpers.success(res, { data: updated })

@@ -10,14 +10,19 @@ interface FetchPermissionsArgs {
     profile_dropdown_items: Record<string, { perm: ACCESS_PERMISSION }>;
 }
 
-export const fetchPermissions = async () => {
+export const fetchPermissions = async (permission: ACCESS_PERMISSION = ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY) => {
     try {
         const res = await axios.get(`${baseUrl}/api/permissions`, {
             headers: {
                 "Content-Type": "application/json",
-                "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY,
+                "x-access-permission": permission,
             },
         });
+
+        if (!res.data.success) {
+            toast.error("Failed to fetch permissions");
+            return [];
+        }
 
         return res.data.permissions || [];
     }

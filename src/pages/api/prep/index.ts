@@ -2,12 +2,14 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import fs from 'fs';
 import path from 'path';
 import { MethodConfig, withPermissionCheck } from '@/lib/server/withPermissionCheck';
-import { ACCESS_PERMISSION, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from '@prisma/client';
+import { ACCESS_PERMISSION, DOMAIN, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_TYPE } from '@prisma/client';
 import { apiHelpers } from '@/lib/server/responseHelpers';
 import crypto from 'crypto'; // For optional ETag
 import { createNotification } from '@/lib/server/notificationSink';
 import { generateSecureURL } from '@/utils/shared/secureUrlApi';
 import { baseUrl } from '@/lib/config';
+import z from 'zod';
+import { defaultEmptyRichText } from '@/utils/defaultEmptyRichText';
 
 const PREP_DIR = path.join(process.cwd(), 'public', 'content', 'prep');
 
@@ -20,62 +22,64 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     }
 };
 
+const GetQuerySchema = z.object({
+    rType: z.enum(['overview', 'domain']),
+    d: z.enum(Object.values(DOMAIN)).optional(),
+});
+
+const PutBodySchema = z.object({
+    rType: z.enum(['overview', 'domain']),
+    content: z.string().min(1, "Content is required"),
+    d: z.enum(Object.values(DOMAIN)).optional(),
+}).strict();
+
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     const { method } = req;
 
     if (method === 'GET') {
-        const { rType, d } = req.query;
+        const parsedQuery = GetQuerySchema.safeParse(req.query);
 
-        if (!rType || typeof rType !== "string") {
-            apiHelpers.badRequest(res, "Missing resource type");
-            return;
-        }
-
-        if (rType === "domain" && !d) {
-            apiHelpers.badRequest(res, "Missing domain type");
+        if (!parsedQuery.success) {
+            apiHelpers.badRequest(res, `Invalid query parameters: ${parsedQuery.error.message}`);
             return;
         }
 
         let filePath = "";
 
-        if (rType === "overview") {
+        if (parsedQuery.data.rType === "overview") {
             filePath = path.join(PREP_DIR, `overview.txt`);
         } else {
-            filePath = path.join(PREP_DIR, `domain-${d}.txt`);
+            filePath = path.join(PREP_DIR, `domain-${parsedQuery.data.d}.txt`);
         }
 
         try {
             if (!fs.existsSync(filePath)) {
                 fs.mkdirSync(PREP_DIR, { recursive: true });
-                fs.writeFileSync(filePath, '{"root":{"children":[{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""}],"direction":null,"format":"","indent":0,"type":"root","version":1}}', 'utf-8');
+                fs.writeFileSync(filePath, defaultEmptyRichText, 'utf-8');
             }
             const content = fs.readFileSync(filePath, 'utf-8');
 
-            const etag = crypto.createHash("md5").update(content + d).digest("hex");
+            const etag = crypto.createHash("md5").update(content + parsedQuery.data.d).digest("hex");
             res.setHeader("ETag", `"${etag}"`);
             res.setHeader("Cache-Control", "public, max-age=300");
             res.setHeader("Vary", "Accept-Encoding");
 
-            apiHelpers.success(res, { content });
+            apiHelpers.success(res, { data: content });
             return;
         } catch (err) {
             apiHelpers.error(res, "File not found", 500);
             return;
         }
     }
+    else if (method === 'PUT') {
+        const parsedBody = PutBodySchema.safeParse(req.body);
 
-    if (method === 'PUT') {
-        const { rType, content, d } = req.body;
-
-        if (!rType || typeof content !== 'string') {
-            apiHelpers.badRequest(res, "companyId and content are required in body");
+        if (!parsedBody.success) {
+            apiHelpers.badRequest(res, `Invalid request body: ${parsedBody.error.message}`);
             return;
         }
 
-        if (rType === "domain" && !d) {
-            apiHelpers.badRequest(res, "Missing domain type");
-            return;
-        }
+        const { rType, content, d } = parsedBody.data;
 
         try {
             let filePath = "";
@@ -98,8 +102,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                 if (secureUrlResp.success) {
                     createNotification({
-                        type: NOTIFICATION_TYPE.PREP,
-                        subtype: NOTIFICATION_SUBTYPE.UPDATED,
+                        type: NOTIFICATION_TYPE.CV_PREP,
+                        initiator: NOTIFICATION_SOURCE_INITIATOR.UPDATED,
                         links: [{
                             link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}`,
                             link_name: "cv_prep_link"
@@ -107,13 +111,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     });
                 } else {
                     console.error(secureUrlResp.error)
+                    apiHelpers.error(res, "Failed to generate secure URL", 500);
+                    return;
                 }
             } else {
                 const secureUrlResp = await generateSecureURL("DOMAIN_PREP", 0)
                 if (secureUrlResp.success) {
                     createNotification({
-                        type: NOTIFICATION_TYPE.PREP,
-                        subtype: NOTIFICATION_SUBTYPE.UPDATED,
+                        type: NOTIFICATION_TYPE.DOMAIN_PREP,
+                        initiator: NOTIFICATION_SOURCE_INITIATOR.UPDATED,
                         domain: d,
                         links: [{
                             link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=${d}`,
@@ -122,10 +128,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     });
                 } else {
                     console.error(secureUrlResp.error)
+                    apiHelpers.error(res, "Failed to generate secure URL", 500);
+                    return;
                 }
             }
 
-            apiHelpers.success(res, {});
+            apiHelpers.success(res, {data: content});
             return;
         } catch (err) {
             apiHelpers.error(res, "Failed to write file", 500);

@@ -1,11 +1,8 @@
 // pages/api/auth/google-login.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { sessionOptions } from '@/lib/session';
 import { getIronSession, IronSession, IronSessionData } from 'iron-session';
-
-const prisma = new PrismaClient();
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') return res.status(405).end();
 
@@ -14,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!email || !name) return res.status(400).json({ error: 'Invalid request' });
 
     const existingUser = await prisma.user.findUnique({ where: { email_id: email } });
-
+ 
     if (existingUser) {
         if (existingUser.is_active && existingUser.is_verified) {
             const session: IronSession<IronSessionData> = await getIronSession(req, res, sessionOptions);
@@ -37,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: {
             email_id: email,
             name,
-            role: 'STUDENT', // or assign default
+            role: 'STUDENT',
             is_active: true,
             is_verified: false,
             password: '',

@@ -14,4 +14,6 @@ model company_compendium_pdf_path {
   pdf_name      String
   firebase_path String
   compendium    company_compendium @relation("compendiumpdfpaths", fields: [compendium_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([compendium_id])
 }

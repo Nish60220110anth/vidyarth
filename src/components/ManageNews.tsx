@@ -1,18 +1,17 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { motion } from "framer-motion";
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
-import toast from "react-hot-toast";
 import NewsCard from "@/components/NewsCard";
-import axios from "axios";
 import { ALL_DOMAINS } from "./ManageCompanyList";
-import { News, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG } from "@prisma/client";
-
+import { news, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG } from "@prisma/client";
+import { createDefaultNews, getNewsOnQuery } from "../lib/api/manage_news";
+import { debounceAsync } from "@/utils/debounce";
 
 export default function ManageNews() {
     const router = useRouter();
 
-    const [newsList, setNewsList] = useState<News[]>([]);
+    const [newsList, setNewsList] = useState<news[]>([]);
     const [search, setSearch] = useState("");
     const [selectedDomain, setSelectedDomain] = useState("ALL");
     const [dateRange, setDateRange] = useState({ from: "", to: "" });
@@ -23,95 +22,69 @@ export default function ManageNews() {
     const [newsDomainTag, setNewsDomainTag] = useState("ALL");
     const [newsSubdomainTag, setNewsSubdomainTag] = useState("ALL");
 
+    const buildQuery = useCallback(
+        (overrides?: { id?: number; search?: string }) => {
+            const q = new URLSearchParams();
+            const s = overrides?.search ?? search;
 
-    const fetchNews = async () => {
-        try {
-            setIsRefreshing(true);
+            if (selectedDomain !== "ALL") q.append("domain", selectedDomain);
+            if (s.trim()) q.append("title", s.trim());
+            if (dateRange.from) q.append("from", dateRange.from);
+            if (dateRange.to) q.append("to", dateRange.to);
+            if (isActive !== "ALL") q.append("is_active", isActive);
+            if (isApproved !== "ALL") q.append("is_approved", isApproved);
+            if (newsDomainTag !== "ALL") q.append("domain_tag", newsDomainTag);
+            if (newsSubdomainTag !== "ALL") q.append("subdomain_tag", newsSubdomainTag);
+            if (overrides?.id) q.append("id", String(overrides.id));
 
-            const query = new URLSearchParams();
+            return q;
+        },
+        [
+            selectedDomain,
+            search,
+            dateRange.from,
+            dateRange.to,
+            isActive,
+            isApproved,
+            newsDomainTag,
+            newsSubdomainTag,
+        ]
+    );
 
-            if (selectedDomain !== "ALL") query.append("domain", selectedDomain);
-            if (search.trim()) query.append("title", search);
-            if (dateRange.from) query.append("from", dateRange.from);
-            if (dateRange.to) query.append("to", dateRange.to);
-            if (isActive !== "ALL") query.append("is_active", isActive);
-            if (isApproved !== "ALL") query.append("is_approved", isApproved);
-            if (newsDomainTag !== "ALL") query.append("domain_tag", newsDomainTag);
-            if (newsSubdomainTag !== "ALL") query.append("subdomain_tag", newsSubdomainTag);
+    const debouncedRefresh = useMemo(
+        () =>
+            debounceAsync(async (opts?: { id?: number; search?: string }) => {
+                setIsRefreshing(true);
+                try {
+                    const q = buildQuery(opts);
+                    const data = await getNewsOnQuery(q);
+                    setNewsList(data);
+                } finally {
+                    setIsRefreshing(false);
+                }
+            }, 400),
+        [buildQuery]
+    );
 
-            const res = await axios.get("/api/news", {
-                params: query,
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-access-permission": "MANAGE_NEWS"
-                },
-            });
-
-            const { newsList } = res.data;
-            setNewsList(newsList);
-        } catch {
-            toast.error("Failed to load news");
-        } finally {
-            setTimeout(() => setIsRefreshing(false), 400);
-        }
-    };
-
-    const fetchNewsOnId = async (id: string) => {
-        try {
-            setIsRefreshing(true);
-
-            const query = new URLSearchParams();
-
-            if (selectedDomain !== "ALL") query.append("domain", selectedDomain);
-            if (search.trim()) query.append("title", search);
-            if (dateRange.from) query.append("from", dateRange.from);
-            if (dateRange.to) query.append("to", dateRange.to);
-            if (isActive !== "ALL") query.append("is_active", isActive);
-            if (isApproved !== "ALL") query.append("is_approved", isApproved);
-            if (newsDomainTag !== "ALL") query.append("domain_tag", newsDomainTag);
-            if (newsSubdomainTag !== "ALL") query.append("subdomain_tag", newsSubdomainTag);
-
-            const res = await axios.get(`/api/news?id=${id}`, {
-                params: query,
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-access-permission": "MANAGE_NEWS"
-                },
-            });
-
-            const { news } = res.data;
-
-            if (news) {
-                setNewsList((prevList) =>
-                    prevList.map((item) =>
-                        item.id === news.id ? news : item
-                    )
-                );
-            }
-
-        } catch {
-            toast.error("Failed to load news");
-        } finally {
-            setTimeout(() => setIsRefreshing(false), 400);
-        }
-    };
-
+    const fetchNews = useCallback(() => debouncedRefresh(), [debouncedRefresh]);
+    const fetchNewsOnId = useCallback((id: number) => debouncedRefresh({ id }), [debouncedRefresh]);
 
     useEffect(() => {
-        const timeout = setTimeout(() => {
-            fetchNews();
-        }, 400);
-
-        return () => clearTimeout(timeout);
-    }, [search]);
-
-
-    useEffect(() => {
-        fetchNews();
-    }, [selectedDomain, isActive, isApproved, dateRange, newsDomainTag, newsSubdomainTag, isRefreshing]);
+        debouncedRefresh({ search });
+    }, [
+        selectedDomain,
+        search,
+        dateRange.from,
+        dateRange.to,
+        isActive,
+        isApproved,
+        newsDomainTag,
+        newsSubdomainTag,
+        debouncedRefresh,
+    ]);
 
     return (
-        <div className="p-6 md:p-10 bg-gray-100 h-full">
+        <div className="p-6 md:p-10 bg-gray-100 min-h-full">
             <div className="sticky top-0 z-10 bg-gray-100 pb-4">
 
                 {/* Breadcrumbs */}
@@ -131,6 +104,7 @@ export default function ManageNews() {
                 >
                     Manage News
                 </motion.h1>
+
 
                 {/* Controls */}
                 <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -231,26 +205,9 @@ export default function ManageNews() {
                     {/* Right section: Add button */}
                     <button
                         onClick={async () => {
-                            try {
-                                const res = await axios.post("/api/news", {
-                                    is_default: true,
-                                }, {
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                        "x-access-permission": "MANAGE_NEWS"
-                                    }
-                                });
-
-                                const { success, error } = res.data;
-
-                                if (success) {
-                                    toast.success("Default News created");
-                                    fetchNews();
-                                } else {
-                                    toast.error(error || "Failed to add news");
-                                }
-                            } catch (err) {
-                                toast.error("Failed to add news");
+                            const res = await createDefaultNews();
+                            if (res) {
+                                setNewsList([...newsList, res]);
                             }
                         }}
                         className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-md text-sm font-medium shadow transition"
@@ -300,27 +257,39 @@ export default function ManageNews() {
 
             </div>
 
-            {/* News card grid or list will go here */}
-            <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6 mt-4">
-                {newsList.length > 0 ? (
-                    newsList.map((news: News) => (
-                        <div key={`${news.id}-${news.updated_at}`} className="break-inside-avoid">
-                            <NewsCard
-                                news={news}
-                                fetchAllNews={fetchNews}
-                                fetchNewsOnId={fetchNewsOnId}
-                                search={search}
-                                is_read={false}
-                            />
+            <div className="md:max-h-[65vh] overflow-y-auto pr-1">
+                {/* News card grid or list will go here */}
+                <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6 mt-4">
+                    {newsList.length > 0 ? (
+                        newsList.map((news: news) => (
+                            <div key={`${news.id}-${news.updated_at}`} className="break-inside-avoid">
+                                <NewsCard
+                                    news={news}
+                                    search={search}
+                                    is_read={false}
+                                    OnNewsDelete={(id) => {
+                                        setNewsList(newsList.filter((g) => g.id !== id));
+                                    }}
+                                    OnNewsUpdate={(unews) => {
+                                        console.log(unews)
+                                        setNewsList(newsList.map((g) => {
+                                            if (g.id === unews.id) {
+                                                return unews;
+                                            } else {
+                                                return g;
+                                            }
+                                        }))
+                                    }}
+                                />
+                            </div>
+                        ))
+                    ) : (
+                        <div className="col-span-full w-full flex justify-center items-center py-10 text-cyan-700 text-base font-medium italic">
+                            No news found. Try changing filters or adding a news item.
                         </div>
-                    ))
-                ) : (
-                    <div className="col-span-full w-full flex justify-center items-center py-10 text-cyan-700 text-base font-medium italic">
-                        No news found. Try changing filters or adding a news item.
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
-
         </div>
     );
 }

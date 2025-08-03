@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { ACCESS_PERMISSION, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@prisma/client";
+import { ACCESS_PERMISSION, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@prisma/client";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { prisma } from "@/lib/prisma";
 import { apiHelpers } from "@/lib/server/responseHelpers";
@@ -120,7 +120,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             where: { id }
         });
 
-        apiHelpers.success(res, { success: true });
+        apiHelpers.success(res, { });
         return;
     }
     else if (req.method === "PUT") {
@@ -137,17 +137,24 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             is_featured: true,
         });
 
+        await updateCompanyById(id, {
+            company_name,
+            company_full,
+            is_featured,
+            is_legacy
+        });
+
         if (oldRes) {
             const secureUrlResp = await generateSecureURL("COMPANY", id)
 
             if (secureUrlResp.success) {
                 createNotification({
                     type: NOTIFICATION_TYPE.COMPANY,
-                    subtype: NOTIFICATION_SUBTYPE.ADDED,
+                    initiator: NOTIFICATION_SOURCE_INITIATOR.ADDED,
                     companyId: id,
                     links: [{
                         link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Overview`,
-                        link_name: `${company_full} Link`
+                        link_name: `${company_full}_link`
                     }]
                 });
             } else {
@@ -157,18 +164,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             }
         }
 
-        await updateCompanyById(id, {
-            company_name,
-            company_full,
-            is_featured,
-            is_legacy
-        });
-
-        apiHelpers.success(res, { success: true });
+        apiHelpers.success(res, {});
         return;
     }
-
-    res.status(405).json({ error: "Method not allowed", success: false });
 }
 
 export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

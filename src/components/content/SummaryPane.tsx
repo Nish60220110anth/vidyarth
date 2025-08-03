@@ -16,7 +16,7 @@ export default function SummaryPane({ props }: { props: SummaryEntry }) {
     const [content, setContent] = useState<string>("");
 
 
-    const test_debug = true;
+    const test_debug = false;
 
     const loadSession = async () => {
         const data = await fetchSession();
@@ -41,7 +41,7 @@ export default function SummaryPane({ props }: { props: SummaryEntry }) {
                 return;
             }
 
-            setContent(res.data);
+            setContent(res.data.summary);
 
         } catch (err: any) {
             toast.error(err)

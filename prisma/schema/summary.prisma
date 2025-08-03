@@ -4,5 +4,7 @@ model summary {
   companyId Int @unique
   company   company @relation("SummaryCompany", fields: [companyId], references: [id])
 
-  summary String @db.Text
+  summary String @db.MediumText
+
+  is_changed Boolean @default(false)
 }

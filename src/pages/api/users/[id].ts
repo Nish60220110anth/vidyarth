@@ -1,8 +1,6 @@
 // /pages/api/users/[id].ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ACCESS_PERMISSION, PrismaClient } from '@prisma/client';
-import { getIronSession, IronSessionData } from 'iron-session';
-import { sessionOptions } from '@/lib/session';
+import { ACCESS_PERMISSION } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { MethodConfig, withPermissionCheck } from '@/lib/server/withPermissionCheck';
 
@@ -16,7 +14,7 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     delete: {
         permissions: [ACCESS_PERMISSION.ADMIN],
     }
-};
+}; 
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     const userId = parseInt(req.query.id as string);
@@ -156,5 +154,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
 }
 
-// export default withPermissionCheck(METHOD_PERMISSIONS)(handler);
 export default handler;

@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { apiHelpers } from "@/lib/server/responseHelpers";
 import { getFieldValue } from "@/utils/parseApiField";
+import { z } from "zod";
+import { ToInt } from "@/lib/server/zod_utils";
 
 export const config = {
     api: {
@@ -50,20 +52,26 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     },
 };
 
-type ExtendedNextApiRequest = NextApiRequest & {
-    query: {
-        id?: string;
-        domain?: string;
-        title?: string;
-        from?: string;
-        to?: string;
-        is_active?: string;
-        is_approved?: string;
-    };
-};
+
+const GetQuerySchema = z.object({
+    id: ToInt.optional(),
+    cid: ToInt.optional(),
+    domain: z.enum(DOMAIN).optional(),
+    title: z.string().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+    is_active: z.boolean().optional(),
+    is_approved: z.boolean().optional(),
+    domain_tag: z.enum(NEWS_DOMAIN_TAG).optional(),
+    subdomain_tag: z.enum(NEWS_SUBDOMAIN_TAG).optional(),
+});
+
+const DeleteQuerySchema = z.object({
+    id: ToInt,
+});
 
 async function handler(
-    req: ExtendedNextApiRequest,
+    req: NextApiRequest,
     res: NextApiResponse
 ) {
 
@@ -71,12 +79,31 @@ async function handler(
 
     if (req.method === "GET") {
         try {
-            const { domain, title, from, to, domain_tag, subdomain_tag, cid } = req.query;
+
+            const parsedQuery = GetQuerySchema.safeParse(req.query);
+            if (!parsedQuery.success) {
+                apiHelpers.badRequest(res, `Invalid query parameters: ${JSON.stringify(parsedQuery.error)}`);
+                return;
+            }
+
+            const { id, cid, domain, title, from, to, is_active, is_approved, domain_tag, subdomain_tag } = parsedQuery.data;
 
             const permissionFilter = (req as any).filter ?? {};
             const filters: any = {
                 ...permissionFilter,
             };
+
+            if (id !== undefined) {
+                filters.id = id;
+            }
+
+            if (is_active !== undefined) {
+                filters.is_active = is_active;
+            }
+
+            if (is_approved !== undefined) {
+                filters.is_approved = is_approved;
+            }
 
             if (title) {
                 filters.OR = [
@@ -91,11 +118,11 @@ async function handler(
                 if (to) filters.created_at.lte = new Date(`${to}T23:59:59`);
             }
 
-            if (domain_tag && domain_tag !== "ALL") {
+            if (domain_tag) {
                 filters.news_tag = domain_tag as NEWS_DOMAIN_TAG;
             }
 
-            if (subdomain_tag && subdomain_tag !== "ALL") {
+            if (subdomain_tag) {
                 filters.subdomain_tag = subdomain_tag as NEWS_SUBDOMAIN_TAG;
             }
 
@@ -113,7 +140,7 @@ async function handler(
             const newsList = await prisma.news.findMany({
                 where: {
                     ...filters,
-                    ...(domain && domain !== "ALL" && {
+                    ...(domain && {
                         domains: { some: { domain: domain as DOMAIN } },
                     }),
                     ...companyFilter
@@ -139,13 +166,14 @@ async function handler(
             return;
         }
     } else if (req.method === "DELETE") {
-        const id = req.query.id;
-        const newsId = parseInt(getFieldValue(id));
 
-        if (!id) {
-            apiHelpers.badRequest(res, "Invalid ID")
+        const parsedQuery = DeleteQuerySchema.safeParse(req.query);
+        if (!parsedQuery.success) {
+            apiHelpers.badRequest(res, `Invalid query parameters: ${JSON.stringify(parsedQuery.error)}`);
             return;
         }
+
+        const newsId = parsedQuery.data.id;
 
         try {
             const existingNews = await prisma.news.findUnique({
@@ -229,7 +257,18 @@ async function handler(
                 });
             }
 
-            apiHelpers.success(res, { news })
+            const updatedNews = await prisma.news.findUnique({
+                where: { id: news_id },
+                include: {
+                    domains: true,
+                    companies: {
+                        include: {
+                            company: true
+                        }
+                    },
+                }});
+
+            apiHelpers.success(res, { data: updatedNews })
             return;
         } catch (err: any) {
             apiHelpers.error(res, "Failed to update news", 500, { error: err })
@@ -257,8 +296,8 @@ async function handler(
 
                 const news = await prisma.news.create({
                     data: {
-                        title: "News Title",
-                        content: "Enter your news content here",
+                        title: "NEWS TITLE",
+                        content: "",
                         link_to_source: "",
                         news_tag: "OTHER" as NEWS_DOMAIN_TAG,
                         subdomain_tag: "OTHER" as NEWS_SUBDOMAIN_TAG,

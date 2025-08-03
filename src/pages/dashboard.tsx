@@ -1,47 +1,86 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import toast from 'react-hot-toast';
-import Head from 'next/head';
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/router";
+import toast from "react-hot-toast";
 
-import Sidebar from '@/components/Sidebar';
+import Sidebar from "@/components/Sidebar";
+import UserLoadingScreen from "@/components/UserLoadingScreen";
 
+type User = {
+    id: number;
+    email: string;
+    role: string;
+    name: string;
+};
 
 export default function Dashboard() {
-    const [email, setEmail] = useState('');
-    const [role, setRole] = useState('');
-    const [name, setName] = useState('');
-    const [id, setId] = useState(0);
-    const [mounted, setMounted] = useState(false);
     const router = useRouter();
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        setMounted(true);
-        const fetchUser = async () => {
-            const res = await fetch('/api/auth/user');
-            if (res.ok) {
-                const data = await res.json();
-                setEmail(data.email);
-                setRole(data.role);
-                setName(data.name);
-                setId(data.id);
-            } else {
-                router.push('/');
+        const ac = new AbortController();
+        (async () => {
+            try {
+                const res = await fetch("/api/auth/user", { signal: ac.signal });
+                if (!res.ok) {
+                    router.replace("/");
+                    return;
+                }
+                const data: User = await res.json();
+                setUser(data);
+            } catch (err: any) {
+                if (err?.name !== "AbortError") router.replace("/");
+            } finally {
+                if (!ac.signal.aborted) {
+                    setTimeout(() => {
+                        setLoading(false)
+                    }, 1000);
+                };
             }
-        };
-        fetchUser();
-    }, []);
+        })();
+        return () => ac.abort();
+    }, [router]);
 
-    const handleLogout = async () => {
-        await fetch('/api/auth/user', { method: 'DELETE' });
-        toast.success('Logged out successfully');
-        router.push('/');
-    };
-
-    if (!mounted) return null;
-
+    const handleLogout = useCallback(async () => {
+        try {
+            const res = await fetch("/api/auth/user", { method: "DELETE" });
+            if (!res.ok) throw new Error();
+            toast.success("Logged out");
+        } catch {
+            toast.error("Failed to log out");
+        } finally {
+            router.replace("/");
+        }
+    }, [router]);
+    
+    if (loading || !user) {
+        return (
+            <UserLoadingScreen
+                headline="Preparing your dashboard"
+                subline="Fetching your profile and permissions…"
+                tips={[
+                    "Pro tip: Use the Refresh icon to re-sync data anytime.",
+                    "Hint: Filters persist while you switch tabs.",
+                    "FYI: Private files open via signed URLs.",
+                    "Tip: Toggle roles to preview role-based content.",
+                ]}
+                tipIntervalMs={3000}
+                initialProgress={5}
+                progressStep={2}
+                progressIntervalMs={80}
+                maxIdleProgress={99}
+                active={loading}
+                surpressReducedMotion={true}
+            />
+        );
+    }
     return (
-        <>
-            <Sidebar email={email} role={role} onLogout={handleLogout} name={name} id={id}/>
-        </>
+        <Sidebar
+            email={user.email}
+            role={user.role}
+            name={user.name}
+            id={user.id}
+            onLogout={handleLogout}
+        />
     );
 }

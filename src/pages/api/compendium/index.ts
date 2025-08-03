@@ -7,19 +7,24 @@ import formidable from 'formidable';
 import { bucket } from "@/lib/firebase-admin";
 import { prisma } from "@/lib/prisma";
 import { MethodConfig, withPermissionCheck } from '@/lib/server/withPermissionCheck';
-import { ACCESS_PERMISSION, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from '@prisma/client';
+import { ACCESS_PERMISSION, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from '@prisma/client';
 import { getFieldValue } from '@/utils/parseApiField';
 import { apiHelpers } from '@/lib/server/responseHelpers';
 import { createNotification } from '@/lib/server/notificationSink';
 import { generateSecureURL } from '@/utils/shared/secureUrlApi';
 import { defaultEmptyRichText } from '@/utils/defaultEmptyRichText';
 import { baseUrl } from '@/lib/config';
+import { z } from 'zod';
+import { ToInt, ToStr } from '@/lib/server/zod_utils';
+import { lexicalStateToHtml } from '@/utils/lexicalToHTML';
 
 export const config = {
     api: {
         bodyParser: false,
     },
 };
+
+const SIZE_RESUMABLE_THRESHOLD = 5 * 1024 * 1024;
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
@@ -59,6 +64,25 @@ const parseForm = async (req: NextApiRequest): Promise<{ fields: any; files: any
 
 const COMPENDIUM_DIR = path.join(process.cwd(), 'public', 'content', 'compendium');
 
+const GetQuerySchema = z.object({
+    cid: ToInt.refine((val) => (val > 0), {
+        message: "cid must be a positive integer",
+    }),
+}).strict();
+
+const PutQuerySchema = z.object({
+    cid: ToInt.refine((val) => (val > 0), {
+        message: "cid must be a positive integer",
+    }),
+    content: ToStr,
+    total_new_entries: ToInt.refine((val) => (val >= 0), {
+        message: "total_new_entries must be a non-negative integer",
+    }),
+    total_deleted_entries: ToInt.refine((val) => (val >= 0), {
+        message: "total_deleted_entries must be a non-negative integer",
+    }),
+});
+
 async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     if (!fs.existsSync(COMPENDIUM_DIR)) {
@@ -67,11 +91,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     try {
         if (req.method === 'GET') {
-            const companyId = parseInt(req.query.cid as string);
-            if (isNaN(companyId)) {
-                apiHelpers.badRequest(res, "Invalid Company ID")
+
+            const parsedQuery = GetQuerySchema.safeParse(req.query);
+            if (!parsedQuery.success) {
+                apiHelpers.badRequest(res, "Invalid query parameters");
                 return;
             }
+
+            const companyId = parsedQuery.data.cid;
 
             try {
                 const compendium = await prisma.company_compendium.findUnique({
@@ -108,44 +135,55 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 }
 
             } catch (err) {
-                apiHelpers.error(res, "Couldn't fetch Compendium", 500, { error: err })
+                console.error("Error fetching compendium:", err);
+                apiHelpers.error(res, "Failed to fetch compendium", 500, { error: err });
                 return;
             }
         }
-
-        if (req.method === 'PUT') {
+        else if (req.method === 'PUT') {
             try {
                 const { fields, files } = await parseForm(req);
+                const parsedBody = PutQuerySchema.safeParse({
+                    cid: fields.cid,
+                    content: fields.content,
+                    total_new_entries: parseInt(fields.total_new_entries, 10),
+                    total_deleted_entries: parseInt(fields.total_deleted_entries, 10),
+                });
 
-                const companyId = parseInt(getFieldValue(fields.cid));
-                const content = getFieldValue(fields.content);
-                const totalNewEntries = parseInt(fields.total_new_entries as string);
-                const totalDeleteEntries = parseInt(fields.total_deleted_entries as string)
-
-                if (isNaN(companyId) || !content || isNaN(totalNewEntries) || isNaN(totalDeleteEntries)) {
-                    apiHelpers.badRequest(res, "Missing Data")
+                if (!parsedBody.success) {
+                    apiHelpers.badRequest(res, `Invalid request body: ${JSON.stringify(parsedBody.error)}`);
                     return;
                 }
 
+                const { cid: companyId, content, total_new_entries, total_deleted_entries } = parsedBody.data;
 
                 const txtPath = path.join(COMPENDIUM_DIR, `${companyId}.txt`);
-
-                if (!fs.existsSync(txtPath)) {
-                    apiHelpers.error(res, "Couldn't fetch resource requested", 500)
-                    return;
-                }
-
-                fs.writeFileSync(txtPath, content);
-
                 const compendium = await prisma.company_compendium.upsert({
                     where: { company_id: companyId },
                     update: {},
                     create: { company_id: companyId },
                 });
 
+                if (!fs.existsSync(txtPath) || !compendium) {
+                    apiHelpers.error(res, "Compendium file not found", 404);
+                    return;
+                }
+
+                fs.writeFileSync(txtPath, content);
+
+                const htmlPath = path.join(COMPENDIUM_DIR, `${companyId}.html`);
+                const htmlPromise = lexicalStateToHtml(content);
+                const writeTxtPromise = fs.promises.writeFile(txtPath, content, 'utf-8');
+
+                const htmlContent = await htmlPromise;
+                await Promise.all([
+                    writeTxtPromise,
+                    fs.promises.writeFile(htmlPath, htmlContent, 'utf-8'),
+                ]);
+
                 const deletePdfIds = []
 
-                for (let i = 1; i <= totalDeleteEntries; i++) {
+                for (let i = 1; i <= total_deleted_entries; i++) {
                     const rawDeleteID = fields[`pdf_deleted_id_${i}`];
                     const pdfId = parseInt(getFieldValue(rawDeleteID))
                     if (!isNaN(pdfId)) {
@@ -180,11 +218,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 }
 
                 // Insert new files
-                for (let i = 1; i <= totalNewEntries; i++) {
+                for (let i = 1; i <= total_new_entries; i++) {
                     const rawFile = files[`pdf_new_file_${i}`];
                     const file = Array.isArray(rawFile) ? rawFile[0] : rawFile;
                     const nameField = fields[`pdf_new_name_${i}`];
-                    const userProvidedName = Array.isArray(nameField) ? nameField[0] : nameField;
+                    const userProvidedName: string = Array.isArray(nameField) ? nameField[0] : nameField;
 
                     if (!file?.filepath || !userProvidedName) {
                         console.log(`No filepath or name provided for index ${i}`);
@@ -208,30 +246,36 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     const sanitizedCompanyName = company.company_name
                         .toLowerCase()
                         .replace(/[^a-z0-9]/gi, "_")
-                        .slice(0, 40);
+                        .slice(0, 50);
 
                     const ext = path.extname(file.originalFilename ?? ".pdf");
-                    const filename = `${companyId}-${Date.now()}-${i}${ext}`;
+                    const filename = `${companyId}-${i}-${Date.now().toLocaleString("en-IN")}${ext}`;
                     const firebasePath = `compendium/${sanitizedCompanyName}/${filename}`;
+
+                    const size = Number(file.size ?? 0);
+                    const safeFilename =
+                        (file.originalFilename || "document.pdf").replace(/[^\w.\- ]+/g, "_");
 
                     try {
                         await bucket.upload(file.filepath, {
                             destination: firebasePath,
-                            resumable: false,
-                            predefinedAcl: 'private',
-                            validation: 'crc32c',
+                            resumable: size >= SIZE_RESUMABLE_THRESHOLD,
+                            validation: size >= SIZE_RESUMABLE_THRESHOLD ? "crc32c" : false,
+                            gzip: false,
+                            preconditionOpts: { ifGenerationMatch: 0 },
                             metadata: {
-                                contentType: file.mimetype || 'application/pdf',
-                                cacheControl: 'private, max-age=0, no-transform',
-                                customMetadata: {
-                                    uploadedBy: "Placement Systems(IIML)",
-                                    originalFilename: file.originalFilename || 'unknown',
-                                    companyId: companyId.toString(),
+                                contentType: file.mimetype || "application/pdf",
+                                cacheControl: "private, max-age=0, no-store, no-transform",
+                                contentDisposition: `inline; filename="${safeFilename}"`,
+                                metadata: {
+                                    uploadedBy: "Placement Systems (IIML)",
+                                    originalFilename: file.originalFilename || "unknown",
+                                    companyId: String(companyId),
                                     uploadTimestamp: new Date().toISOString(),
+                                    userProvidedName: userProvidedName || "Untitled",
                                 },
                             },
                         });
-
 
                         // const fileRef = bucket.file(firebasePath);
                         // await fileRef.makePublic();
@@ -240,6 +284,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         const [url] = await bucket.file(firebasePath).getSignedUrl({
                             action: 'read',
                             expires: new Date('2030-12-31T23:59:59Z'),
+                            responseDisposition: `inline; filename="document.${ext}"`,
                         });
 
                         await prisma.company_compendium_pdf_path.create({
@@ -253,7 +298,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                     } catch (err) {
                         console.error(`Failed to upload file ${file.originalFilename}:`, err);
-                        continue;
+                        apiHelpers.error(res, `Failed to upload file ${file.originalFilename}`, 500);
+                        return;
                     }
                 }
 
@@ -261,28 +307,34 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
                 if (secureUrlResp.success) {
                     createNotification({
-                        type: NOTIFICATION_TYPE.CONTENT,
-                        subtype: NOTIFICATION_SUBTYPE.UPDATED,
+                        type: NOTIFICATION_TYPE.COMPANY_CONTENT,
+                        subtype: NOTIFICATION_SUBTYPE.COMPENDIUM,
+                        initiator: NOTIFICATION_SOURCE_INITIATOR.UPDATED,
                         companyId: companyId,
                         links: [{
                             link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Compendium`,
-                            link_name: "Compendium"
+                            link_name: "compendium"
                         }]
                     });
                 } else {
-                    console.error(secureUrlResp.error)
+                    console.error(secureUrlResp.error);
+                    apiHelpers.error(res, "Failed to generate secure URL for compendium");
+                    return;
                 }
 
-                return res.status(200).json({ message: 'Saved successfully', success: true });
+                apiHelpers.success(res, {});
+                return;
             } catch (error) {
-                console.error(error);
-                return res.status(500).json({ error: 'Failed to update compendium', success: false });
+                apiHelpers.error(res, "Failed to update compendium");
+                console.error("Error in PUT handler:", error);
+                return;
             }
         }
 
     } catch (err: any) {
         console.error("Uncaught API error:", err.stack || err);
-        return res.status(500).json({ error: 'Unexpected server error', success: false });
+        apiHelpers.error(res, "Internal server error", 500, { error: err.message || err });
+        return;
     }
 
 }

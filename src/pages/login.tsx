@@ -4,6 +4,7 @@ import Head from 'next/head';
 import toast from 'react-hot-toast';
 import { GoogleLogin, googleLogout, CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
+import { ACCESS_PERMISSION } from '@prisma/client';
 
 interface GooglePayload {
     email: string;
@@ -87,7 +88,7 @@ export default function LoginPage({ ip, IIMLPrivate, userAgent, language }: {
 
             const res = await fetch('/api/auth/google-login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-access-permission' : ACCESS_PERMISSION.ENABLE_PROFILE },
                 body: JSON.stringify({ email: decoded.email, name: decoded.name })
             });
 
