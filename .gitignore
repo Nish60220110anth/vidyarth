@@ -43,3 +43,5 @@ next-env.d.ts
 /src/assets
 
 /src/lib/firebase.ts
+
+/GenAI
