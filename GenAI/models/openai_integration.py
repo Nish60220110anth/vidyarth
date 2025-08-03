@@ -32,13 +32,20 @@ class OpenAi:
         context += "Compendium: \n"
         context += self.read_document.read_webfile(data.get("compendiumLinks"))
 
-        prompt = (
-            f"I am a MBA student at IIM Lucknow a premier business school in India. "
-            f"I am preparing for the placements at {data.get("fullName")}, "
-            "Generate a summary of the company only based on the inputs provided. The inputs i provide entail overview of the company, job description offered, past interview compendium"
-            "The summary should contain a brief overview of the company, roles it offers, compensation or CTC if provided in job description, and the content provided in interview compendium"
-            f"\nDocuments: {context}"
-            )
+        prompt = f"""I am an MBA student at IIM Lucknow, a premier business school in India. I’m preparing for placements at {data.get('fullName')}.
+
+        Using only the inputs provided (company overview, job description, past interview compendium), generate a concise company summary that includes:
+        - A brief overview of the company  
+        - Roles it offers  
+        - Compensation or CTC (if given)  
+        - Key insights from the interview compendium  
+
+        Format the output in **pure HTML**:
+        - Use headings (<h1>-<h4>), subheadings, bullet lists (<ul>/<ol>/<li>), bold (<b>), paragraph (<p>), source links (<a>), and italics (<i>)  
+        - Do **not** include any classes, IDs, or the <html> and <body> tags
+
+        Documents:
+        {context}""".strip()
 
         
         messages = [{
@@ -141,7 +148,7 @@ class OpenAi:
     def read_documents(self, company_id):
 
         text = ""
-        filename = company_id + ".txt"
+        filename = company_id + ".html"
         for key in self.company_folder:
             logger.info(f"Reading from folder: {key}")
             path = os.path.join(self.company_folder[key].strip(), filename)

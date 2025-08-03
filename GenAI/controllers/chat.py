@@ -21,7 +21,7 @@ def summary():
 
     data = request.get_json(force=True)
     logger.info(f"Request payload {data}")
-    return markdown.markdown(open_ai.set_context(data))
+    return open_ai.set_context(data)
 
 @app.route("/answer/query", methods=["POST"])
 #@auth.token_auth()

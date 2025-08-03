@@ -80,7 +80,14 @@ export function htmlToLexicalJSON(html: string) {
     // return lexicalJson;
 
     const editor = createHeadlessEditor({
-        nodes: [],
+        nodes: [
+            HeadingNode,
+            TextNode,
+            ParagraphNode,
+            ListNode,
+            ListItemNode,
+            LinkNode
+        ],
     });
 
     editor.update(
