@@ -40,8 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/src/assets
+./src/assets
 
-/src/lib/firebase.ts
+./src/lib/firebase.ts
 
-/GenAI
+./GenAI
