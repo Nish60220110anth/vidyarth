@@ -39,9 +39,10 @@ const features = [
     },
     {
         title: "Mock Interviews",
-        description: "Practice interviews and track your feedback and progress.",
+        description: "Practice interviews and track your feedback and progress",
         icon: <UsersIcon className="ui-icon group-hover:text-cyan-200" />,
         router_path: "AI MOCK",
+        status: "in-progress",
     },
 ];
 
@@ -70,38 +71,49 @@ export default function WelcomePage({
             </motion.div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl w-full px-2">
-                {features.map((feature, idx) => (
-                    <motion.button
-                        key={idx}
-                        type="button"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: idx * 0.1 + 0.3 }}
-                        onClick={async () => {
-                            const res = await generateSecureURL(feature.router_path, 0);
-                            if (!res.success) {
-                                toast.error(res.error);
-                                return;
-                            }
-                            router.push(
-                                { query: { auth: encodeURIComponent(res.url) } },
-                                undefined,
-                                { shallow: true }
-                            );
-                        }}
-                        className="ui-card-action flex items-start gap-4 group p-6 w-full"
-                    >
-                        <div className="p-3 rounded-xl bg-slate-800/60 flex items-center justify-center shrink-0 shadow-inner">
-                            {feature.icon}
-                        </div>
-                        <div>
-                            <h3 className="text-base sm:text-lg font-semibold text-slate-100">
-                                {feature.title}
-                            </h3>
-                            <p className="ui-content-hover text-sm mt-1">{feature.description}</p>
-                        </div>
-                    </motion.button>
-                ))}
+                {features.map((feature, idx) => {
+                    const isInProgress = feature.status === "in-progress";
+
+                    return (
+                        <motion.button
+                            key={idx}
+                            type="button"
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: idx * 0.1 + 0.3 }}
+                            onClick={async () => {
+                                if (isInProgress) return;
+                                const res = await generateSecureURL(feature.router_path, 0);
+                                if (!res.success) return toast.error(res.error);
+                                router.push({ query: { auth: encodeURIComponent(res.url) } }, undefined, {
+                                    shallow: true,
+                                });
+                            }}
+                            className={`ui-card-action group p-6 w-full flex flex-col items-center text-center gap-3 relative ${isInProgress ? "opacity-70 cursor-not-allowed" : ""
+                                }`}
+                        >
+                            {/* Title + Icon Row */}
+                            <div className="flex items-center justify-center gap-2">
+                                <div className="p-2 rounded-xl bg-slate-800/60 flex items-center justify-center shadow-inner">
+                                    {feature.icon}
+                                </div>
+                                <h3 className="text-base sm:text-lg font-semibold text-slate-100">
+                                    {feature.title}
+                                </h3>
+                            </div>
+
+                            {/* Description */}
+                            <p className="ui-content-hover text-sm text-slate-400">{feature.description}</p>
+
+                            {/* Status badge, shown only if in-progress */}
+                            {isInProgress && (
+                                <span className="mt-2 px-2 py-0.5 text-[11px] font-semibold text-yellow-300 bg-yellow-900/30 rounded-full animate-pulse">
+                                    🚧 In Progress
+                                </span>
+                            )}
+                        </motion.button>
+                    );
+                })}
             </div>
 
             <motion.div

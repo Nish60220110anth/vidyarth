@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
 import NewsCard from "@/components/NewsCard";
 import { ALL_DOMAINS } from "./ManageCompanyList";
-import { news, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG } from "@prisma/client";
+import { ACCESS_PERMISSION, news, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG } from "@prisma/client";
 import { createDefaultNews, getNewsOnQuery } from "../lib/api/manage_news";
 import { debounceAsync } from "@/utils/debounce";
 
@@ -57,7 +57,7 @@ export default function ManageNews() {
                 setIsRefreshing(true);
                 try {
                     const q = buildQuery(opts);
-                    const data = await getNewsOnQuery(q);
+                    const data = await getNewsOnQuery(q, ACCESS_PERMISSION.MANAGE_NEWS);
                     setNewsList(data);
                 } finally {
                     setIsRefreshing(false);
@@ -67,7 +67,6 @@ export default function ManageNews() {
     );
 
     const fetchNews = useCallback(() => debouncedRefresh(), [debouncedRefresh]);
-    const fetchNewsOnId = useCallback((id: number) => debouncedRefresh({ id }), [debouncedRefresh]);
 
     useEffect(() => {
         debouncedRefresh({ search });

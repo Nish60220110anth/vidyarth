@@ -3,18 +3,20 @@ import { NOTIFICATION_TYPE } from "@prisma/client";
 type TemplateTypes = NOTIFICATION_TYPE;
 
 const subjectTemplates: Record<TemplateTypes, string> = {
-    SHORTLIST: `{{company_full}} - {{role}} Shortlist Published!`,
-    COMPANY: `{{company_full}} Has Been Added in Vidyarth`,
-    CONTENT: `{{company_full}} Content Has Been Updated`,
-    PREP: `{{domain}} Preparation Section Is Updated`,
-    CUSTOM: ``
+  SHORTLIST: `{{company_full}} - {{role}} Shortlist Published!`,
+  COMPANY: `{{company_full}} Has Been Added in Vidyarth`,
+  COMPANY_CONTENT: `{{company_full}} Content Has Been Updated`,
+  CV_PREP: `CV Preparation Section Is Updated`,
+  DOMAIN_PREP: `{{domain}} Preparation Section Is Updated`,
+  CUSTOM: ``
 }
 
 const briefTemplate: Record<TemplateTypes, string> = {
   SHORTLIST: `You have been shortlisted for {{company_full}} - {{role}}. Please review the links provided and prepare accordingly.`,
-  COMPANY: `{{company_full}} has been added to the Vidyarth portal. Review company details and start preparing.`,
-  CONTENT: `New content has been added to the {{company_full}} section. Check it out and stay updated.`,
-  PREP: `The preparation materials for the {{domain}} domain have been updated. Please review them at the earliest.`,
+  COMPANY: `{{company_full}} has been added to the Vidyarth. Review company details and start preparing.`,
+  COMPANY_CONTENT: `New content has been added to the {{company_full}} section. Check it out and stay updated.`,
+  CV_PREP: `The CV preparation section has been updated. Please review the new resources.`,
+  DOMAIN_PREP: `The preparation materials for the {{domain}} domain have been updated. Please review them at the earliest.`,
   CUSTOM: ``
 };
 
@@ -132,7 +134,7 @@ const bodyTemplates: Record<TemplateTypes, string> = {
 </table>
 `,
 
-  CONTENT: `
+  COMPANY_CONTENT: `
 <table cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8f9fa; padding: 30px;">
   <tr>
     <td align="center">
@@ -183,7 +185,7 @@ const bodyTemplates: Record<TemplateTypes, string> = {
 </table>
 `,
 
-  PREP: `
+  DOMAIN_PREP: `
 <table cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8f9fa; padding: 30px;">
   <tr>
     <td align="center">
@@ -215,7 +217,7 @@ const bodyTemplates: Record<TemplateTypes, string> = {
         <tr>
           <td style="font-size: 15px;">
             <ul style="padding-left: 20px; margin-top: 5px; font-size: 15px;">
-              <li><a href="{{domain_link}}" style="color: #007bff; text-decoration: underline; font-weight: 500;">{{domain_link_name}}</a></li>
+              {{domain_link}}
             </ul>
           </td>
         </tr>
@@ -241,24 +243,80 @@ const bodyTemplates: Record<TemplateTypes, string> = {
 </table>
 `,
 
+  CV_PREP: `
+<table cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8f9fa; padding: 30px;">
+  <tr>
+    <td align="center">
+      <table cellpadding="0" cellspacing="0" width="100%" style="max-width: 640px; background-color: #ffffff; border-radius: 10px; padding: 30px; font-family: Arial, sans-serif; color: #333333;">
+
+        <!-- Greeting -->
+        <tr>
+          <td style="font-size: 16px; padding-bottom: 20px;">
+            Hi <strong>{{pcom_id}} - {{name}}</strong>,
+          </td>
+        </tr>
+
+        <!-- CV Prep Update -->
+        <tr>
+          <td style="font-size: 15px; padding-bottom: 15px; padding-left: 20px;">
+            The CV preparation section has been updated with new resources as of <strong>{{updated_at}}</strong>.
+            All students are expected to review the updated content and prepare their CVs accordingly.
+          </td>
+        </tr>
+
+        <!-- Instruction -->
+        <tr>
+          <td style="font-size: 15px; padding-bottom: 10px;">
+            Please refer to the following links to access the latest materials:
+          </td>
+        </tr>
+
+        <!-- CV Prep Link -->
+        <tr>
+          <td style="font-size: 15px;">
+            <ul style="padding-left: 20px; margin-top: 5px; font-size: 15px;">
+              <li><a href="{{cv_prep_link}}" style="color: #007bff; text-decoration: underline; font-weight: 500;">{{cv_prep_link_name}}</a></li>
+            </ul>
+          </td>
+        </tr>
+
+        <!-- Reminder -->
+        <tr>
+          <td style="font-size: 15px; padding-top: 15px;">
+            You are expected to review the materials thoroughly. No further communication will be sent regarding this update, unless deemed necessary.
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding-top: 20px; font-size: 14px; color: #666666;">
+            Regards,<br />
+            <strong>Placement Systems</strong>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>`,
   CUSTOM: ``
 };
 
 
 export function renderBodyTemplate(type: TemplateTypes, variables: Record<string, string>) {
-    let html = bodyTemplates[type];
-    for (const key in variables) {
-        html = html.replace(new RegExp(`{{${key}}}`, 'g'), variables[key]);
-    }
-    return html;
+  let html = bodyTemplates[type];
+  for (const key in variables) {
+    html = html.replace(new RegExp(`{{${key}}}`, 'g'), variables[key]);
+  }
+  return html;
 }
 
 export function renderTemplate(source: string, variables: Record<string, string>) {
-    let html = source;
-    for (const key in variables) {
-        html = html.replace(new RegExp(`{{${key}}}`, 'g'), variables[key]);
-    }
-    return html;
+  let html = source;
+  for (const key in variables) {
+    html = html.replace(new RegExp(`{{${key}}}`, 'g'), variables[key]);
+  }
+  return html;
 }
 
 export function renderBriefTemplate(type: TemplateTypes, variables: Record<string, string>) {
@@ -270,9 +328,9 @@ export function renderBriefTemplate(type: TemplateTypes, variables: Record<strin
 }
 
 export function renderSubjectTemplate(type: TemplateTypes, variables: Record<string, string>) {
-    let html = subjectTemplates[type];
-    for (const key in variables) {
-        html = html.replace(new RegExp(`{{${key}}}`, 'g'), variables[key]);
-    }
-    return html;
+  let html = subjectTemplates[type];
+  for (const key in variables) {
+    html = html.replace(new RegExp(`{{${key}}}`, 'g'), variables[key]);
+  }
+  return html;
 }

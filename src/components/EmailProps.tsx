@@ -73,25 +73,29 @@ export default function EmailProps() {
         setEditId(null);
     };
 
-    if (loading) return <div className="flex items-center justify-center min-h-[150px] bg-gradient-to-br from-[#0d1b24] to-[#0a141d] border border-cyan-800 rounded-md text-sm text-cyan-300 font-medium gap-3 px-4 py-3 shadow-inner">
-        <svg className="w-4 h-4 animate-spin text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                d="M12 4v4m0 8v4m8-8h4M4 12H0m16.24-6.24l2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83" />
-        </svg>
-        Loading content...
-    </div>;
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center min-w-full py-12 bg-gradient-to-r from-cyan-50 to-white border border-cyan-200 rounded-2xl shadow-xl animate-pulse">
+            <div className="flex items-center justify-center w-full py-12">
+                <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+            <p className="mt-4 text-lg font-semibold text-cyan-700">Loading Email Notification Properties...</p>
+            <div className="mt-6 space-y-2 w-3/4">
+                <div className="h-3 bg-gray-200 rounded-full"></div>
+                <div className="h-3 bg-gray-200 rounded-full w-5/6"></div>
+                <div className="h-3 bg-gray-200 rounded-full w-2/3"></div>
+            </div>
+        </div>
+    );
+
 
     return (
-        <div className="px-4 py-6 md:px-10 md:py-10 bg-gray-100 min-h-full font-[Urbanist]">
-            <div className="sticky top-0 bg-gray-100 pb-4 z-20">
-                {/* Breadcrumb */}
-                <div className="text-sm text-gray-600 flex gap-2 mb-2">
+        <div className="px-4 py-6 md:px-10 md:py-10 bg-white min-h-full font-[Urbanist] text-gray-800">
+            <div className="sticky top-0 bg-white pb-4 z-20 border-b border-gray-200">
+                <div className="text-sm text-gray-500 flex gap-2 mb-2">
                     <span onClick={() => router.push("/")} className="cursor-pointer hover:text-cyan-600">Dashboard</span>
                     <span>/</span>
                     <span className="text-gray-900 font-semibold">Manage Notifications Properties</span>
                 </div>
-
-                {/* Title */}
                 <motion.h1
                     layoutScroll
                     className="text-2xl md:text-3xl font-bold text-gray-900"
@@ -101,11 +105,11 @@ export default function EmailProps() {
                 >
                     Manage Notifications Properties
                 </motion.h1>
-
                 <button
-                    onClick={async (e) => {
+                    onClick={async () => {
                         setIsRefreshing(true);
-                        await fetchEmailProps()
+                        setEditId(null);
+                        await fetchProps();
                         setIsRefreshing(false);
                     }}
                     className="p-2 rounded-md border border-gray-300 text-gray-600 hover:text-cyan-600 hover:border-cyan-500 transition shadow-sm hover:shadow-md"
@@ -113,18 +117,13 @@ export default function EmailProps() {
                 >
                     <motion.div
                         animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
-                        transition={{
-                            repeat: isRefreshing ? Infinity : 0,
-                            repeatType: "loop",
-                            ease: "linear",
-                            duration: 1,
-                        }}
+                        transition={{ repeat: isRefreshing ? Infinity : 0, repeatType: "loop", ease: "linear", duration: 1 }}
                     >
                         <ArrowPathIcon className="h-5 w-5" />
                     </motion.div>
-
                 </button>
             </div>
+
 
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
@@ -152,9 +151,7 @@ export default function EmailProps() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.35, ease: "easeOut" }}
-                            className="mt-4 grid grid-cols-1 md:grid-cols-8 gap-4 md:items-center md:py-3 bg-white shadow-sm rounded-lg px-4 py-3 text-black"
-
-                        >
+                            className="mt-4 grid grid-cols-1 md:grid-cols-8 gap-4 md:items-center md:py-3 bg-white shadow-sm rounded-xl border border-gray-200 px-4 py-4">
                             {/* Type */}
                             <div className="col-span-2 text-center text-black">{type}</div>
 
@@ -182,7 +179,7 @@ export default function EmailProps() {
                                         type="number"
                                         min={0}
                                         max={240}
-                                        className="w-16 border px-2 py-1 rounded text-sm"
+                                        className="w-20 border border-gray-300 px-2 py-1 rounded text-sm shadow-sm focus:ring-1 focus:ring-cyan-500"
                                         value={current.delay_minutes}
                                         onChange={e => handleChange(type, "delay_minutes", parseInt(e.target.value))}
                                     />
@@ -214,7 +211,7 @@ export default function EmailProps() {
                                     <select
                                         value={current.role ?? ""}
                                         onChange={e => handleChange(type, "role", e.target.value || null)}
-                                        className="w-32 border px-2 py-1 rounded text-sm"
+                                        className="w-32 border border-gray-300 px-2 py-1 rounded text-sm shadow-sm focus:ring-1 focus:ring-cyan-500"
                                     >
                                         <option value={undefined}>None</option>
                                         {Object.keys(USER_ROLE)
@@ -238,15 +235,19 @@ export default function EmailProps() {
                                             disabled={isDisabled}
                                             onClick={() => handleSave(current)}
                                             className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm shadow transition ${isDisabled
-                                                ? "bg-gray-400 cursor-not-allowed"
-                                                : "bg-green-600 hover:bg-green-700 text-white"
+                                                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                                : "bg-green-500 hover:bg-green-600 text-white"
                                                 }`}
+
                                         >
                                             <CheckIcon className="w-4 h-4" /> Save
                                         </button>
                                         <button
-                                            onClick={() => setEditId(null)}
-                                            className="flex items-center gap-1 px-3 py-1.5 bg-gray-600 text-white rounded-md text-sm shadow hover:bg-gray-700 transition"
+                                            onClick={() => {
+                                                setEditId(null);
+                                                setEditProperties(prev => ({ ...prev, [type]: originalProperties[type] }));
+                                            }}
+                                            className="flex items-center gap-1 px-3 py-1.5 bg-gray-400 hover:bg-gray-500 text-white rounded-md text-sm shadow transition"
                                         >
                                             <XMarkIcon className="w-4 h-4" /> Cancel
                                         </button>

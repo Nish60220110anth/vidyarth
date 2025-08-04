@@ -1,11 +1,5 @@
 // constants/profileDropdownItems.ts
-import {
-    UserIcon,
-    ClipboardDocumentCheckIcon,
-    DocumentTextIcon,
-    SpeakerWaveIcon,
-    Cog6ToothIcon,
-} from "@heroicons/react/24/outline";
+import { User, ClipboardCheck, FileText, Megaphone, Settings } from 'lucide-react';
 import { ACCESS_PERMISSION } from "@prisma/client";
 
 import Profile from "@/components/Profile";
@@ -20,6 +14,7 @@ type ProfileDropdownItem = {
     icon: (cls: string) => JSX.Element;
     perm: ACCESS_PERMISSION;
     component: () => JSX.Element;
+    show: boolean;
 };
 
 type Args = {
@@ -35,36 +30,45 @@ export function getProfileDropdownItems({
     role,
     id,
 }: Args): Record<string, ProfileDropdownItem> {
-    return {
+    const items: Record<string, ProfileDropdownItem> = {
         PROFILE: {
             label: "Profile",
-            icon: (cls) => <UserIcon className={cls} />,
+            icon: (cls) => <User className={cls} />,
             perm: ACCESS_PERMISSION.ENABLE_PROFILE,
-            component: () => <Profile name={name} email={email} role={role} id={id} />,
+            component: () => <Profile name={name} email={email} role={role} />,
+            show: true,
         },
         SHORTLISTS: {
             label: "Shortlists",
-            icon: (cls) => <ClipboardDocumentCheckIcon className={cls} />,
+            icon: (cls) => <ClipboardCheck className={cls} />,
             perm: ACCESS_PERMISSION.ENABLE_MY_SECTION,
             component: () => <Shortlists />,
+            show: true,
         },
         MY_CV: {
             label: "My CV",
-            icon: (cls) => <DocumentTextIcon className={cls} />,
+            icon: (cls) => <FileText className={cls} />,
             perm: ACCESS_PERMISSION.ENABLE_MY_CV,
             component: () => <MyCV name={name} email={email} role={role} id={id} />,
+            show: true,
         },
         ANNOUNCEMENTS: {
             label: "Announcements",
-            icon: (cls) => <SpeakerWaveIcon className={cls} />,
+            icon: (cls) => <Megaphone className={cls} />,
             perm: ACCESS_PERMISSION.ENABLE_ANNOUNCEMENTS,
             component: () => <Announcements />,
+            show: false,
         },
         PREFERENCES: {
             label: "Preferences",
-            icon: (cls) => <Cog6ToothIcon className={cls} />,
+            icon: (cls) => <Settings className={cls} />,
             perm: ACCESS_PERMISSION.ENABLE_PREFERENCES,
             component: () => <Preferences />,
+            show: false,
         },
     };
+
+    return Object.fromEntries(
+        Object.entries(items).filter(([, item]) => item.show)
+    );
 }

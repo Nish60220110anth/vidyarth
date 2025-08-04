@@ -154,7 +154,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     companyId: id,
                     links: [{
                         link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=Overview`,
-                        link_name: `${company_full}_link`
+                        link_name: `company_link`
                     }]
                 });
             } else {

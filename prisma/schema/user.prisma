@@ -36,7 +36,7 @@ model user {
   student_cv             student_cv[]
   signouts               signouts[]
   userSession            userSession[]           @relation("UserSessions")
-  EMAIL_RECEIPIENT_STATE email_recipicent_state[] @relation("Email_Recipient_state")
+  EMAIL_RECEIPIENT_STATE email_recipient_state[] @relation("Email_Recipient_state")
 
   ccEmails  email_content[] @relation("EmailCC")
   bccEmails email_content[] @relation("EmailBCC")

@@ -3,14 +3,14 @@ import axios from "axios";
 import { baseUrl } from "../config";
 import { toast } from "react-hot-toast";
 
-const getNewsOnQuery = async (query: URLSearchParams) => {
+const getNewsOnQuery = async (query: URLSearchParams, perm: ACCESS_PERMISSION = ACCESS_PERMISSION.ENABLE_NEWS) => {
     try {
 
         const res = await axios.get(`${baseUrl}/api/news`, {
             params: query,
             headers: {
                 "Content-Type": "application/json",
-                "x-access-permission": ACCESS_PERMISSION.MANAGE_NEWS
+                "x-access-permission": perm
             },
         });
 

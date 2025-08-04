@@ -187,25 +187,24 @@ export default function SidebarTopBar({
                                             key={key}
                                             onClick={() => {
                                                 setShowProfileMenu(false);
-                                                // item.onClick?.();
                                                 setActiveComponent(item.component());
                                             }}
-                                            className={`group flex items-center justify-start gap-3 px-4 py-2.5 rounded-md text-sm font-medium cursor-pointer transition-colors
-        ${isSelected
-                                                    ? "bg-cyan-900 text-cyan-300"
-                                                    : "bg-[#0c0f11] text-cyan-100 hover:bg-[#122531] hover:text-cyan-200"
+                                            className={`group flex items-center justify-start gap-3 px-4 py-2.5 text-sm font-medium rounded-md cursor-pointer transition-all
+                            ${isSelected
+                                                    ? "bg-gradient-to-r from-cyan-800/30 to-cyan-900/40 text-cyan-200"
+                                                    : "bg-transparent text-cyan-100 hover:bg-[#15232b] hover:text-cyan-200"
                                                 }`}
                                         >
-                                            {item.icon(`h-5 w-5 ${isSelected ? "text-cyan-400" : "text-cyan-300 group-hover:text-cyan-200"}`)}
+                                            {item.icon(`h-5 w-5 ${isSelected ? "text-cyan-300" : "text-cyan-400 group-hover:text-cyan-300"}`)}
                                             <span className="truncate">{item.label}</span>
                                         </div>
-
                                     );
                                 })}
                             </ProfileDropdownPortal>
                         </motion.div>
                     )}
                 </AnimatePresence>
+
             </div>
         </motion.div>
     );

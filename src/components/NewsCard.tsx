@@ -614,8 +614,6 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                         </PortalWrapper>
                     )}
                 </AnimatePresence>
-
-
             </motion.div>
 
             {

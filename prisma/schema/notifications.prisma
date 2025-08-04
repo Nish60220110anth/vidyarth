@@ -48,21 +48,27 @@ model email_content {
 
   title   String @db.VarChar(255)
   content String @db.Text
+  brief String @db.Text
 
   cc  user[] @relation("EmailCC")
   bcc user[] @relation("EmailBCC")
+
+  email_recipient_state email_recipient_state[] @relation("email_recipient_state_content")
 }
 
-model email_recipicent_state {
+model email_recipient_state {
   id Int @id @default(autoincrement())
 
-  user_id Int
-  user    user @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade, name: "Email_Recipient_state")
+  userId Int
+  user    user @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade, name: "Email_Recipient_state")
+
+  email_contentId Int
+  email_content    email_content @relation("email_recipient_state_content", fields: [email_contentId], references: [id])
 
   delay_minutes Int
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 
-  @@index([user_id])
+  @@index([userId, email_contentId])
 }

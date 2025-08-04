@@ -227,10 +227,6 @@ export default async function handler(
                         link_name: "my_section_link",
                     },
                     {
-                        link: `${chitraguptaUrl}/chitragupta/my-shortlists`,
-                        link_name: "chitragupta_link",
-                    },
-                    {
                         link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(
                             secureUrlComp.url
                         )}&tab=Summary`,
