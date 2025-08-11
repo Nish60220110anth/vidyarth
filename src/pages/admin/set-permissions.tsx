@@ -3,6 +3,7 @@ import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
 import { ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
+import { baseUrl } from "@/lib/config";
 
 const groupPermissions = (permissions: typeof ACCESS_PERMISSION): Record<string, string[]> => {
     const grouped: Record<string, string[]> = {};
@@ -29,7 +30,7 @@ const permissionGroups = groupPermissions(ACCESS_PERMISSION);
 
 
 export default function SetPermissionsPerUser() {
-    const [selectedRole, setSelectedRole] = useState("STUDENT");
+    const [selectedRole, setSelectedRole] = useState<USER_ROLE>(USER_ROLE.STUDENT);
     const [rolePermissions, setRolePermissions] = useState<Set<string>>(new Set());
     const [description, setDescription] = useState("");
     const [isClient, setIsClient] = useState(false);
@@ -37,12 +38,25 @@ export default function SetPermissionsPerUser() {
     useEffect(() => { setIsClient(true); }, []);
 
     useEffect(() => {
-        if (selectedRole) {
-            axios.get(`/api/permissions/${selectedRole}`).then((res) => {
-                setRolePermissions(new Set(res.data.permissions));
-                setDescription(res.data.description || "");
-            });
+        const init = async () => {
+            if (selectedRole) {
+                const res = await axios.get(`${baseUrl}/api/permissions/${selectedRole}`, {
+                    headers: {
+                        "x-access-permission": ACCESS_PERMISSION.ADMIN
+                    }
+                });
+
+                if (!res.data.success) {
+                    toast.error(`Failed to fetch permissions for ${selectedRole}`);
+                    return;
+                }
+
+                setRolePermissions(new Set(res.data.data.permissions));
+                setDescription(res.data.data.description || "");
+            }
         }
+
+        init();
     }, [selectedRole]);
 
     const handleCheckboxChange = (permission: string) => {
@@ -54,12 +68,26 @@ export default function SetPermissionsPerUser() {
     };
 
     const savePermissions = async () => {
-        await axios.post("/api/permissions/save", {
-            role: selectedRole,
-            permissions: Array.from(rolePermissions),
-            description,
-        });
-        toast.success(`Permissions updated for ${selectedRole}`);
+        try {
+            const res = await axios.post(`${baseUrl}/api/permissions/save`, {
+                role: selectedRole,
+                permissions: Array.from(rolePermissions),
+                description,
+            }, {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.ADMIN
+                }
+            });
+
+            if (res.data.success) {
+                toast.success(`Permissions updated for ${selectedRole}`);
+            } else {
+                toast.error(`Failed to update permissions: ${res.data.error}`);
+            }
+
+        } catch (error) {
+            toast.error(`Failed to update permissions for ${selectedRole}`);
+        }
     };
 
     const renderPermissions = (label: string, permissions: string[]) => {
@@ -90,7 +118,7 @@ export default function SetPermissionsPerUser() {
             </div>
         );
     };
-    
+
 
     return (
         <div className="min-h-screen px-4 py-10 md:px-12 bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white">
@@ -106,7 +134,7 @@ export default function SetPermissionsPerUser() {
                         Select Role:
                         <select
                             value={selectedRole}
-                            onChange={(e) => setSelectedRole(e.target.value)}
+                            onChange={(e) => setSelectedRole(e.target.value as USER_ROLE)}
                             className="ml-3 px-4 py-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-400"
                         >
                             {Object.keys(USER_ROLE).map((role) => (

@@ -1,40 +1,10 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextApiRequest, NextApiResponse } from "next";
+import { prisma } from "@/lib/prisma";
+import axios from "axios";
 import { renderTemplate } from "@/utils/emailTemplate";
 import { toTitleCase } from "@/components/Profile";
-import { prisma } from "@/lib/prisma";
-import { ACCESS_PERMISSION } from "@prisma/client";
 import { baseUrl } from "@/lib/config";
-import axios from "axios";
-
-type RefinedEntry = {
-    to: string[];
-    cc: string[];
-    bcc: {
-        pcomid: string;
-        name: string;
-        emailid: string;
-        id: number;
-    }[];
-    subject: string;
-    body: string;
-    delay: number;
-    type: string;
-    brief: string;
-    where_to_look: string;
-    is_link: boolean;
-    link_name: string;
-    notificationIds: number[];
-};
-
-type PersonalizedEmail = {
-    to: string[];
-    cc: string[];
-    bcc: string,
-    subject: string;
-    html: string;
-    delay: number;
-    notificationIdList: number[];
-};
+import { ACCESS_PERMISSION } from "@prisma/client";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "POST") {
@@ -42,75 +12,78 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        const refinerResponse = await axios.post(`${baseUrl}/api/email/refiner`);
-        const refinedData: RefinedEntry[] = refinerResponse.data?.data || [];
+        const now = new Date();
 
-        const emailsToSend: PersonalizedEmail[] = [];
-
-        for (const entry of refinedData) {
-            const { to, cc, bcc, subject, body, delay, notificationIds, brief, is_link, where_to_look, link_name } = entry;
-
-            for (const person of bcc) {
-                const personalizedBody = renderTemplate(body, {
-                    pcom_id: person.pcomid,
-                    name: toTitleCase(person.name),
-                });
-
-                emailsToSend.push({
-                    to,
-                    cc,
-                    bcc: person.emailid,
-                    subject,
-                    html: personalizedBody,
-                    delay,
-                    notificationIdList: notificationIds
-                });
-
-                const res = await axios.post(`${baseUrl}/api/email`, {
-                    to,
-                    cc,
-                    bcc: person.emailid,
-                    subject,
-                    html: personalizedBody,
-                    admin: "Vidyarth",
-                    notificationIds
-                }, {
-                    headers: {
-                        "x-access-permission": ACCESS_PERMISSION.MANAGE_EMAIL
+        const dueRecipients = await prisma.email_recipient_state.findMany({
+            where: {},
+            include: {
+                email_content: {
+                    include: {
+                        cc: true,
+                        bcc: true,
                     }
-                })
-
-                if (res.data.success) {
-                    const notiIds: number[] = res.data.notificationIds;
-
-                    await prisma.announcements.create({
-                        data: {
-                            title: subject,
-                            brief,
-                            is_link,
-                            where_to_look,
-                            link_name,
-                            userId: person.id
-                        }
-                    })
-
-                    await prisma.notification.updateMany({
-                        where: {
-                            id: {
-                                in: notiIds
-                            }
-                        },
-                        data: {
-                            is_handled: true
-                        }
-                    });
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email_id: true,
+                        pcomid: true
+                    }
                 }
+            }
+        });
+
+        const toDeleteIds: number[] = [];
+
+        for (const entry of dueRecipients) {
+            const readyAt = new Date(entry.updated_at.getTime() + entry.delay_minutes * 60000);
+            if (readyAt > now) continue;
+
+            const { user, email_content } = entry;
+
+            const personalizedBody = renderTemplate(email_content.content, {
+                name: toTitleCase(user.name),
+                pcom_id: user.pcomid || "N/A",
+            });
+
+            const emailPayload = {
+                admin: "Vidyarth",
+                to: [user.email_id],
+                cc: email_content.cc.map(cc => cc.email_id),
+                bcc: email_content.bcc.map(bcc => bcc.email_id),
+                subject: email_content.title,
+                html: personalizedBody,
+                notificationIds: []
+            };
+
+            const response = await axios.post(`${baseUrl}/api/email`, emailPayload, {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.MANAGE_EMAIL
+                }
+            });
+
+            if (response.data?.success) {
+                toDeleteIds.push(entry.id);
             }
         }
 
-        return res.status(200).json({ success: true, data: emailsToSend });
+        if (toDeleteIds.length > 0) {
+            await prisma.email_recipient_state.deleteMany({
+                where: {
+                    id: { in: toDeleteIds }
+                }
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            sent: toDeleteIds.length,
+            deletedIds: toDeleteIds
+        });
+
     } catch (error) {
-        console.error("Scheduler Final Error:", error);
+        console.error("Scheduler error:", error);
         return res.status(500).json({ success: false, error: "Internal Server Error" });
     }
 }

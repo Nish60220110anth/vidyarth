@@ -106,7 +106,7 @@ export default function HowToPrepareCV() {
                 <div className="flex items-center justify-center w-full py-12">
                     <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
                 </div>
-                <p className="mt-4 text-lg font-semibold text-cyan-700">Loading content…</p>
+                <p className="mt-4 text-lg font-semibold text-cyan-700">Loading CV Prep Content ...</p>
                 <div className="mt-6 space-y-2 w-3/4">
                     <div className="h-3 bg-gray-200 rounded-full"></div>
                     <div className="h-3 bg-gray-200 rounded-full w-5/6"></div>

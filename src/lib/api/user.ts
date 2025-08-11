@@ -44,6 +44,12 @@ export const fetchPermissionsFromSession = async (
             },
         });
 
+        if(!res.data.success) {
+            toast.error("Failed to fetch permissions");
+            console.error("Error fetching permissions:", res.data.error);
+            return {};
+        }
+
         if (!res.data || !Array.isArray(res.data.permissions)) {
             toast.error("Invalid permission response format");
             return {};

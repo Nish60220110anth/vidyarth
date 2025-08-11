@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { JSX } from "react";
 import { useRouter } from "next/router";
 
@@ -35,6 +35,9 @@ import type { Company } from "./CompanySearchDropDown";
 import type { JDEntry, NewsEntry, PaneKey, VideoEntry } from "@/types/panes";
 import { fetchCompanyInfo, fetchJDByCompanyID, fetchNewsByCompanyID, fetchVideosByCompanyID } from "@/lib/api/company";
 import { getFileBlobByPath } from "@/lib/api/file";
+import axios from "axios";
+import { baseUrl } from "@/lib/config";
+
 
 type PaneComponentProps = Record<string, any>;
 
@@ -109,6 +112,10 @@ export default function CompanyPage() {
 
     const [isDownloading, setIsDownloading] = useState(false);
 
+    // const [showAnnouncements, setShowAnnouncements] = useState(false);
+    // const [announcements, setAnnouncements] = useState<any[]>([]);
+    // const announcementIconRef = useRef<HTMLDivElement | null>(null);
+
     const hasValidJDs = (allJds ?? []).some((jd) => jd?.jd_pdf_path);
     const paneProps: Record<PaneKey, JSX.Element> = useMemo(
         () => ({
@@ -122,6 +129,28 @@ export default function CompanyPage() {
         }),
         [allJds, allVideos, allNews, companyId]
     );
+
+    // const fetchAnnouncements = async () => {
+    //     try {
+    //         const res = await axios.get(`${baseUrl}/api/announcements?take=3`, {
+    //             headers: {
+    //                 "x-access-permission": ACCESS_PERMISSION.ENABLE_ANNOUNCEMENTS,
+    //             },
+    //         });
+
+    //         if (!res.data?.success) {
+    //             toast.error(res.data?.error || "Failed to load announcements");
+    //             return;
+    //         }
+
+    //         setAnnouncements(res.data.data || []);
+    //     } catch (err) {
+    //         console.error(err);
+    //         toast.error("Error fetching announcements");
+    //         setAnnouncements([]);
+    //         return;
+    //     }
+    // };
 
     useEffect(() => {
         if (!router.isReady) return;
@@ -404,13 +433,65 @@ export default function CompanyPage() {
                             </AnimatePresence>
                         </div>
 
-                        <button
-                            onClick={() => toast("Announcements opened")}
-                            className="group relative flex items-center gap-2 bg-cyan-600 text-white px-4 py-2 rounded-md text-sm shadow-md hover:bg-cyan-700 hover:shadow-lg transition-all duration-200 ease-out"
-                        >
-                            <SpeakerWaveIcon className="w-4 h-4 text-white group-hover:-translate-y-0.5 transition-transform duration-200" />
-                            <span className="group-hover:brightness-110 transition duration-200">Announcements</span>
-                        </button>
+                        {/* <div className="relative" ref={announcementIconRef}>
+                            <button
+                                onClick={async () => {
+                                    await fetchAnnouncements();
+                                    setShowAnnouncements((prev) => !prev);
+                                }}
+                                className="group relative flex items-center gap-2 bg-cyan-600 text-white px-4 py-2 rounded-md text-sm shadow-md hover:bg-cyan-700 hover:shadow-lg transition-all duration-200 ease-out"
+                            >
+                                <SpeakerWaveIcon className="w-4 h-4 text-white group-hover:-translate-y-0.5 transition-transform duration-200" />
+                                <span className="group-hover:brightness-110 transition duration-200">Announcements</span>
+                            </button>
+
+                            <AnimatePresence>
+                                {showAnnouncements && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -8 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="absolute right-0 mt-2 w-[22rem] bg-[#111418] border border-cyan-900 rounded-lg shadow-xl z-50"
+                                    >
+                                        <div className="absolute -top-1 right-6 w-3 h-3 bg-[#111418] rotate-45 border-t border-l border-cyan-900 z-0" />
+                                        <div className="p-3 max-h-[18rem] overflow-y-auto space-y-3">
+                                            {announcements.length === 0 ? (
+                                                <p className="text-sm text-cyan-600 text-center">No announcements found.</p>
+                                            ) : (
+                                                announcements.slice(0, 3).map((a, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        className="relative border border-cyan-800 rounded-md bg-[#122531] hover:bg-[#1a2e38] px-4 py-3 transition"
+                                                    >
+                                                        <p className="font-semibold text-sm text-cyan-100">{a.title}</p>
+                                                        <p className="text-sm text-cyan-300 mt-1">{a.brief}</p>
+                                                        <p className="text-xs text-cyan-600 mt-2">
+                                                            {new Date(a.created_at).toLocaleString("en-IN", {
+                                                                dateStyle: "medium",
+                                                                timeStyle: "short",
+                                                            })}
+                                                        </p>
+                                                        {a.is_link && (
+                                                            <div className="absolute bottom-3 right-4">
+                                                                <a
+                                                                    href={a.where_to_look}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-xs px-2 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition"
+                                                                >
+                                                                    View
+                                                                </a>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>*/}
                     </motion.div>
                 </motion.div>
 
@@ -436,8 +517,8 @@ export default function CompanyPage() {
                                     );
                                 }}
                                 className={`relative flex items-center min-w-max px-3 py-1.5 text-xs sm:text-sm rounded-md transition font-medium uppercase ${activeTab === pane.label
-                                        ? `${pane.color} font-semibold after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-current`
-                                        : "text-gray-600 hover:bg-gray-100"
+                                    ? `${pane.color} font-semibold after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-current`
+                                    : "text-gray-600 hover:bg-gray-100"
                                     }`}
                             >
                                 {pane.icon}

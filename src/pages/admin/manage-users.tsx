@@ -3,6 +3,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
+import { baseUrl } from "@/lib/config";
 
 
 type User = {
@@ -33,7 +34,7 @@ export default function UserManagementPage() {
     const [users, setUsers] = useState<User[]>([]);
 
     useEffect(() => {
-        axios.get("/api/admin/users").then(res => setUsers(res.data));
+        axios.get(`${baseUrl}/api/admin/users`).then(res => setUsers(res.data));
     }, []);
 
     const updateUser = async (id: number, updates: Partial<User>) => {

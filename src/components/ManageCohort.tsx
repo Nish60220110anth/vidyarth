@@ -8,6 +8,7 @@ import { ArrowDownTrayIcon, ArrowPathIcon, ChevronDownIcon, ChevronUpIcon } from
 import { PLACEMENT_CYCLE_TYPE } from "@prisma/client";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
+import { baseUrl } from "@/lib/config";
 
 interface DishaUser {
     id: number;
@@ -61,7 +62,7 @@ export default function ManageCohort() {
 
 
     useEffect(() => {
-        axios.get("/api/users?role=DISHA")
+        axios.get(`${baseUrl}/api/users?role=DISHA`)
             .then((res) => {
                 setDishaUsers(res.data.map((u: any) => ({ id: u.id, name: u.name })));
             })
@@ -87,7 +88,7 @@ export default function ManageCohort() {
     const refreshStudents = async () => {
         try {
             setIsRefreshing(true);
-            const res = await axios.get("/api/users?role=STUDENT");
+            const res = await axios.get(`${baseUrl}/api/users?role=STUDENT`);
             const sanitized: StudentUser[] = res.data.map((u: any) => ({
                 id: u.id,
                 name: u.name,

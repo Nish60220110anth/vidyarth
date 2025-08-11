@@ -6,6 +6,7 @@ import { DOMAIN_COLORS } from "../ManageCompanyList";
 import saveAs from "file-saver";
 import axios from "axios";
 import { JDEntry, JDPaneProps } from "@/types/panes";
+import { baseUrl } from "@/lib/config";
 
 const JDPane: React.FC<JDPaneProps> = ({ props }) => {
 
@@ -21,7 +22,7 @@ const JDPane: React.FC<JDPaneProps> = ({ props }) => {
         const filename = `${jd.company}_${jd.role}(${jd.cycle_type}_${jd.year}).${extension}`;
 
         try {
-            const proxyURL = `/api/proxy-file?url=${encodeURIComponent(jd.jd_pdf_path)}`;
+            const proxyURL = `${baseUrl}/api/proxy-file?url=${encodeURIComponent(jd.jd_pdf_path)}`;
             const response = await axios.get(proxyURL, { responseType: "blob" });
 
             saveAs(response.data, filename);

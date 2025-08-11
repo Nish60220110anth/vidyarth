@@ -374,6 +374,28 @@
     background: linear-gradient(180deg, var(--accent), var(--accent-2));
 }
 
+/* H3 heading: glowing capsule style */
+.editor-heading-h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent-3);
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.12), rgba(14, 116, 144, 0.08));
+    padding: 6px 14px;
+    margin: 14px 0 10px 0;
+    border-left: 4px solid var(--accent);
+    border-radius: 999px;
+    display: inline-block;
+    letter-spacing: 0.03em;
+    box-shadow: 0 1px 3px rgba(6, 182, 212, 0.2);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Optional hover effect for interactivity */
+.editor-heading-h3:hover {
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.18), rgba(14, 116, 144, 0.12));
+    box-shadow: 0 2px 6px rgba(6, 182, 212, 0.25);
+}
+
 /* Quote with gradient rail + soft panel */
 .editor-quote {
     margin: 10px 0 12px 0;
@@ -1068,56 +1090,64 @@ i.horizontal-rule {
         display: none;
     }
 
-          /* Mobile: smaller headings */
-          .editor-heading-h1 {
-              font-size: 22px;
-              /* down from 28px */
-              margin: 4px 0 8px 0;
-              /* tighter spacing */
-          }
-    
-          .editor-heading-h1::after {
-              width: 40px;
-              /* shorter underline */
-              bottom: -4px;
-              /* adjust to new font size */
-          }
-    
-          .editor-heading-h2 {
-              font-size: 16px;
-              /* down from 18px */
-              margin: 10px 0 6px 0;
-              /* tighter spacing */
-              padding-left: 8px;
-              /* keep the left-indent */
-          }
-    
-          .editor-heading-h2::before {
-              top: 1px;
-              bottom: 1px;
-              width: 3px;
-              /* slightly narrower accent bar */
-          }
-    
-          /* Mobile: tighter list layout */
-          .editor-list-ol,
-          .editor-list-ul {
-              margin-left: 12px;
-              /* less indent */
-              padding-left: 12px;
-          }
-    
-          .editor-listitem {
-              margin: 4px 24px 4px 24px;
-              /* reduce vertical gap */
-              font-size: 14px;
-              /* slightly smaller text */
-          }
-    
-          .editor-nested-listitem {
-              margin-left: 0;
-              /* keep nested items aligned */
-          }
+    /* Mobile: smaller headings */
+    .editor-heading-h1 {
+        font-size: 22px;
+        /* down from 28px */
+        margin: 4px 0 8px 0;
+        /* tighter spacing */
+    }
+
+    .editor-heading-h1::after {
+        width: 40px;
+        /* shorter underline */
+        bottom: -4px;
+        /* adjust to new font size */
+    }
+
+    .editor-heading-h2 {
+        font-size: 16px;
+        /* down from 18px */
+        margin: 10px 0 6px 0;
+        /* tighter spacing */
+        padding-left: 8px;
+        /* keep the left-indent */
+    }
+
+    .editor-heading-h2::before {
+        top: 1px;
+        bottom: 1px;
+        width: 3px;
+        /* slightly narrower accent bar */
+    }
+
+    .editor-heading-h3 {
+        font-size: 13.5px;
+        padding: 5px 10px;
+        margin: 10px 0 8px 0;
+        border-left-width: 3px;
+        border-radius: 999px;
+    }
+
+    /* Mobile: tighter list layout */
+    .editor-list-ol,
+    .editor-list-ul {
+        margin-left: 12px;
+        /* less indent */
+        padding-left: 12px;
+    }
+
+    .editor-listitem {
+        margin: 4px 24px 4px 24px;
+        /* reduce vertical gap */
+        font-size: 14px;
+        /* slightly smaller text */
+    }
+
+    .editor-nested-listitem {
+        margin-left: 0;
+        /* keep nested items aligned */
+    }
 }
 
 .editor-table {

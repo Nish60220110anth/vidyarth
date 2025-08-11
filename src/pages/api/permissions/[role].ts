@@ -3,15 +3,17 @@ import { getIronSession, IronSessionData } from "iron-session";
 import { sessionOptions } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
-import { ACCESS_PERMISSION } from "@prisma/client";
+import { ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";
+import z from "zod";
+import { apiHelpers } from "@/lib/server/responseHelpers";
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
         permissions: [
-            ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+            ACCESS_PERMISSION.ADMIN
         ],
         filters: {
-            [ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY]: {
+            [ACCESS_PERMISSION.ADMIN]: {
                 priority: 1,
                 filter: {},
             }
@@ -19,29 +21,32 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     }
 };
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+const GetQuerySchema = z.object({
+    role: z.enum(USER_ROLE),
+}).strict();
 
-    const { role } = req.query;
+async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const session: IronSessionData = await getIronSession(req, res, sessionOptions);
 
-    if(session.role !== "ADMIN") {
-        return res.status(403).json({ error: "Access denied" });
+    const parsedQuery = GetQuerySchema.safeParse(req.query);
+
+    if (!parsedQuery.success) {
+        apiHelpers.error(res, `Invalid query parameters: ${parsedQuery.error}`, 400);
+        return;
     }
 
-    if (typeof role !== "string") {
-        return res.status(400).json({ error: "Invalid role format" });
-    }
+    console.log("Session role:", session.role);
 
-    if(!role) {
-        return res.status(400).json({ error: "Role cannot be undefined" });
+    if (session.role !== USER_ROLE.ADMIN) {
+        apiHelpers.forbidden(res, "You do not have permission to access this resource");
+        return;
     }
-
 
     if (req.method === "GET") {
         try {
             const rolePerm = await prisma.role_permission.findUnique({
-                where: { role },
+                where: { role: parsedQuery.data.role },
                 include: {
                     permissions: {
                         select: {
@@ -51,17 +56,24 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 }
             });
 
-            return res.status(200).json({
-                permissions: rolePerm?.permissions.map(p => p.permission) || [],
-                description: rolePerm?.description || ""
+            apiHelpers.success(res, {
+                data: {
+                    permissions: rolePerm ? rolePerm.permissions.map(p => p.permission) : [],
+                    description: rolePerm ? rolePerm.description : "No description available"
+                }
             });
 
+            return;
+
         } catch (error) {
-            return res.status(500).json({ error: "Internal server error" });
+            apiHelpers.error(res, `Error fetching role permissions: ${error}`, 500);
+            return;
         }
     }
 
-    return res.status(405).json({ error: "Method not allowed" });
+
+    apiHelpers.methodNotAllowed(res, `Method ${req.method} not allowed`);
+    return;
 }
 
 export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

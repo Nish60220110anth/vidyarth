@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { toTitleCase } from './Profile';
 import { fetchCVFile, fetchCVForUserID, putStudentCV } from '@/lib/api/studentCV';
 import { useRouter } from 'next/router';
+import { baseUrl } from '@/lib/config';
 
 type Props = {
     name: string;
@@ -78,7 +79,7 @@ export default function MyCV({ id, name }: Props) {
     };
 
     const handleGenericDownload = () => {
-        const url = '/generic/John Doe CV.docx';
+        const url = `${baseUrl}/generic/John Doe CV.docx`;
         const a = document.createElement('a');
         a.href = url;
         a.download = `${toTitleCase(name)}_John_CV.docx`;

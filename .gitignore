@@ -45,3 +45,9 @@ next-env.d.ts
 ./src/lib/firebase.ts
 
 /GenAI/
+
+/tasks/
+/wf/
+/logs/
+/certs/
+/docker/

@@ -55,9 +55,9 @@ export default function SidebarTopBar({
 
     const fetchAnnouncements = async () => {
         try {
-            const res = await axios.get(`${baseUrl}/api/announcements?userId=${id}`, {
+            const res = await axios.get(`${baseUrl}/api/announcements?userId=${id}&take=3`, {
                 headers: {
-                    "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+                    "x-access-permission": ACCESS_PERMISSION.ENABLE_ANNOUNCEMENTS
                 }
             });
 

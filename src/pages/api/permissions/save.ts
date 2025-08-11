@@ -1,30 +1,43 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getIronSession, IronSessionData } from "iron-session";
 import { sessionOptions } from "@/lib/session";
-import { PrismaClient, USER_ROLE, ACCESS_PERMISSION } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";
+import z from "zod";
+import { apiHelpers } from "@/lib/server/responseHelpers";
 
-const prisma = new PrismaClient();
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    post: {
+        permissions: [ACCESS_PERMISSION.ADMIN],
+        filters: {
+            [ACCESS_PERMISSION.ADMIN]: {
+                priority: 1,
+                filter: {},
+            }
+        }
+    },
+};
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const PostBodySchema = z.object({
+    role: z.enum(USER_ROLE),
+    permissions: z.array(z.enum(ACCESS_PERMISSION)),
+    description: z.string().optional(),
+}).strict();
+
+async function handler(req: NextApiRequest, res: NextApiResponse) {
     const session: IronSessionData = await getIronSession(req, res, sessionOptions);
 
-    if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method not allowed" });
-    }
-    
-    if (!session?.email || session.role?.toUpperCase() !== USER_ROLE.ADMIN) {
-        return res.status(403).json({ error: "Unauthorized: Admin access required" });
-    }
-    
-    const { role, permissions, description } = req.body;
+    const parsedBody = PostBodySchema.safeParse(req.body);
 
-    if (
-        !role ||
-        !Object.values(USER_ROLE).includes(role) ||
-        !Array.isArray(permissions) ||
-        !permissions.every((p) => Object.values(ACCESS_PERMISSION).includes(p))
-    ) {
-        return res.status(400).json({ error: "Invalid role or permissions" });
+    if (!parsedBody.success) {
+        return res.status(400).json({ error: `Invalid request body: ${parsedBody.error}` });
+    }
+
+    const { role, permissions, description } = parsedBody.data;
+
+    if (session.role !== USER_ROLE.ADMIN) {
+        return res.status(403).json({ error: "You do not have permission to perform this action" });
     }
 
     try {
@@ -46,10 +59,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             skipDuplicates: true,
         });
 
-        return res.status(200).json({ message: `Permissions updated for ${role}` });
+        apiHelpers.success(res, {
+            message: `Permissions updated for ${role}`,
+            role,
+            permissions,
+            description,
+        });
+
+        return;
 
     } catch (error) {
         console.error("Permission update error:", error);
-        return res.status(500).json({ error: "Internal server error" });
+        apiHelpers.error(res, "Failed to update permissions", 500);
+        return;
     }
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

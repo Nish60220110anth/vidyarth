@@ -164,7 +164,7 @@ export default function UserShortlistTable() {
     /* --------------------------------- Render --------------------------------- */
 
     return (
-        <div className="p-6 min-h-screen flex flex-col bg-gradient-to-b from-[#081118] to-[#0a141d] text-cyan-50 font-[Urbanist]">
+        <div className="p-6 h-full w-full flex flex-col bg-gradient-to-b from-[#081118] to-[#0a141d] text-cyan-50 font-[Urbanist]">
             {/* Header */}
             <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -209,9 +209,9 @@ export default function UserShortlistTable() {
                     onChange={(e) => setTypeFilter(e.target.value as any)}
                     aria-label="Filter by shortlist type"
                 >
-                    <option value="ANY">Type: Any</option>
-                    <option value="SL">Type: SL</option>
-                    <option value="ESL">Type: ESL</option>
+                    <option value="ANY">Any</option>
+                    <option value="SL">SL</option>
+                    <option value="ESL">ESL</option>
                 </select>
 
                 <select
@@ -281,7 +281,7 @@ export default function UserShortlistTable() {
                         <table className="min-w-full text-sm text-left text-cyan-100">
                             <thead className="text-xs uppercase bg-[#0d1f2b] text-cyan-300/90">
                                 <tr>
-                                    <th scope="col" className="px-6 py-3 sticky top-0 z-10">
+                                            <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
                                         <button
                                             onClick={toggleCompanySort}
                                             className="flex items-center gap-2 hover:text-cyan-200"
@@ -291,13 +291,13 @@ export default function UserShortlistTable() {
                                             Company ({companySort === "asc" ? "A→Z" : "Z→A"})
                                         </button>
                                     </th>
-                                    <th scope="col" className="px-6 py-3 sticky top-0 z-10">
+                                            <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
                                         Role
                                     </th>
-                                    <th scope="col" className="px-6 py-3 sticky top-0 z-10">
+                                            <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
                                         Round Details
                                     </th>
-                                    <th scope="col" className="px-6 py-3 sticky top-0 z-10">
+                                            <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
                                         Shortlist Type
                                     </th>
                                 </tr>

@@ -47,6 +47,8 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const visiblePDFs = originalValue.pdfs.filter((pdf) => !deletedPdfs.includes(pdf.id));
 
+    const [hasFetched, setHasFetched] = useState(false);
+
     const loadSession = async () => {
         const data = await fetchSession();
         if (!data.success) {
@@ -198,13 +200,15 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
     };
 
     useEffect(() => {
+        if (!props.company_id || hasFetched) return;
+
         const init = async () => {
             setLoading(true);
             Promise.all([loadSession(), _fetchPermissions(), _fetchCompendium(props.company_id)])
                 .finally(() => setLoading(false));
         };
         init();
-    }, []);
+    }, [props.company_id, hasFetched]);
 
     const isEditor =
         session?.role && permissions.includes(ACCESS_PERMISSION.EDIT_COMPANY_INFO);
@@ -220,7 +224,7 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
 
                 {/* Loading text */}
                 <p className="mt-4 text-lg font-semibold text-cyan-700">
-                    Loading content…
+                    Loading Compendium...
                 </p>
 
                 {/* Skeleton lines to hint at structure */}

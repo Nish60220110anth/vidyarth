@@ -32,9 +32,8 @@ export async function createNotification(input: CreateNotificationDTO) {
         console.error("Invalid notification data:", parsed.error);
         throw new Error(`Invalid notification data: ${parsed.error.message}`);
     }
-
-    if (parsed.data.type === NOTIFICATION_TYPE.COMPANY_CONTENT && parsed.data.initiator === NOTIFICATION_SOURCE_INITIATOR.UPDATED && parsed.data.companyId) {
-        await prisma.summary.updateMany({
+    if (parsed.data.type === NOTIFICATION_TYPE.COMPANY_CONTENT && (parsed.data.initiator === NOTIFICATION_SOURCE_INITIATOR.UPDATED || parsed.data.initiator === NOTIFICATION_SOURCE_INITIATOR.ADDED) && parsed.data.companyId) {
+        await prisma.summary.update({
             where: {
                 companyId: parsed.data.companyId,
             },

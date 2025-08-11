@@ -110,7 +110,7 @@ export default function ManageCompanyList() {
 
             if (updatedCompanyIds.size > 0) {
                 const ids = Array.from(updatedCompanyIds);
-                res = await axios.post("/api/company/fetch-multiple", { ids }, {
+                res = await axios.post(`${baseUrl}/api/company/fetch-multiple`, { ids }, {
                     headers: {
                         "x-access-permission": "MANAGE_COMPANY_LIST",
                     },

@@ -9,8 +9,15 @@ import { apiHelpers } from "@/lib/server/responseHelpers";
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
         permissions: [ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY],
+        filters: {
+            [ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY]: {
+                priority: 1,
+                filter: {},
+            }
+        }
     }
 };
+
 async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const session: IronSessionData = await getIronSession(req, res, sessionOptions);

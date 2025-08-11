@@ -37,6 +37,7 @@ model notification_properties {
   send_email      Boolean
   delay_minutes   Int
   only_for_target Boolean
+  
 
   role USER_ROLE?
 

@@ -14,16 +14,11 @@ import { ToInt } from "@/lib/server/zod_utils";
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
         permissions: [
-            ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY,
-            ACCESS_PERMISSION.ENABLE_PROFILE,
+            ACCESS_PERMISSION.ENABLE_ANNOUNCEMENTS,
             ACCESS_PERMISSION.MANAGE_ANNOUNCEMENTS
         ],
         filters: {
-            [ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY]: {
-                priority: 2,
-                filter: {},
-            },
-            [ACCESS_PERMISSION.ENABLE_PROFILE]: {
+            [ACCESS_PERMISSION.ENABLE_ANNOUNCEMENTS]: {
                 priority: 2,
                 filter: {},
             },
@@ -39,6 +34,7 @@ const GetQuerySchema = z.object({
     userId: ToInt.refine((val) => val > 0, {
         message: "userId must be a positive integer",
     }),
+    take: ToInt.optional().default(3),
 }).strict();
 
 const PostBodySchema = z.object({
@@ -64,25 +60,39 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             const session: IronSessionData = await getIronSession<IronSessionData>(req, res, sessionOptions);
 
-            const user = await prisma.user.findUnique({
-                where: {
-                    id: parsedQuery.data.userId
-                }
-            })
+            if (parsedQuery.data.userId) {
+                const user = await prisma.user.findUnique({
+                    where: {
+                        id: parsedQuery.data.userId
+                    }
+                })
 
-            if ((user?.email_id !== session.email) || !user?.is_active || !user?.is_verified) {
-                apiHelpers.forbidden(res, "You do not have permission to access this user's announcements");
-                return;
+                if ((user?.email_id !== session.email) || !user?.is_active || !user?.is_verified) {
+                    apiHelpers.forbidden(res, "You do not have permission to access this user's announcements");
+                    return;
+                }
             }
 
             const announcements = await prisma.announcements.findMany({
                 where: {
-                    userId: parsedQuery.data.userId,
+                    ...(parsedQuery.data.userId
+                        ? {
+                            user: {
+                                some: {
+                                    id: parsedQuery.data.userId,
+                                    is_active: true,
+                                    is_verified: true,
+                                },
+                            },
+                        }
+                        : {}),
                 },
                 orderBy: {
-                    created_at: "desc",
+                    updated_at: "desc",
                 },
+                take: parsedQuery.data.take,
             });
+
 
             apiHelpers.success(res, { data: announcements })
             return;
@@ -99,7 +109,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             const newAnnouncement = await prisma.announcements.create({
                 data: {
-                    userId,
+                    user: {
+                        connect: { id: userId },
+                    },
                     title,
                     brief,
                     is_link,

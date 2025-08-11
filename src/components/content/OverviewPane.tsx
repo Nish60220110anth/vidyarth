@@ -21,6 +21,9 @@ export default function Overview({ props }: { props: OverviewEntry }) {
     const [originalContent, setOriginalContent] = useState<string>("");
     const [isEditing, setIsEditing] = useState(false);
 
+    const [hasFetched, setHasFetched] = useState(false);
+
+
     const loadSession = async () => {
         const data = await fetchSession();
         if (!data.success) {
@@ -57,15 +60,20 @@ export default function Overview({ props }: { props: OverviewEntry }) {
     };
 
     useEffect(() => {
+        if (hasFetched || !props.company_id) return;
+
         const init = async () => {
             setLoading(true);
-            await loadSession();
-            await _fetchPermissions();
-            await _fetchOverviewContent();
+            await Promise.all([
+                loadSession(),
+                _fetchPermissions(),
+                _fetchOverviewContent(),
+            ]);
+            setHasFetched(true);
             setLoading(false);
         };
         init();
-    }, []);
+    }, [props.company_id, hasFetched]);
 
     const isEditor =
         session?.role && permissions.includes(ACCESS_PERMISSION.EDIT_COMPANY_INFO);
@@ -81,7 +89,7 @@ export default function Overview({ props }: { props: OverviewEntry }) {
 
                 {/* Loading text */}
                 <p className="mt-4 text-lg font-semibold text-cyan-700">
-                    Loading content…
+                    Loading Overview...
                 </p>
 
                 {/* Skeleton lines to hint at structure */}

@@ -85,6 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         const emailContentBlocks: {
+            type: NOTIFICATION_TYPE;
             email_content: {
                 title: string;
                 content: string;
@@ -148,13 +149,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const body = renderBodyTemplate(NOTIFICATION_TYPE.SHORTLIST, {
                     company_full: scompany?.company_full || "",
                     role: latest.shortlist?.role || "",
-                    chitragupta_link: `${chitraguptaUrl}${chitraguptaShortlistUri}`,
-                    chitragupta_link_name: "Chitragupta Shortlist",
-                    company_link: companyObj?.link || "",
-                    company_link_name: toTitleCase((companyObj?.link_name || "").replaceAll("_", " ")),
-                    my_section_link: mySectionObj?.link || "",
-                    my_section_link_name: toTitleCase((mySectionObj?.link_name || "").replaceAll("_", " ")),
-                });
+                    pcom_id: "{{pcom_id}}",
+                    name: "{{name}}"
+                }, [
+                    { name: "Chitragupta Shortlist", url: `${chitraguptaUrl}${chitraguptaShortlistUri}` },
+                    { name: toTitleCase((companyObj?.link_name || "").replaceAll("_", " ")), url: companyObj?.link || "" },
+                    { name: toTitleCase((mySectionObj?.link_name || "").replaceAll("_", " ")), url: mySectionObj?.link || "" },
+                ]);
 
                 const brief = renderBriefTemplate(NOTIFICATION_TYPE.SHORTLIST, {
                     company_full: scompany?.company_full || "",
@@ -188,6 +189,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
 
                 emailContentBlocks.push({
+                    type: NOTIFICATION_TYPE.SHORTLIST,
                     email_content: {
                         title: subject,
                         content: body,
@@ -240,9 +242,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
                 const body = renderBodyTemplate(NOTIFICATION_TYPE.COMPANY, {
                     company_full: latest.company?.company_full || "",
-                    company_link: companyObj?.link || "",
-                    company_link_name: toTitleCase((companyObj?.link_name || "").replaceAll("_", " ")),
-                });
+                    pcom_id: "{{pcom_id}}",
+                    name: "{{name}}"
+                }, [
+                    { name: toTitleCase((companyObj?.link_name || "").replaceAll("_", " ")), url: companyObj?.link || "" }
+                ]);
 
                 const brief = renderBriefTemplate(NOTIFICATION_TYPE.COMPANY, {
                     company_full: latest.company?.company_full || "",
@@ -270,6 +274,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
 
                 emailContentBlocks.push({
+                    type: NOTIFICATION_TYPE.COMPANY,
                     email_content: {
                         title: subject,
                         content: body,
@@ -332,7 +337,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             for (const noti of Object.values(latestPerDomain)) {
                 for (const link of noti.links) {
                     dynamic_links += renderTemplate(link_template, {
-                        domain_link_name: toTitleCase(link.link_name.replaceAll("_", " ")),
+                        domain_link_name: toTitleCase(noti.domain || ""),
                         domain_link: link.link,
                     });
                 }
@@ -346,12 +351,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 domain: domainStr
             });
 
+            const domainLinks = Object.values(latestPerDomain).flatMap(noti =>
+                noti.links.map(link => ({
+                    name: toTitleCase(noti.domain || ""),
+                    url: link.link
+                }))
+            );
+
             const body = renderBodyTemplate(NOTIFICATION_TYPE.DOMAIN_PREP, {
                 domain: domainStr,
-                domain_link: dynamic_links,
-                domain_link_name: "", 
-                updated_at: `${dateStr} ${timeStr}`
-            });
+                updated_at: `${dateStr} ${timeStr}`,
+                pcom_id: "{{pcom_id}}",
+                name: "{{name}}"
+            }, domainLinks);
+
 
             const targetRole = domainPrepProps.role || USER_ROLE.ADMIN;
             const recipient_user_ids = (await prisma.user.findMany({
@@ -367,6 +380,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }));
 
             emailContentBlocks.push({
+                type: NOTIFICATION_TYPE.DOMAIN_PREP,
                 email_content: {
                     title: subject,
                     content: body,
@@ -415,11 +429,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const cvPrepLinkName = toTitleCase((link?.link_name || "").replaceAll("_", " "));
 
                 const subject = renderSubjectTemplate(NOTIFICATION_TYPE.CV_PREP, {});
+
                 const body = renderBodyTemplate(NOTIFICATION_TYPE.CV_PREP, {
-                    cv_prep_link: cvPrepLink,
-                    cv_prep_link_name: cvPrepLinkName,
                     updated_at: `${dateStr} ${timeStr}`,
-                });
+                    pcom_id: "{{pcom_id}}",
+                    name: "{{name}}"
+                }, [
+                    { name: toTitleCase((link?.link_name || "").replaceAll("_", " ")), url: link?.link || "" }
+                ]);
+
                 const brief = renderBriefTemplate(NOTIFICATION_TYPE.CV_PREP, {});
 
                 const targetRole = cvPrepProps.role || USER_ROLE.ADMIN;
@@ -436,6 +454,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }));
 
                 emailContentBlocks.push({
+                    type: NOTIFICATION_TYPE.CV_PREP,
                     email_content: {
                         title: subject,
                         content: body,
@@ -526,11 +545,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     company_full: company.company_full,
                 });
 
+                const linksList = notifications.flatMap(noti =>
+                    noti.links.map(link => ({
+                        name: toTitleCase(link.link_name.replaceAll("_", " ")),
+                        url: link.link
+                    }))
+                );
+
                 const body = renderBodyTemplate(NOTIFICATION_TYPE.COMPANY_CONTENT, {
                     company_full: company.company_full,
                     updated_at: `${dateStr} ${timeStr}`,
-                    dynamic_links,
-                });
+                    pcom_id: "{{pcom_id}}",
+                    name: "{{name}}"
+                }, linksList);
+
 
                 const targetRole = companyContentProps.role || USER_ROLE.ADMIN;
                 const recipient_user_ids = (await prisma.user.findMany({
@@ -546,6 +574,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }));
 
                 emailContentBlocks.push({
+                    type: NOTIFICATION_TYPE.COMPANY_CONTENT,
                     email_content: {
                         title: subject,
                         content: body,
@@ -565,11 +594,88 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         }
 
+        const allNotificationProps = await prisma.notification_properties.findMany();
+        const propsByType = Object.fromEntries(
+            allNotificationProps.map((p) => [p.type, p])
+        );
+
+        // === Finalize DB Inserts ===
+
+        const insertedContents = [];
+
+        for (const block of emailContentBlocks) {
+            const { email_content, recipient_user_ids, announcement, type } = block;
+
+            const onlyForTarget = propsByType[type]?.only_for_target ?? true;
+            const ccEmails = ccBccEmails(type, onlyForTarget).cc;
+            const bccEmails = ccBccEmails(type, onlyForTarget).bcc;
+
+            const ccUsers = await prisma.user.findMany({
+                where: { email_id: { in: ccEmails } },
+                select: { id: true },
+            });
+
+            const bccUsers = await prisma.user.findMany({
+                where: { email_id: { in: bccEmails } },
+                select: { id: true },
+            });
+
+            const emailContent = await prisma.email_content.create({
+                data: {
+                    title: email_content.title,
+                    content: email_content.content,
+                    brief: email_content.brief,
+                    cc: {
+                        connect: ccUsers.map(u => ({ id: u.id })),
+                    },
+                    bcc: {
+                        connect: bccUsers.map(u => ({ id: u.id })),
+                    },
+                },
+            });
+
+            await prisma.email_recipient_state.createMany({
+                data: recipient_user_ids.map(r => ({
+                    userId: r.userId,
+                    email_contentId: emailContent.id,
+                    delay_minutes: r.delay_minutes,
+                })),
+                skipDuplicates: true,
+            });
+
+            const announ = await prisma.announcements.create({
+                data: {
+                    title: announcement.title,
+                    brief: announcement.brief,
+                    where_to_look: announcement.where_to_look,
+                    link_name: announcement.link_name,
+                    is_link: announcement.is_link,
+                },
+            });
+
+            const recipientIds = recipient_user_ids.map(r => r.userId);
+            await prisma.announcements.update({
+                where: { id: announ.id },
+                data: {
+                    user: {
+                        connect: recipientIds.map(id => ({ id })),
+                    },
+                },
+            });
+
+            insertedContents.push({
+                email_content_id: emailContent.id,
+                title: email_content.title,
+                recipients: recipient_user_ids.length,
+                announcement,
+            });
+        }
 
         return res.status(200).json({
             success: true,
-            data: emailContentBlocks,
+            inserted: insertedContents,
         });
+
 
     } catch (err) {
         console.error("Error:", err);

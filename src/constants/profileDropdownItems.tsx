@@ -56,8 +56,8 @@ export function getProfileDropdownItems({
             label: "Announcements",
             icon: (cls) => <Megaphone className={cls} />,
             perm: ACCESS_PERMISSION.ENABLE_ANNOUNCEMENTS,
-            component: () => <Announcements />,
-            show: false,
+            component: () => <Announcements id={id}/>,
+            show: true,
         },
         PREFERENCES: {
             label: "Preferences",
