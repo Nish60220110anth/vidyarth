@@ -83,7 +83,7 @@ export function getSectionsPermissions({ id, name, email, role, router, onCompan
             perm: ACCESS_PERMISSION.ENABLE_NEWS,
             icon: (cls) => <Rss className={cls} size={20} strokeWidth={1.5} />,
             component: () => <LatestNews />,
-            shortcut: "L", show: true,
+            shortcut: "N", show: true,
         },
         CV_PREP: {
             section: "Preparation",
@@ -99,7 +99,7 @@ export function getSectionsPermissions({ id, name, email, role, router, onCompan
             perm: ACCESS_PERMISSION.ENABLE_CV_PREP,
             icon: (cls) => <Tag className={cls} size={20} strokeWidth={1.5} />,
             component: () => <DomainCVPrepGuide />,
-            shortcut: "D", show: true,
+            shortcut: "R", show: true,
         },
         COMPANY_LIST: {
             section: "Manage Content",
@@ -107,7 +107,7 @@ export function getSectionsPermissions({ id, name, email, role, router, onCompan
             perm: ACCESS_PERMISSION.MANAGE_COMPANY_LIST,
             icon: (cls) => <Monitor className={cls} size={20} strokeWidth={1.5} />,
             component: () => <ManageCompanyList />,
-            shortcut: "O", show: true,
+            shortcut: "L", show: true,
         },
         NEWS: {
             section: "Manage Content",
@@ -115,7 +115,7 @@ export function getSectionsPermissions({ id, name, email, role, router, onCompan
             perm: ACCESS_PERMISSION.MANAGE_NEWS,
             icon: (cls) => <ClipboardList className={cls} size={20} strokeWidth={1.5} />,
             component: () => <ManageNews />,
-            shortcut: "N", show: true,
+            shortcut: "W", show: true,
         },
         PLACEMENT_CYCLE: {
             section: "Manage Content",
@@ -123,7 +123,7 @@ export function getSectionsPermissions({ id, name, email, role, router, onCompan
             perm: ACCESS_PERMISSION.MANAGE_PLACEMENT_CYCLE,
             icon: (cls) => <BarChart2 className={cls} size={20} strokeWidth={1.5} />,
             component: () => <ManagePlacementCycle />,
-            shortcut: "P", show: true,
+            shortcut: "Y", show: true,
         },
         COMPANY_JD: {
             section: "Manage Content",
@@ -147,7 +147,7 @@ export function getSectionsPermissions({ id, name, email, role, router, onCompan
             perm: ACCESS_PERMISSION.MANAGE_ANNOUNCEMENTS,
             icon: (cls) => <Settings2 className={cls} size={20} strokeWidth={1.5} />,
             component: () => <EmailProps />,
-            shortcut: "Y", show: true,
+            shortcut: "P", show: true,
         },
     };
 

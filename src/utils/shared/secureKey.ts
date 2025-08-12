@@ -32,7 +32,7 @@ function getExpiryMs({
     );
 }
 
-const EXPIRY_MS = getExpiryMs({ minutes: 0, hours: 12 })
+const EXPIRY_MS = getExpiryMs({ minutes: 0, hours: 0, weeks: 1 })
 
 type Payload = {
     key: string;

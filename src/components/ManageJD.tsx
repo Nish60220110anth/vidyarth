@@ -33,7 +33,6 @@ import {
 import ConfirmRowOverlay from "./ConfirmOverlay";
 import CompanySearchDropdown, { Company } from "./CompanySearchDropDown";
 import { ALL_DOMAINS, DOMAIN_COLORS } from "./ManageCompanyList";
-import { PlacementCycle } from "./ManagePlacementCycle";
 import PortalWrapper from "./PortableWrapper";
 import { deleteJDById, fetchAllJDs } from "@/lib/api/jd";
 import { fetchAllCycles } from "@/lib/api/cycle";
@@ -89,7 +88,7 @@ export default function ManageJDList() {
     const [selectedRole, setSelectedRole] = useState<string>("");
     const [selectedDomain, setSelectedDomain] = useState<string>("");
     const [selectedCycle, setSelectedCycle] = useState<number>(-1);
-    const [selectedStatus, setSelectedStatus] = useState<"" | "active" | "inactive">("");
+    const [selectedStatus, setSelectedStatus] = useState<string>("");
 
     // Sorting
     const [sortKey, setSortKey] = useState<SortKey>("company_full");

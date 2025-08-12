@@ -8,6 +8,7 @@
 
 
 import {ContentEditable} from '@lexical/react/LexicalContentEditable'
+import { JSX } from 'react';
 
 export default function LexicalContentEditable({
   className,

@@ -61,7 +61,7 @@ import { PaintBucket, Type } from "react-bootstrap-icons";
 import { DropDownItem, DropDown } from "@/ui/DropDown";
 import { useModal } from "@/hooks/useModal";
 
-import { InsertInlineImageDialog } from "./InlineImagePlugin";
+// import { InsertInlineImageDialog } from "./InlineImagePlugin";
 import { INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND } from "lexical";
 
 const LowPriority = 1;

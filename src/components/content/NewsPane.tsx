@@ -12,15 +12,6 @@ const DOMAIN_COLORS: Record<string, { bg: string; text: string; ring: string }> 
     GENMAN: { bg: "bg-purple-900/20", text: "text-purple-300", ring: "ring-purple-600/40" },
 };
 
-const containerVariants = {
-    hidden: { opacity: 0, y: 6 },
-    show: {
-        opacity: 1,
-        y: 0,
-        transition: { staggerChildren: 0.05, ease: [0.25, 1, 0.5, 1] },
-    },
-};
-
 const cardVariants = {
     hidden: { opacity: 0, y: 10 },
     show: { opacity: 1, y: 0 },
@@ -79,7 +70,14 @@ const NewsPane: React.FC<NewsPaneProps> = ({ props }) => {
     return (
         <motion.div
             className="w-full flex flex-col gap-6"
-            variants={containerVariants}
+            variants={{
+                hidden: { opacity: 0, y: 6 },
+                show: {
+                    opacity: 1,
+                    y: 0,
+                    transition: { staggerChildren: 0.05, ease: [0.25, 1, 0.5, 1] },
+                },
+            }}
             initial="hidden"
             animate="show"
         >

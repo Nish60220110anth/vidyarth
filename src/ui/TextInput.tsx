@@ -6,7 +6,7 @@
  *
  */
 
-import {HTMLInputTypeAttribute} from 'react'
+import {HTMLInputTypeAttribute, JSX} from 'react'
 
 type Props = Readonly<{
   'data-test-id'?: string;

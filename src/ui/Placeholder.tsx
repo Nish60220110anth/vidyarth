@@ -7,7 +7,7 @@
  */
 
 
-import {ReactNode} from 'react'
+import {JSX, ReactNode} from 'react'
 
 export default function Placeholder({
   children,

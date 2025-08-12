@@ -8,6 +8,7 @@
 
 
 import * as React from 'react';
+import { JSX } from 'react';
 
 type Props = Readonly<{
   'data-test-id'?: string;

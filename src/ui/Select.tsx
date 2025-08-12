@@ -6,6 +6,8 @@
  *
  */
 
+import { JSX } from "react"
+
 
 type SelectIntrinsicProps = JSX.IntrinsicElements['select']
 interface SelectProps extends SelectIntrinsicProps {

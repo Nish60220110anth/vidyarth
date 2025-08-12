@@ -1348,3 +1348,44 @@ i.horizontal-rule {
         background: none;
     }
 }
+
+
+.editor-container,
+.editor-inner {
+    position: relative;
+    isolation: isolate;
+}
+
+.editor-table {
+    position: relative;
+    overflow: hidden;
+    contain: paint;
+    z-index: 0;
+}
+
+.editor-table th,
+.editor-table td {
+    position: relative;
+}
+
+.editor-table .resizer {
+    right: 0;
+}
+
+
+.editor-table-selection {
+    z-index: 1;
+    pointer-events: none;
+}
+
+.editor-toolbar {
+    z-index: 20;
+}
+
+.dropdown {
+    z-index: 5;
+}
+
+.link-editor {
+    z-index: 100;
+}

@@ -100,7 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 bcc,
                 subject,
                 body,
-                delay: props.delay,
+                delay: props.delay_minutes,
                 type,
                 brief,
                 where_to_look,
