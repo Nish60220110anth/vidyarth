@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { GoogleLogin, googleLogout, CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { ACCESS_PERMISSION } from '@prisma/client';
+import { baseUrl } from '@/lib/config';
 
 interface GooglePayload {
     email: string;
@@ -49,7 +50,7 @@ export default function LoginPage({ ip, IIMLPrivate, userAgent, language }: {
         setIsLoggingIn(true);
 
         try {
-            const res = await fetch('/api/auth/login', {
+            const res = await fetch(`${baseUrl}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: username, password }),
@@ -66,10 +67,10 @@ export default function LoginPage({ ip, IIMLPrivate, userAgent, language }: {
                 setIsLoggingIn(false);
 
                 if (data.role?.toLowerCase() === 'admin') {
-                    setTimeout(() => router.push('/admin'), 1200);
+                    setTimeout(() => router.push(`${baseUrl}/admin`), 1200);
                     return;
                 }
-                setTimeout(() => router.push('/dashboard'), 1200);
+                setTimeout(() => router.push(`${baseUrl}/dashboard`), 1200);
             }
 
         } catch (error) {
@@ -86,7 +87,7 @@ export default function LoginPage({ ip, IIMLPrivate, userAgent, language }: {
             }
             const decoded = jwtDecode<GooglePayload>(credentialResponse.credential);
 
-            const res = await fetch('/api/auth/google-login', {
+            const res = await fetch(`${baseUrl}/api/auth/google-login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-access-permission' : ACCESS_PERMISSION.ENABLE_PROFILE },
                 body: JSON.stringify({ email: decoded.email, name: decoded.name })
@@ -102,24 +103,24 @@ export default function LoginPage({ ip, IIMLPrivate, userAgent, language }: {
                 if (data.is_active && data.is_verified) {
                     toast.success(`Welcome, ${data.name}(${data.role})`);
 
-                    const session = await fetch('/api/auth/user');
+                    const session = await fetch(`${baseUrl}/api/auth/user`);
                     if (session.ok) {
                         const sessionData = await session.json();
                         if (sessionData?.email) {
-                            setTimeout(() => router.push('/dashboard'), 1200);
+                            setTimeout(() => router.push(`${baseUrl}/dashboard`), 1200);
                             return;
                         }
                     } else {
                         toast.error("Failed to fetch session data. Please try again.");
-                        setTimeout(() => router.push('/'), 600);
+                        setTimeout(() => router.push(`${baseUrl}/`), 600);
                         return;
                     }
                 } else if (data.is_active && !data.is_verified) {
                     toast.error("Your account is pending approval. Please wait for admin verification.");
-                    setTimeout(() => router.push('/requires-approval'), 600);
+                    setTimeout(() => router.push(`${baseUrl}/requires-approval`), 600);
                 } else {
                     toast.error("Your account is inactive. Please contact support.");
-                    setTimeout(() => router.push('/'), 1200);
+                    setTimeout(() => router.push(`${baseUrl}/`), 1200);
                 }
             } else {
                 toast.error(data?.error || 'Login failed. Approval may be pending.');
@@ -130,11 +131,11 @@ export default function LoginPage({ ip, IIMLPrivate, userAgent, language }: {
     };
 
     const handleForgotPassword = () => {
-        router.push('/forgot-password');
+        router.push(`${baseUrl}/forgot-password`);
     };
 
     const handleNewUser = () => {
-        router.push('/new-user');
+        router.push(`${baseUrl}/new-user`);
     };
 
     return (

@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 
 import Sidebar from "@/components/Sidebar";
 import UserLoadingScreen from "@/components/UserLoadingScreen";
+import { baseUrl } from "@/lib/config";
 
 type User = {
     id: number;
@@ -21,15 +22,16 @@ export default function Dashboard() {
         const ac = new AbortController();
         (async () => {
             try {
-                const res = await fetch("/api/auth/user", { signal: ac.signal });
+                const res = await fetch(`${baseUrl}/api/auth/user`, { signal: ac.signal });
+                console.log(`res: ${res}`);
                 if (!res.ok) {
-                    router.replace("/");
+                    router.replace(`${baseUrl}/`);
                     return;
                 }
                 const data: User = await res.json();
                 setUser(data);
             } catch (err: any) {
-                if (err?.name !== "AbortError") router.replace("/");
+                if (err?.name !== "AbortError") router.replace(`${baseUrl}/`);
             } finally {
                 if (!ac.signal.aborted) {
                     setTimeout(() => {
@@ -43,13 +45,13 @@ export default function Dashboard() {
 
     const handleLogout = useCallback(async () => {
         try {
-            const res = await fetch("/api/auth/user", { method: "DELETE" });
+            const res = await fetch(`${baseUrl}/api/auth/user`, { method: "DELETE" });
             if (!res.ok) throw new Error();
             toast.success("Logged out");
         } catch {
             toast.error("Failed to log out");
         } finally {
-            router.replace("/");
+            router.replace(`${baseUrl}/`);
         }
     }, [router]);
     
