@@ -2,19 +2,7 @@ import { ACCESS_PERMISSION } from "@prisma/client";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { baseUrl } from "../config";
-
-type NewsEntry = {
-    title: string;
-    link_to_source: string;
-    content: string;
-    company_name: string;
-    company_id: number;
-    image_url: string;
-    domains?: string[];
-    subdomain_tag?: string;
-    news_tag?: string;
-    created_at?: Date;
-};
+import { NewsEntry } from "@/components/MySection";
 
 const getShortlistsBySession = async (count: number) => {
     try {
@@ -40,7 +28,11 @@ const getShortlistsBySession = async (count: number) => {
 
 const getNewsForCompanies = async (companyQueryParams: string) => {
     try {
-        const res = await axios.get(`${baseUrl}/api/news-for-my-section/?${companyQueryParams}`);
+        const res = await axios.get(`${baseUrl}/api/news-for-my-section/?${companyQueryParams}`, {
+            headers: {
+                "x-access-permission": ACCESS_PERMISSION.ENABLE_MY_SECTION
+            }
+        });
 
         if (!res.data.success) {
             console.error("Failed to fetch news:", res.data.error);
@@ -53,14 +45,17 @@ const getNewsForCompanies = async (companyQueryParams: string) => {
             title: news.title,
             link_to_source: news.link_to_source,
             content: news.content,
-            company_name: news.company_name,
-            company_id: news.company_id,
+            company_ids: news.companies.map((g: any) => {
+                return g.company.id;
+            }),
             image_url: news.image_url,
             domains: news.domains.map((d: any) => d.domain),
             subdomain_tag: news.subdomain_tag,
             news_tag: news.news_tag,
             created_at: new Date(news.created_at)
         }));
+
+        console.log("Fetched news:", transformed);
 
         return transformed;
     } catch (error) {

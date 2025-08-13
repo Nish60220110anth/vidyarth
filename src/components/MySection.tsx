@@ -30,20 +30,19 @@ type Shortlist = {
     round_details: string;
 };
 
-type NewsEntry = {
+export type NewsEntry = {
     title: string;
     link_to_source: string;
     content: string;
-    company_name: string;
-    company_id: number;
+    company_ids: number[];
     image_url: string;
     domains?: string[];
     subdomain_tag?: string;
     news_tag?: string;
-    created_at?: Date;
+    created_at?: Date | string;
 };
 
-const SHORTLIST_MAX_COUNT = 6;
+const SHORTLIST_MAX_COUNT = 20;
 
 /* --------------------------- Small UI helpers --------------------------- */
 
@@ -55,18 +54,6 @@ const PanelTitle: React.FC<{ title: string; right?: React.ReactNode }> = ({
         <h3 className="text-xl font-semibold text-cyan-300">{title}</h3>
         {right}
     </div>
-);
-
-const Spinner: React.FC<{ size?: number; ring?: string; track?: string }> = ({
-    size = 16,
-    ring = "border-cyan-400",
-    track = "border-cyan-900/40",
-}) => (
-    <div
-        className={`h-${size} w-${size} border-4 ${ring} ${track} border-t-transparent rounded-full animate-spin`}
-        /* in case arbitrary size classes aren't available, provide fallback via style: */
-        style={{ height: size, width: size }}
-    />
 );
 
 const ShortlistsSkeleton = () => (
@@ -91,8 +78,6 @@ const NewsSkeleton = () => (
     </div>
 );
 
-/* --------------------------------- Main --------------------------------- */
-
 export default function MySection() {
     const router = useRouter();
 
@@ -105,7 +90,9 @@ export default function MySection() {
 
     const [expandedIndices, setExpandedIndices] = useState<Set<number>>(new Set());
 
-    // To avoid setting state on unmounted component during async calls
+    const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
+
+    // avoid setting state after unmount
     const mountedRef = useRef(true);
     useEffect(() => {
         mountedRef.current = true;
@@ -113,6 +100,9 @@ export default function MySection() {
             mountedRef.current = false;
         };
     }, []);
+
+    // prevent stale-news race: only the latest request can set state
+    const latestNewsReqRef = useRef(0);
 
     const toggleExpanded = useCallback((idx: number) => {
         setExpandedIndices((prev) => {
@@ -149,71 +139,97 @@ export default function MySection() {
         }
     }, []);
 
-    const fetchNewsForCompanyIds = useCallback(async (companyIds: number[]) => {
-        if (!companyIds.length) {
+    // De-duped, stable list of shortlist company IDs
+    const shortlistCompanyIds = useMemo(() => {
+        const ids = shortlists.map((s) => s.company_id).filter(Boolean);
+        const unique = Array.from(new Set(ids));
+        unique.sort((a, b) => a - b);
+        return unique;
+    }, [shortlists]);
+
+    // stable key for effect dependency (prevents multiple identical fetches)
+    const companyIdsKey = useMemo(
+        () => (shortlistCompanyIds.length ? JSON.stringify(shortlistCompanyIds) : ""),
+        [shortlistCompanyIds]
+    );
+
+    //fetch news only when the shortlist IDs actually change
+    useEffect(() => {
+        // initial: if no companies, clear and stop
+        if (!companyIdsKey) {
             setNews([]);
             setLoadingNews(false);
             return;
         }
 
-        try {
-            setLoadingNews(true);
-            const params = new URLSearchParams();
-            // Deduplicate IDs to avoid server doing extra work
-            [...new Set(companyIds)].forEach((id) => params.append("cid", id.toString()));
-            const res = await getNewsForCompanies(params.toString());
-            if (!mountedRef.current) return;
-            setNews(res ?? []);
-        } catch (e) {
-            if (mountedRef.current) {
-                setNews([]);
-                toast.error("Failed to load news");
-            }
-        } finally {
-            if (mountedRef.current) setLoadingNews(false);
-        }
-    }, []);
+        const ids: number[] = JSON.parse(companyIdsKey);
+        const params = new URLSearchParams();
+        ids.forEach((id) => params.append("cid", id.toString()));
 
-    // Initial load
-    useEffect(() => {
+        let cancelled = false;
+        setLoadingNews(true);
+        latestNewsReqRef.current += 1;
+        const reqId = latestNewsReqRef.current;
+
         (async () => {
-            const sl = await fetchShortlists();
-            if (sl && sl.length) {
-                const ids = sl.map((s) => s.company_id).filter(Boolean);
-                await fetchNewsForCompanyIds(ids);
-            } else {
-                setNews([]);
-                setLoadingNews(false);
+            try {
+                const res = await getNewsForCompanies(params.toString());
+                if (!mountedRef.current || cancelled) return;
+                // accept only the latest request
+                if (reqId === latestNewsReqRef.current) {
+                    setNews(res ?? []);
+                }
+            } catch (e) {
+                if (mountedRef.current && reqId === latestNewsReqRef.current) {
+                    setNews([]);
+                    toast.error("Failed to load news");
+                }
+            } finally {
+                if (mountedRef.current && reqId === latestNewsReqRef.current) {
+                    setLoadingNews(false);
+                }
             }
         })();
-    }, [fetchShortlists, fetchNewsForCompanyIds]);
 
-    // If the shortlist list changes (e.g., from refresh), refetch news
+        return () => {
+            cancelled = true;
+        };
+    }, [companyIdsKey]);
+
+    // Initial load: only fetch shortlists; news will follow via effect above
     useEffect(() => {
-        if (!shortlists.length) {
-            setNews([]);
-            setLoadingNews(false);
-            return;
-        }
-        const ids = shortlists.map((s) => s.company_id).filter(Boolean);
-        fetchNewsForCompanyIds(ids);
-    }, [shortlists, fetchNewsForCompanyIds]);
+        (async () => {
+            await fetchShortlists();
+        })();
+    }, [fetchShortlists]);
 
-    // Refresh both panels (shortlists -> news)
+    // Refresh shortlists; news will refetch automatically if IDs change
     const handleRefreshShortlists = useCallback(async () => {
         setRefreshing(true);
-        const sl = await fetchShortlists();
-        if (sl && sl.length) {
-            const ids = sl.map((s) => s.company_id).filter(Boolean);
-            await fetchNewsForCompanyIds(ids);
-        } else {
-            setNews([]);
-            setLoadingNews(false);
-        }
+        await fetchShortlists();
         setRefreshing(false);
-    }, [fetchShortlists, fetchNewsForCompanyIds]);
+    }, [fetchShortlists]);
 
     /* --------------------------------- Memos -------------------------------- */
+
+    // Company options for filter (from shortlists)
+    const companyOptions = useMemo(() => {
+        const map = new Map<number, string>();
+        shortlists.forEach((s) => {
+            const name = s.company?.company_full || s.company?.company_name || `#${s.company_id}`;
+            map.set(s.company_id, name);
+        });
+        // sort alphabetically by name
+        return Array.from(map.entries())
+            .map(([value, label]) => ({ value, label }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }, [shortlists]);
+
+    // Filtered news (client-side) based on selected company
+    const filteredNews = useMemo(() => {
+        if (!selectedCompanyId) return news;
+        return news.filter((n) => n.company_ids.includes(selectedCompanyId));
+    }, [news, selectedCompanyId]);
 
     const noNewsContent = useMemo(
         () => (
@@ -249,14 +265,12 @@ export default function MySection() {
                                 onClick={handleRefreshShortlists}
                                 className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-md border transition ${refreshing
                                         ? "border-cyan-700 text-cyan-300 bg-[#0d1f2b]"
-                                        : "border-cyan-800 text-cyan-200 hover:bg-[#0f2130]"
+                                        : "border-cyan-800 text-cyan-200 hover:bg-[#0f2130] active:scale-95"
                                     }`}
                                 disabled={refreshing}
                                 aria-label="Refresh shortlists and news"
                             >
-                                <ArrowPathIcon
-                                    className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-                                />
+                                <ArrowPathIcon className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
                                 Refresh
                             </button>
                         }
@@ -293,7 +307,7 @@ export default function MySection() {
                                     <button
                                         key={s.id}
                                         onClick={() => onCompanySelected(s.company_id)}
-                                        className="w-full text-left border border-cyan-900/50 bg-[#0e1c27] p-4 rounded-lg shadow-sm hover:bg-[#112433] hover:shadow transition duration-200 cursor-pointer"
+                                        className="w-full text-left border border-cyan-900/50 bg-[#0e1c27] p-4 rounded-lg shadow-sm hover:bg-[#112433] hover:shadow transition duration-200 cursor-pointer active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50"
                                     >
                                         <h4 className="text-lg font-semibold text-cyan-200">
                                             {s.company?.company_full ?? s.company?.company_name}
@@ -320,6 +334,32 @@ export default function MySection() {
                 transition={{ duration: 0.35 }}
             >
                 <div className="group h-full w-full">
+                    {/* Controls row (company filter) */}
+                    <div className="mb-3 flex items-center justify-between">
+                        <h3 className="text-xl font-semibold text-cyan-300">Related News</h3>
+                        <div className="flex items-center gap-2">
+                            <label htmlFor="companyFilter" className="text-xs text-cyan-300/80">
+                                Company
+                            </label>
+                            <select
+                                id="companyFilter"
+                                value={selectedCompanyId ?? ""}
+                                onChange={(e) =>
+                                    setSelectedCompanyId(e.target.value === "" ? null : Number(e.target.value))
+                                }
+                                className="bg-[#0e1c27] text-cyan-200 text-xs px-2 py-1 rounded-md border border-cyan-900/50 hover:border-cyan-700/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition"
+                                title="Filter news by shortlist company"
+                            >
+                                <option value="">All companies</option>
+                                {companyOptions.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
                     <AnimatePresence mode="wait">
                         {loadingNews ? (
                             <motion.div
@@ -330,12 +370,8 @@ export default function MySection() {
                             >
                                 <NewsSkeleton />
                             </motion.div>
-                        ) : !news?.length ? (
-                            <motion.div
-                                key="news-empty"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                            >
+                        ) : !filteredNews?.length ? (
+                            <motion.div key="news-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                                 {noNewsContent}
                             </motion.div>
                         ) : (
@@ -345,11 +381,11 @@ export default function MySection() {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                             >
-                                {news.map((entry, idx) => {
+                                {filteredNews.map((entry, idx) => {
                                     const isExpanded = expandedIndices.has(idx);
                                     return (
                                         <motion.div
-                                            key={`${entry.company_id}-${idx}`}
+                                            key={`${entry.company_ids.join(",")}-${idx}`}
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ duration: 0.25, delay: idx * 0.03 }}
@@ -427,14 +463,11 @@ export default function MySection() {
                                                 <div className="flex items-center justify-between text-[11px] text-gray-400 mt-auto pt-2 border-t border-gray-700/50">
                                                     <span>
                                                         {entry.created_at
-                                                            ? new Date(entry.created_at).toLocaleDateString(
-                                                                undefined,
-                                                                {
-                                                                    year: "numeric",
-                                                                    month: "short",
-                                                                    day: "numeric",
-                                                                }
-                                                            )
+                                                            ? new Date(entry.created_at).toLocaleDateString(undefined, {
+                                                                year: "numeric",
+                                                                month: "short",
+                                                                day: "numeric",
+                                                            })
                                                             : "Unknown"}
                                                     </span>
                                                     {entry.link_to_source && (

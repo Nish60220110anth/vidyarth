@@ -31,10 +31,7 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
             [ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY]: {
                 priority: 1,
                 filter: {
-                    is_active: true,
-                    placement_cycle: {
-                        status: "OPEN"
-                    }
+                    is_active: true
                 },
             },
             [ACCESS_PERMISSION.MANAGE_COMPANY_JD]: {
@@ -186,16 +183,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             });
 
 
-            // await fileRef.makePublic();
-            // const publicUrl = fileRef.publicUrl();
+            await fileRef.makePublic();
+            const publicUrl = fileRef.publicUrl();
 
-            const [signedUrl] = await fileRef.getSignedUrl({
-                action: "read",
-                expires: "03-01-2030",
-                responseDisposition: `inline; filename="document.${ext}"`,
-            });
+            // const [signedUrl] = await fileRef.getSignedUrl({
+            //     action: "read",
+            //     expires: "03-01-2030",
+            //     responseDisposition: `inline; filename="document.${ext}"`,
+            // });
 
-            pdf_path = signedUrl;
+            pdf_path = publicUrl;
             firebase_path = dest;
 
             fs.promises.unlink(file.filepath).catch(() => { });
@@ -254,6 +251,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             filters.company_id = cid;
         }
 
+        const activeCycle = await getActiveCycle();
+
         const allJDs = await prisma.company_jd.findMany({
             where: {
                 ...filters,
@@ -272,7 +271,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             },
         });
 
-        apiHelpers.success(res, { data: allJDs })
+        apiHelpers.success(res, { data: allJDs, active: activeCycle });
         return;
     }
     else if (req.method === "DELETE") {

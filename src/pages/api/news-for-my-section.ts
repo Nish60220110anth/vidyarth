@@ -1,43 +1,46 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
-import { getIronSession, IronSessionData } from "iron-session";
-import { sessionOptions } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { ACCESS_PERMISSION } from "@prisma/client";
+import z from "zod";
+import { apiHelpers } from "@/lib/server/responseHelpers";
 
-const prisma = new PrismaClient();
-
-export const config = {
-    api: {
-        bodyParser: false,
-    },
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    get: {
+        permissions: [
+            ACCESS_PERMISSION.ENABLE_MY_SECTION,
+        ],
+        filters: {
+            [ACCESS_PERMISSION.ENABLE_MY_SECTION]: {
+                priority: 2,
+                filter: {
+                    is_featured: true
+                },
+            }
+        },
+    }
 };
 
-type ExtendedNextApiRequest = NextApiRequest & {
-    query: {
-        company_name: string;
-    };
-};
+const GetQuerySchema = z.object({
+    cid: z.array(z.string().transform((id) => parseInt(id)))
+});
 
-export default async function handler(
-    req: ExtendedNextApiRequest,
+async function handler(
+    req: NextApiRequest,
     res: NextApiResponse
 ) {
 
-    const session: IronSessionData = await getIronSession(req, res, sessionOptions);
-
-    // if (!session.email) {
-    //     return res.status(401).json({ error: "Unauthorized" });
-    // }
-
     if (req.method === "GET") {
         try {
-            const { cid } = req.query;
 
-            // Normalize cid into a number array
-            const companyIds = Array.isArray(cid)
-                ? cid.map((id) => parseInt(id))
-                : cid
-                    ? [parseInt(cid)]
-                    : [];
+            const parsedQuery = GetQuerySchema.safeParse(req.query);
+
+            if (!parsedQuery.success) {
+                apiHelpers.error(res, `Invalid query parameters: ${parsedQuery.error.message}`, 400);
+                return;
+            }
+
+            const { cid: companyIds } = parsedQuery.data;
 
             const companyFilter =
                 companyIds.length > 0
@@ -69,21 +72,15 @@ export default async function handler(
                 orderBy: { created_at: "desc" },
             });
 
-            return res.status(200).json({
-                success: true,
-                data: newsList,
+            apiHelpers.success(res, {
+                data: newsList
             });
-        } catch (err) {
-            console.error("GET /api/news-for-my-section failed:", err);
-            return res.status(500).json({
-                success: false,
-                error: "Internal server error",
-            });
+            return;
+        } catch (err: any) {
+            apiHelpers.error(res, `Could not fetch news: ${err.message}`, 500);
+            return;
         }
-
-    }
-
-    else {
-        return res.status(405).json({ error: "Method not allowed", success: false });
     }
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

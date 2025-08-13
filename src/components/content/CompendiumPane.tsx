@@ -15,6 +15,17 @@ import { fetchPermissions } from "@/lib/api/user";
 import { baseUrl } from "@/lib/config";
 import { fetchCompendiumByCompanyID, updateCompendium } from "@/lib/api/panes/compendium";
 
+const getFileTypeFromPath = (
+    path: string
+): "pdf" | "docx" | "doc" | "unknown" => {
+    if (!path) return "unknown";
+    const dot = path.lastIndexOf(".");
+    if (dot === -1) return "unknown";
+    const ext = path.slice(dot + 1).toLowerCase();
+    return ext === "pdf" || ext === "docx" || ext === "doc" ? ext : "unknown";
+};
+
+
 export default function Compendium({ props }: { props: CompendiumEntry }) {
     const isMobile = useIsMobile();
 
@@ -24,7 +35,7 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
 
     const [originalValue, setOriginalValue] = useState<{
         content: string;
-        pdfs: { id: number; compendimum_id: number; pdf_name: string; pdf_path: string; firebase_path: string }[];
+        pdfs: { id: number; compendimum_id: number; pdf_name: string; pdf_path: string; firebase_path: string, type: string }[];
     }>({
         content: "",
         pdfs: [],
@@ -69,7 +80,14 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
         setContent(res.content);
         setOriginalValue({
             content: res.content,
-            pdfs: res.pdfs,
+            pdfs: res.pdfs.map((pdf: any) => ({
+                id: pdf.id,
+                compendium_id: pdf.compendium_id,
+                pdf_name: pdf.pdf_name,
+                pdf_path: pdf.pdf_path,
+                firebase_path: pdf.firebase_path,
+                type: getFileTypeFromPath(pdf.firebase_path),
+            })),
         });
 
         setUploadedFiles([]);
@@ -253,8 +271,8 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
     }
 
     return (
-        <div className="w-full">
-            {/* Toggle button */}
+        <div className="w-full relative">
+            {/* Top actions */}
             <div className="w-full flex justify-end mb-3">
                 <button
                     onClick={() => setShowDocs((prev) => !prev)}
@@ -278,103 +296,24 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
                 </button>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full items-start">
-                {/* Left: Overview Editor */}
-
-                <div className="w-full sm:flex-1 min-w-0 rounded-xl bg-white border 
-            border-gray-200 shadow-[0_2px_10px_rgba(0,0,0,0.05)] px-2 sm:px-2 py-3 space-y-4 ring-1 ring-inset 
-            ring-gray-100 backdrop-blur-sm transition-all duration-300 ease-in-out">
-                    {isEditor && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="col-span-full flex flex-col sm:flex-row justify-end items-start sm:items-center border-b border-gray-300 pb-3 gap-2"
-                        >
-                            {!isEditing ? (
-                                <button
-                                    onClick={() => setIsEditing(true)}
-                                    className="w-full sm:w-auto px-4 py-1.5 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 hover:shadow-sm active:scale-95 transition-all"
-                                >
-                                    Edit
-                                </button>
-                            ) : (
-                                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                                    <button
-                                        onClick={() => {
-                                            setIsEditing(false);
-
-                                            if (uploadedFiles.length > 0) {
-                                                setUploadedFiles([]);
-                                                setUploadedNames([]);
-                                            }
-
-                                            if (deletedPdfs.length > 0) {
-                                                setDeletedPdfs([]);
-                                            }
-
-                                            if (content !== originalValue.content) {
-                                                setContent(originalValue.content);
-                                            }
-                                        }}
-                                        className="px-4 py-1.5 text-sm rounded-md border border-red-200 text-red-600
-                                     hover:bg-red-50 hover:shadow-sm active:scale-95 transition-all w-full sm:w-auto"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        disabled={isSaveDisabled}
-                                        onClick={saveCompendium}
-                                        className="px-4 py-1.5 text-sm rounded-md bg-cyan-600 text-white hover:bg-cyan-700 
-                                    hover:shadow-md active:scale-95 transition-all w-full sm:w-auto"
-                                    >
-                                        Save
-                                    </button>
-                                </div>
-                            )}
-                        </motion.div>
-                    )}
-
-
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3 }}
-                        layout
-                        className="rounded-lg bg-gray-50 border border-gray-200 p-3"
-                    >
-                        <RichTextPane
-                            editable={isEditing}
-                            lexicalState={
-                                !isEditing
-                                    ? isMobile
-                                        ? convertListsToParagraphs(content)
-                                        : content
-                                    : undefined
-                            }
-                            OnSetContent={(f: string) => {
-                                setContent(f);
-                            }}
-                            placeholder={isEditor ? "Enter content here..." : "Content not available yet"}
-                        />
-                    </motion.div>
-                </div>
-
+            {/* Grid: Documents (row 1) + Editor (row 2) */}
+            <div className="grid grid-cols-1 gap-3 w-full">
+                {/* Documents row */}
                 <AnimatePresence initial={false}>
                     {showDocs && (
                         <motion.div
-                            initial={{ opacity: 0, x: 30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 30 }}
-                            transition={{ duration: 0.3 }}
-                            className="w-full sm:w-80 bg-white border border-gray-300 rounded-xl shadow relative overflow-hidden"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.25 }}
+                            className="w-full bg-white border border-gray-300 rounded-xl shadow relative overflow-hidden"
                         >
                             {/* Floating Action Bar */}
                             {isEditing && (
-                                <div className="sticky top-0 z-10 bg-white border-b border-gray-200 flex items-center justify-between gap-2 px-4 py-2">
+                                <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-gray-200 flex items-center justify-between gap-2 px-4 py-2">
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="p-2 rounded-lg hover:bg-cyan-50 transition group w-full sm:w-auto"
+                                        className="p-2 rounded-lg hover:bg-cyan-50 transition group active:scale-95"
                                         title="Upload PDF"
                                     >
                                         <PlusIcon className="w-5 h-5 text-cyan-600 group-hover:scale-110 group-hover:text-cyan-800 transition-transform" />
@@ -387,20 +326,20 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
                                                 .map((pdf) => pdf.id);
                                             setDeletedPdfs((prev) => [...prev, ...remainingIds]);
                                         }}
-                                        className="p-2 rounded-lg hover:bg-red-50 transition group w-full sm:w-auto"
+                                        className="p-2 rounded-lg hover:bg-red-50 transition group disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                                         title="Delete All PDFs"
                                     >
                                         <TrashIcon className="w-5 h-5 text-red-500 group-hover:scale-110 group-hover:text-red-700 transition-transform" />
                                     </button>
                                     <input
                                         type="file"
-                                        accept="application/pdf"
+                                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                         ref={fileInputRef}
                                         multiple
                                         className="hidden"
                                         onChange={(e) => {
                                             const newFiles = Array.from(e.target.files || []);
-                                            const getBaseName = (name: string) => name.replace(/\.pdf$/i, "");
+                                            const getBaseName = (name: string) => name.replace(/\.(pdf|docx|doc)$/i, "");
                                             setUploadedFiles((prev) => [...prev, ...newFiles]);
                                             setUploadedNames((prev) => [
                                                 ...prev,
@@ -408,130 +347,310 @@ export default function Compendium({ props }: { props: CompendiumEntry }) {
                                             ]);
                                         }}
                                     />
+
                                 </div>
                             )}
 
                             {/* Header */}
-                            <div className="px-4 pt-4 pb-2 border-b border-gray-200">
+                            <div className="px-4 pt-4 pb-2 border-b border-gray-200 flex items-center justify-between">
                                 <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
+                                <span className="text-xs text-gray-500">
+                                    {visiblePDFs.length + uploadedFiles.length} item
+                                    {(visiblePDFs.length + uploadedFiles.length) !== 1 ? "s" : ""}
+                                </span>
                             </div>
 
-                            {/* Scrollable PDF List */}
-                            <div className="space-y-2 max-h-[300px] px-4 py-3 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-500">
-                                {visiblePDFs.length === 0 && uploadedFiles.length === 0 && (
-                                    <div className="flex flex-col items-center justify-center text-gray-400 text-sm text-center py-8">
+                            {/* Scrollable PDF Grid (enhanced) */}
+                            <div className="max-h-[480px] px-4 py-3 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-500">
+                                {(visiblePDFs.length === 0 && uploadedFiles.length === 0) && (
+                                    <div className="flex flex-col items-center justify-center text-gray-400 text-sm text-center py-12">
                                         <DocumentArrowUpIcon className="w-8 h-8 mb-2" />
                                         <p>No documents available.</p>
                                     </div>
                                 )}
 
-                                {/* Existing PDFs */}
-                                {originalValue.pdfs.map((pdf) => {
-                                    const isDeleted = deletedPdfs.includes(pdf.id);
-                                    return (
-                                        <div
-                                            key={pdf.id}
-                                            className={`flex justify-between items-center px-3 py-2 rounded-md text-sm transition group 
-            ${isDeleted
-                                                    ? "bg-red-50 border border-red-200 text-red-400 line-through"
-                                                    : "bg-gray-50 text-gray-800 hover:shadow"
-                                                }`}
-                                        >
-                                            <span className="truncate w-4/5">{pdf.pdf_name}</span>
-                                            <div className="flex gap-2 items-center">
-                                                {!isDeleted && (
-                                                    <EyeIcon
-                                                        onClick={() => openPdfInAppViewer(pdf.pdf_path)}
-                                                        className="w-5 h-5 text-cyan-600 hover:text-cyan-800 hover:scale-110 transition-transform cursor-pointer"
-                                                        title="Preview PDF"
-                                                    />
-                                                )}
-                                                {isEditing && (
-                                                    <TrashIcon
-                                                        onClick={() => deletePdf(pdf.id)}
-                                                        className={`w-5 h-5 hover:scale-110 transition-transform cursor-pointer ${isDeleted
-                                                            ? "text-gray-400"
-                                                            : "text-red-500 hover:text-red-700"
-                                                            }`}
-                                                        title="Delete PDF"
-                                                    />
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-3 auto-rows-fr">
+                                    {/* Existing PDFs */}
+                                    {originalValue.pdfs.map((pdf) => {
+                                        const isDeleted = deletedPdfs.includes(pdf.id);
+                                        const canOpen = !isDeleted && !isEditing;
 
-                                {/* New Uploads */}
-                                {isEditing &&
-                                    uploadedFiles.map((f, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="flex justify-between items-center px-3 py-2 rounded-md bg-cyan-50 text-cyan-900 border border-cyan-200 text-xs transition group"
-                                        >
-                                            <span className="truncate w-4/5">{f.name.replace(".pdf", "")}</span>
-                                            <TrashIcon
-                                                onClick={() => deletePdf(undefined, f.name.replace(".pdf", ""))}
-                                                className="w-4 h-4 text-red-500 hover:text-red-700 hover:scale-110 transition-transform 
-                                    cursor-pointer"
-                                                title="Remove this file"
-                                            />
-                                        </div>
-                                    ))}
+                                        return (
+                                            <motion.div
+                                                key={pdf.id}
+                                                whileHover={canOpen ? { y: -2 } : undefined}
+                                                whileTap={canOpen ? { scale: 0.98 } : undefined}
+                                                onClick={() => {
+                                                    if (canOpen) openPdfInAppViewer(pdf.pdf_path);
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (canOpen && (e.key === "Enter" || e.key === " ")) {
+                                                        e.preventDefault();
+                                                        openPdfInAppViewer(pdf.pdf_path);
+                                                    }
+                                                }}
+                                                role={canOpen ? "button" : undefined}
+                                                tabIndex={canOpen ? 0 : -1}
+                                                className={[
+                                                    "group relative rounded-lg border p-3 shadow-sm transition-all",
+                                                    "bg-white hover:bg-gray-50",
+                                                    "flex flex-col justify-between min-h-[100px]",
+                                                    "outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60",
+                                                    isDeleted ? "bg-red-50 border-red-200 opacity-80" : "border-gray-200",
+                                                    canOpen ? "cursor-pointer hover:shadow-md" : "cursor-default"
+                                                ].join(" ")}
+                                            >
+                                                {/* Top row: type + actions */}
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2 text-gray-600">
+                                                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+                                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" opacity=".2" />
+                                                            <path d="M14 2v6h6M8 13h8M8 17h8M8 9h4" />
+                                                        </svg>
+                                                        <span className="text-[11px] uppercase tracking-wide text-gray-500">{pdf.type}</span>
+                                                    </div>
+
+                                                    {/* Actions: visible on hover (md+) or always on mobile */}
+                                                    <div className="flex items-center gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                                        {!isDeleted && (
+                                                            <EyeIcon
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openPdfInAppViewer(pdf.pdf_path);
+                                                                }}
+                                                                className="w-5 h-5 text-cyan-600 hover:text-cyan-800 hover:scale-110 transition-transform cursor-pointer"
+                                                                title="Preview PDF"
+                                                            />
+                                                        )}
+                                                        {isEditing && (
+                                                            <TrashIcon
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    deletePdf(pdf.id);
+                                                                }}
+                                                                className={[
+                                                                    "w-5 h-5 hover:scale-110 transition-transform cursor-pointer",
+                                                                    isDeleted ? "text-gray-400" : "text-red-500 hover:text-red-700"
+                                                                ].join(" ")}
+                                                                title="Delete PDF"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Name (two-line clamp) */}
+                                                <div className="mt-2">
+                                                    <div
+                                                        className={[
+                                                            "text-sm font-medium text-gray-800",
+                                                            isDeleted ? "line-through text-red-600/80" : ""
+                                                        ].join(" ")}
+                                                        title={pdf.pdf_name}
+                                                        style={{
+                                                            display: "-webkit-box",
+                                                            WebkitLineClamp: 2,
+                                                            WebkitBoxOrient: "vertical",
+                                                            overflow: "hidden"
+                                                        }}
+                                                    >
+                                                        {pdf.pdf_name}
+                                                    </div>
+                                                </div>
+
+                                                {/* Subtle hover underline for clickability */}
+                                                {canOpen && (
+                                                    <div className="mt-1 h-[2px] w-0 group-hover:w-full transition-all duration-300 bg-cyan-200/60 rounded-full" />
+                                                )}
+
+                                                {/* Deleted badge */}
+                                                {isDeleted && (
+                                                    <span className="absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">
+                                                        Marked for deletion
+                                                    </span>
+                                                )}
+                                            </motion.div>
+                                        );
+                                    })}
+
+                                    {/* New uploads */}
+                                    {isEditing && uploadedFiles.map((f, idx) => {
+                                        const baseName = f.name.replace(/\.pdf$/i, "");
+                                        return (
+                                            <motion.div
+                                                key={`new-${idx}`}
+                                                whileHover={{ y: -2 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                className="group relative rounded-lg border p-3 shadow-sm transition-all bg-cyan-50 hover:bg-cyan-100 hover:shadow-md border-cyan-200 flex flex-col justify-between min-h-[100px] text-cyan-900 outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                                            >
+                                                {/* Top row: type + actions */}
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+                                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" opacity=".2" />
+                                                            <path d="M14 2v6h6M8 13h8M8 17h8M8 9h4" />
+                                                        </svg>
+                                                        <span className="text-[11px] uppercase tracking-wide">{getFileTypeFromPath(f.name)}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                                        <TrashIcon
+                                                            onClick={() => deletePdf(undefined, baseName)}
+                                                            className="w-4 h-4 text-red-600 hover:text-red-700 hover:scale-110 transition-transform cursor-pointer"
+                                                            title="Remove this file"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Name (two-line clamp) */}
+                                                <div className="mt-2">
+                                                    <div
+                                                        className="text-sm font-medium"
+                                                        title={baseName}
+                                                        style={{
+                                                            display: "-webkit-box",
+                                                            WebkitLineClamp: 2,
+                                                            WebkitBoxOrient: "vertical",
+                                                            overflow: "hidden"
+                                                        }}
+                                                    >
+                                                        {baseName}
+                                                    </div>
+                                                </div>
+
+                                                {/* New badge */}
+                                                <span className="absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded bg-white text-cyan-700 border border-cyan-300">
+                                                    New
+                                                </span>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </div>
                             </div>
-
-
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                {isUploading && (
-                    <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in text-center px-6 w-full">
-                        <div className="relative w-16 h-16 mb-4">
-                            {!(uploadMode === "deleting") ? (
-                                <div
-                                    className="absolute inset-0 rounded-full animate-spin"
-                                    style={{
-                                        background: `conic-gradient(rgba(0,255,255,0.9) ${uploadPercent}%, rgba(0,255,255,0.1) ${uploadPercent}%)`,
-                                        maskImage: 'radial-gradient(circle at center, transparent 65%, black 66%)',
-                                        WebkitMaskImage: 'radial-gradient(circle at center, transparent 60%, black 60%)',
-                                        boxShadow: '0 0 12px rgba(0,255,255,0.5)',
-                                    }}
-                                />
-                            ) : (
-                                <div
-                                    className="absolute inset-1.5 rounded-full border-[3px] border-red-400 animate-spin"
-                                    style={{
-                                        boxShadow: '0 0 10px rgba(255, 100, 100, 0.5)',
-                                    }}
-                                />
-                            )}
-                        </div>
+                {/* Editor row */}
+                <div className="w-full">
+                    <div
+                        className="w-full rounded-xl bg-white border border-gray-200 shadow-[0_2px_10px_rgba(0,0,0,0.05)] px-2 sm:px-2 py-3 space-y-4 ring-1 ring-inset ring-gray-100 backdrop-blur-sm transition-all duration-300 ease-in-out"
+                    >
+                        {isEditor && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="col-span-full flex flex-col sm:flex-row justify-end items-start sm:items-center border-b border-gray-300 pb-3 gap-2"
+                            >
+                                {!isEditing ? (
+                                    <button
+                                        onClick={() => setIsEditing(true)}
+                                        className="w-full sm:w-auto px-4 py-1.5 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 hover:shadow-sm active:scale-95 transition-all"
+                                    >
+                                        Edit
+                                    </button>
+                                ) : (
+                                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                        <button
+                                            onClick={() => {
+                                                setIsEditing(false);
 
-                        {/* Status text */}
-                        {uploadMode === "uploading" ? (
-                            <>
-                                <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
-                                    Uploading file {currentFileIndex + 1} of {uploadedFiles.length}
-                                </p>
-                                <p className="text-cyan-300 text-sm">{uploadPercent}% completed</p>
-                            </>
-                        ) : uploadMode === "deleting" && uploadedFiles.length === 0 ? (
-                            <>
-                                <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
-                                    Deleting {deletedPdfs.length} file{deletedPdfs.length > 1 ? "s" : ""}...
-                                </p>
-                            </>
+                                                if (uploadedFiles.length > 0) {
+                                                    setUploadedFiles([]);
+                                                    setUploadedNames([]);
+                                                }
+                                                if (deletedPdfs.length > 0) {
+                                                    setDeletedPdfs([]);
+                                                }
+                                                if (content !== originalValue.content) {
+                                                    setContent(originalValue.content);
+                                                }
+                                            }}
+                                            className="px-4 py-1.5 text-sm rounded-md border border-red-200 text-red-600 hover:bg-red-50 hover:shadow-sm active:scale-95 transition-all w-full sm:w-auto"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            disabled={isSaveDisabled}
+                                            onClick={saveCompendium}
+                                            className="px-4 py-1.5 text-sm rounded-md bg-cyan-600 text-white hover:bg-cyan-700 hover:shadow-md active:scale-95 transition-all w-full sm:w-auto"
+                                        >
+                                            Save
+                                        </button>
+                                    </div>
+                                )}
+                            </motion.div>
+                        )}
+
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3 }}
+                            layout
+                            className="rounded-lg bg-gray-50 border border-gray-200 p-3"
+                        >
+                            <RichTextPane
+                                editable={isEditing}
+                                lexicalState={
+                                    !isEditing
+                                        ? isMobile
+                                            ? convertListsToParagraphs(content)
+                                            : content
+                                        : undefined
+                                }
+                                OnSetContent={(f: string) => setContent(f)}
+                                placeholder={isEditor ? "Enter content here..." : "Content not available yet"}
+                            />
+                        </motion.div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Uploading overlay */}
+            {isUploading && (
+                <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in text-center px-6">
+                    <div className="relative w-16 h-16 mb-4">
+                        {uploadMode !== "deleting" ? (
+                            <div
+                                className="absolute inset-0 rounded-full animate-spin"
+                                style={{
+                                    background: `conic-gradient(rgba(0,255,255,0.9) ${uploadPercent}%, rgba(0,255,255,0.1) ${uploadPercent}%)`,
+                                    maskImage:
+                                        "radial-gradient(circle at center, transparent 65%, black 66%)",
+                                    WebkitMaskImage:
+                                        "radial-gradient(circle at center, transparent 60%, black 60%)",
+                                    boxShadow: "0 0 12px rgba(0,255,255,0.5)",
+                                }}
+                            />
                         ) : (
-                            <>
-                                <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
-                                    Finalizing...
-                                </p>
-                            </>
+                            <div
+                                className="absolute inset-1.5 rounded-full border-[3px] border-red-400 animate-spin"
+                                style={{
+                                    boxShadow: "0 0 10px rgba(255, 100, 100, 0.5)",
+                                }}
+                            />
                         )}
                     </div>
 
-                )}
-            </div>
+                    {uploadMode === "uploading" ? (
+                        <>
+                            <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
+                                Uploading file {currentFileIndex + 1} of {uploadedFiles.length}
+                            </p>
+                            <p className="text-cyan-300 text-sm">{uploadPercent}% completed</p>
+                        </>
+                    ) : uploadMode === "deleting" && uploadedFiles.length === 0 ? (
+                        <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
+                            Deleting {deletedPdfs.length} file
+                            {deletedPdfs.length > 1 ? "s" : ""}...
+                        </p>
+                    ) : (
+                        <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
+                            Finalizing...
+                        </p>
+                    )}
+                </div>
+            )}
+
         </div>
     );
 

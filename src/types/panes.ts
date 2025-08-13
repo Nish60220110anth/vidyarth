@@ -1,4 +1,4 @@
-import { Company } from "@/components/CompanySearchDropDown";
+
 
 export interface JDPaneProps {
     props: {
@@ -13,13 +13,11 @@ export interface NewsPaneProps {
     };
 }
 
-
 export interface VideoPaneProps {
     props: {
         videos: Partial<VideoEntry>[];
     }
 }
-
 
 export interface JDEntry {
     company: string,
@@ -27,7 +25,9 @@ export interface JDEntry {
     cycle_type: string,
     year: string,
     jd_pdf_path: string,
+    jd_pdf_name: string,
     domains: string[],
+    is_current: boolean,
 }
 
 export interface VideoEntry {

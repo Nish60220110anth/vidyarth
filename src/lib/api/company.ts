@@ -6,7 +6,7 @@ import { JDEntry, NewsEntry, VideoEntry } from "@/types/panes";
 
 const fetchCompanyListWithPermission = async (perm: ACCESS_PERMISSION) => {
     try {
-        const res = await axios.get(`${baseUrl}/api/company/`, {
+        const res = await axios.get(`${baseUrl}/api/company/?t=${Date.now()}`, {
             headers: {
                 'x-access-permission': perm
             }
@@ -60,6 +60,8 @@ const fetchJDByCompanyID = async (companyId: number) => {
             return [];
         }
 
+        const activeCycle = res.data.active;
+
         const transformed = res.data.data.map((jd: any): JDEntry => ({
             company: jd.company.company_full,
             role: jd.role,
@@ -67,6 +69,8 @@ const fetchJDByCompanyID = async (companyId: number) => {
             year: jd.placement_cycle.year,
             jd_pdf_path: jd.pdf_path,
             domains: jd.domains.map((d: any) => d.domain),
+            is_current: activeCycle ? activeCycle.id === jd.placement_cycle.id : false,
+            jd_pdf_name: jd.pdf_name
         }));
 
         return transformed;

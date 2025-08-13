@@ -247,7 +247,8 @@ export default function CompanyPage() {
     const handleDownloadJDs = async () => {
         setIsDownloading(true);
         try {
-            const entries = Array.isArray(allJds) ? allJds : [];
+            const rawEntries = Array.isArray(allJds) ? allJds : [];
+            let entries = rawEntries.filter((jd) => jd.is_current);
             let cycle = `${entries[0].cycle_type}_${entries[0].year}`;
 
             if (!entries.length) {
@@ -257,7 +258,7 @@ export default function CompanyPage() {
 
             const getExtension = (path: string): string => path?.split(".").pop()?.toLowerCase() || "pdf";
             const getFilename = (jd: Partial<JDEntry>) =>
-                `${jd.company}_${jd.role}(${jd.cycle_type}_${jd.year}).${getExtension(jd.jd_pdf_path || "")}`;
+                `${jd.company}_${jd.role}.${getExtension(jd.jd_pdf_name || "")}`;
 
             if (entries.length === 1) {
                 const jd = entries[0];
@@ -427,7 +428,7 @@ export default function CompanyPage() {
                                         transition={{ duration: 0.2, ease: "easeOut" }}
                                         className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full shadow-sm leading-none z-10"
                                     >
-                                        {allJds.length}
+                                        {allJds.filter((jd) => jd.is_current).length}
                                     </motion.span>
                                 )}
                             </AnimatePresence>

@@ -8,6 +8,26 @@
             "format": 0,
             "mode": "normal",
             "style": "",
+            "text": "```plaintext",
+            "type": "text",
+            "version": 1
+          }
+        ],
+        "direction": null,
+        "format": "",
+        "indent": 0,
+        "type": "paragraph",
+        "version": 1,
+        "textFormat": 0,
+        "textStyle": ""
+      },
+      {
+        "children": [
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "",
             "text": "About the Company",
             "type": "text",
             "version": 1
@@ -27,7 +47,7 @@
             "format": 0,
             "mode": "normal",
             "style": "",
-            "text": "Microsoft is a global technology leader known for its software products, cloud solutions, and hardware devices. It operates on a diverse business model incorporating software licensing, cloud computing, and online services.",
+            "text": "Founded in 1982, Adobe is a leading global computer software company headquartered in San José, CA. Renowned for its creative and digital media solutions like Photoshop and Acrobat, Adobe empowers users ranging from budding artists to large enterprises to deliver exceptional digital experiences.",
             "type": "text",
             "version": 1
           }
@@ -43,22 +63,98 @@
       {
         "children": [
           {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "With a robust scale spanning multiple sectors, Microsoft continues to innovate with recent developments including advancements in AI and cloud technologies, particularly with Azure.",
-            "type": "text",
-            "version": 1
+            "children": [
+              {
+                "detail": 0,
+                "format": 1,
+                "mode": "normal",
+                "style": "",
+                "text": "Business Model:",
+                "type": "text",
+                "version": 1
+              },
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": " Primarily subscription-based (e.g., Creative Cloud, Document Cloud, Experience Cloud)",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": null,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "version": 1,
+            "value": 1
+          },
+          {
+            "children": [
+              {
+                "detail": 0,
+                "format": 1,
+                "mode": "normal",
+                "style": "",
+                "text": "Scale:",
+                "type": "text",
+                "version": 1
+              },
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": " Operates in 70 offices across 26 countries with over 22,000 employees.",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": null,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "version": 1,
+            "value": 2
+          },
+          {
+            "children": [
+              {
+                "detail": 0,
+                "format": 1,
+                "mode": "normal",
+                "style": "",
+                "text": "Recent Developments:",
+                "type": "text",
+                "version": 1
+              },
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": " Continued growth despite pandemic challenges with plans for hiring drives.",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": null,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "version": 1,
+            "value": 3
           }
         ],
         "direction": null,
         "format": "",
         "indent": 0,
-        "type": "paragraph",
+        "type": "list",
         "version": 1,
-        "textFormat": 0,
-        "textStyle": ""
+        "listType": "bullet",
+        "start": 1,
+        "tag": "ul"
       },
       {
         "children": [
@@ -97,7 +193,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": " Software Engineering Intern, ",
+                "text": " Product Management Intern, ",
                 "type": "text",
                 "version": 1
               },
@@ -106,89 +202,7 @@
                 "format": 2,
                 "mode": "normal",
                 "style": "",
-                "text": "location: Hyderabad",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": " - ",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 1,
-                "mode": "normal",
-                "style": "",
-                "text": "Function:",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": " Engineering - ",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 1,
-                "mode": "normal",
-                "style": "",
-                "text": "CTC:",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": " 12 LPA",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 1
-          },
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 1,
-                "mode": "normal",
-                "style": "",
-                "text": "Title:",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": " Product Manager, ",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 2,
-                "mode": "normal",
-                "style": "",
-                "text": "location: Bangalore",
+                "text": "Remote",
                 "type": "text",
                 "version": 1
               },
@@ -233,7 +247,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": " 20 LPA (Fixed: 15 LPA)",
+                "text": " Competitive stipend",
                 "type": "text",
                 "version": 1
               }
@@ -243,89 +257,7 @@
             "indent": 0,
             "type": "listitem",
             "version": 1,
-            "value": 2
-          },
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 1,
-                "mode": "normal",
-                "style": "",
-                "text": "Title:",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": " Business Analyst, ",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 2,
-                "mode": "normal",
-                "style": "",
-                "text": "location: Noida",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": " - ",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 1,
-                "mode": "normal",
-                "style": "",
-                "text": "Function:",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": " Strategy - ",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 1,
-                "mode": "normal",
-                "style": "",
-                "text": "CTC:",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": " 14 LPA",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 3
+            "value": 1
           }
         ],
         "direction": null,
@@ -382,7 +314,7 @@
             "format": 0,
             "mode": "normal",
             "style": "",
-            "text": "3–4 rounds including: Technical, HR, Case Study",
+            "text": "4–5 interview rounds which typically include:",
             "type": "text",
             "version": 1
           }
@@ -394,6 +326,94 @@
         "version": 1,
         "textFormat": 0,
         "textStyle": ""
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": "Application & Resume Screening",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": null,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "version": 1,
+            "value": 1
+          },
+          {
+            "children": [
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": "Phone Screen with Recruiter",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": null,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "version": 1,
+            "value": 2
+          },
+          {
+            "children": [
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": "Technical/Functional Phone Screen",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": null,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "version": 1,
+            "value": 3
+          },
+          {
+            "children": [
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": "On-Site/Virtual Interviews (Technical, Behavioral, HR)",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": null,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "version": 1,
+            "value": 4
+          }
+        ],
+        "direction": null,
+        "format": "",
+        "indent": 0,
+        "type": "list",
+        "version": 1,
+        "listType": "bullet",
+        "start": 1,
+        "tag": "ul"
       },
       {
         "children": [
@@ -421,7 +441,7 @@
             "format": 0,
             "mode": "normal",
             "style": "",
-            "text": "Focus on analytical problem-solving, coding ability, and understanding of cloud technologies.",
+            "text": "Engineering concepts (data structures, algorithms), Product/Design case scenarios, Behavioral questions focusing on teamwork and problem-solving.",
             "type": "text",
             "version": 1
           }
@@ -462,7 +482,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Describe a project where you had to overcome significant technical challenges.",
+                "text": "How would you improve Adobe XD?",
                 "type": "text",
                 "version": 1
               }
@@ -481,7 +501,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "How would you prioritize product features for a new application?",
+                "text": "Explain the difference between shallow copy and deep copy.",
                 "type": "text",
                 "version": 1
               }
@@ -500,7 +520,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Given data on user engagement, how would you analyze and present your findings?",
+                "text": "Describe a challenging project and how you overcame difficulties.",
                 "type": "text",
                 "version": 1
               }
@@ -519,7 +539,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "What do you see as the biggest threat to the cloud computing market?",
+                "text": "What are the main principles you followed during teamwork?",
                 "type": "text",
                 "version": 1
               }
@@ -530,6 +550,25 @@
             "type": "listitem",
             "version": 1,
             "value": 4
+          },
+          {
+            "children": [
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": "How does the void keyword function in C++?",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": null,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "version": 1,
+            "value": 5
           }
         ],
         "direction": null,
@@ -569,7 +608,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Be clear and concise in your explanations.",
+                "text": "Be clear and concise in your communication.",
                 "type": "text",
                 "version": 1
               }
@@ -588,7 +627,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Show your enthusiasm for cloud technologies and product management.",
+                "text": "Practice STAR method for behavioral questions.",
                 "type": "text",
                 "version": 1
               }
@@ -607,7 +646,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Practice coding problems regularly to boost your confidence.",
+                "text": "Focus on understanding the core values of Adobe.",
                 "type": "text",
                 "version": 1
               }
@@ -657,7 +696,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Maintain a positive and adaptive attitude throughout the interview.",
+                "text": "Stay calm and confident throughout the interview.",
                 "type": "text",
                 "version": 1
               }
@@ -676,7 +715,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Focus on demonstrating your problem-solving process clearly.",
+                "text": "Review and tailor your experiences to Adobe's core values: Genuine, Exceptional, Innovative, Involved.",
                 "type": "text",
                 "version": 1
               }
@@ -695,7 +734,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "Research Microsoft’s recent projects and technologies to relate your answers.",
+                "text": "Emphasize customer-centricity and problem-solving skills in answers.",
                 "type": "text",
                 "version": 1
               }
@@ -716,6 +755,26 @@
         "listType": "bullet",
         "start": 1,
         "tag": "ul"
+      },
+      {
+        "children": [
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "",
+            "text": "```",
+            "type": "text",
+            "version": 1
+          }
+        ],
+        "direction": null,
+        "format": "",
+        "indent": 0,
+        "type": "paragraph",
+        "version": 1,
+        "textFormat": 0,
+        "textStyle": ""
       }
     ],
     "direction": null,
