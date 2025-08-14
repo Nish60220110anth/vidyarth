@@ -6,7 +6,7 @@ import { NewsEntry } from "@/components/MySection";
 
 const getShortlistsBySession = async (count: number) => {
     try {
-        const res = await axios.get(`/api/shortlists/?count=${count}`, {
+        const res = await axios.get(`${baseUrl}/api/shortlists/?count=${count}`, {
             headers: {
                 "x-access-permission": ACCESS_PERMISSION.ENABLE_MY_SECTION
             }

@@ -351,7 +351,7 @@ export default function CompanyPage() {
                     <div className="flex items-center gap-4">
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.3, delay: 0.1 }}>
                             <Image
-                                src={company?.logo_url || "/company-logo/0.png"}
+                                src={company?.logo_url || `${baseUrl}/company-logo/0.png`}
                                 alt="Logo"
                                 width={64}
                                 height={64}

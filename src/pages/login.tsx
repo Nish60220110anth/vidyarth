@@ -29,11 +29,11 @@ export default function LoginPage({ ip, IIMLPrivate, userAgent, language }: {
 
     useEffect(() => {
         const checkSession = async () => {
-            const res = await fetch('/api/auth/user');
+            const res = await fetch(`${baseUrl}/api/auth/user`);
             if (res.ok) {
                 const data = await res.json();
                 if (data?.email) {
-                    router.push('/dashboard');
+                    router.push(`${baseUrl}/dashboard`);
                     return;
                 }
             }

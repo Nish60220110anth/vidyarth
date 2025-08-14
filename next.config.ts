@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactStrictMode: true,
   basePath: '/vidyarth',
-  assetPrefix: '/vidyarth/',
+  assetPrefix: '/vidyarth',
   trailingSlash: true
 };
 

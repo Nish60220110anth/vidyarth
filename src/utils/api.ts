@@ -1,5 +1,5 @@
 import axios from 'axios';
-
+import { baseUrl } from '@/lib/config';
 
 export type SessionInfo = {
     email: string;
@@ -11,7 +11,7 @@ export type SessionInfo = {
 
 async function fetchSession() {
     try {
-        const response = await axios.get('/api/auth/user');
+        const response = await axios.get(`${baseUrl}/api/auth/user`);
         const data = response.data;
         return {
             success: true,
