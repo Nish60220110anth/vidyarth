@@ -1,22 +1,25 @@
 // /pages/api/admin/users.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import {  USER_ROLE } from "@prisma/client";
-import { getIronSession, IronSessionData } from "iron-session";
-import { sessionOptions } from "@/lib/session";
+import {  ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { apiHelpers } from "@/lib/server/responseHelpers";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const session = await getIronSession<IronSessionData>(req, res, sessionOptions);
-
-    if (!session || session?.role !== "ADMIN") {
-        return apiHelpers.unauthorized(res, "UnAuthorized Request")
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    get: {
+        permissions: [
+            ACCESS_PERMISSION.ADMIN
+        ],
+        filters: {
+            [ACCESS_PERMISSION.ADMIN]: {
+                priority: 1,
+                filter: {},
+            }
+        }
     }
+};
 
-    if (req.method !== "GET") {
-        res.setHeader("Allow", ["GET"]);
-        return apiHelpers.methodNotAllowed(res)
-    }
+async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     if (req.method === "GET") {
         const { role } = req.query;
@@ -59,12 +62,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 },
             });
 
-            return res.status(200).json(users);
+            apiHelpers.success(res, {
+                data: users,
+            });
+            return;
         } catch (err) {
             console.error("Failed to fetch users:", err);
-            return res.status(500).json({ error: "Failed to fetch users" });
+            apiHelpers.error(res, "Failed to fetch users", 500);
+            return;
         }
     }
 
-    return res.status(405).json({ error: "Method not allowed" });
+    apiHelpers.methodNotAllowed(res);
+    return;
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

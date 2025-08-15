@@ -1,11 +1,3 @@
-<UserLoadingScreen
-    active
-    tipIntervalMs={3000}
-    initialProgress={5}
-    progressStep={2}
-    progressIntervalMs={80}
-    maxIdleProgress={92}
-/>
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 

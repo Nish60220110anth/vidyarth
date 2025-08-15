@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../prisma';
 
 async function getCompanies (company_id?: number, initialFilter: any = {}) {
     const whereClause = { ...initialFilter };

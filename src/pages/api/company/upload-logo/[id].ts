@@ -63,7 +63,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             await fs.copyFile(file.filepath, newPath);
             await fs.unlink(file.filepath);
 
-            const publicUrl = `/company-logo/${newFilename}`;
+            const publicUrl = `company-logo/${newFilename}`;
 
             await prisma.company.update({
                 where: { id: Number(companyId) },

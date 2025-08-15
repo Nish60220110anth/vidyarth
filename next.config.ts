@@ -5,7 +5,17 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   basePath: '/vidyarth',
   assetPrefix: '/vidyarth',
-  trailingSlash: true
+  trailingSlash: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "3000",
+        pathname: "/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

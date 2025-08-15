@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getIronSession, IronSessionData } from "iron-session";
 import { sessionOptions } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";
 import z from "zod";
@@ -26,7 +26,6 @@ const PostBodySchema = z.object({
 }).strict();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const session: IronSessionData = await getIronSession(req, res, sessionOptions);
 
     const parsedBody = PostBodySchema.safeParse(req.body);
 
@@ -35,10 +34,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     const { role, permissions, description } = parsedBody.data;
-
-    if (session.role !== USER_ROLE.ADMIN) {
-        return res.status(403).json({ error: "You do not have permission to perform this action" });
-    }
 
     try {
         const rolePerm = await prisma.role_permission.upsert({

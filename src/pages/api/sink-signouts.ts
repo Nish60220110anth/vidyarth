@@ -2,7 +2,7 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import Cors from "cors";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../lib/prisma";
 import { USER_ROLE } from "@prisma/client";
 
 const cors = Cors({

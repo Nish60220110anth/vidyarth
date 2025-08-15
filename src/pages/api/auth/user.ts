@@ -13,32 +13,23 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return;
     }
 
-    const email = session.email;
+    const userSession = session.user;
 
-    if (!email) {
-        session.destroy();
+    if (!userSession) {
         apiHelpers.unauthorized(res, "User not logged in");
         return;
     }
 
-    // On DELETE: logout (destroy session)
+    const email = userSession?.email;
+
     if (req.method === 'DELETE') {
         session.destroy();
         apiHelpers.success(res, { message: 'Session cleared' });
         return;
     }
 
-    // Validate user existence and activity
     const user = await prisma.user.findUnique({
         where: { email_id: email },
-        select: {
-            id: true,
-            name: true,
-            email_id: true,
-            role: true,
-            is_active: true,
-            is_verified: true,
-        },
     });
 
     if (!user || !user.is_active) {
@@ -50,10 +41,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const signoutExists = await prisma.signouts.findFirst({
         where: {
             userId: user.id,
-        },
-        select: {
-            id: true,
-        },
+        }
     });
 
     if (!user.is_verified) {
@@ -68,26 +56,42 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return;
     }
 
-    if (session.role != user.role) {
+    if (userSession.role != user.role) {
         session.destroy();
         apiHelpers.unauthorized(res, "Permissions Updated, please login again");
         return;
     }
 
-    session.email = user.email_id;
-    session.role = user.role;
-    session.name = user.name;
+    const role_id = await prisma.role_permission.findUnique({
+        where: { role: user.role },
+    });
 
-    session.save();
+    let permissions: string[] = [];
 
-    apiHelpers.success(res, {
+    if (role_id) {
+        permissions = await prisma.rolepermissionmap.findMany({
+            where: { role_permission_id: role_id.id },
+            select: { permission: true },
+        }).then(perms => perms.map(perm => perm.permission));
+    }
+
+    session.user = {
         email: user.email_id,
         role: user.role,
         name: user.name,
         id: user.id,
         is_active: user.is_active,
         is_verified: user.is_verified,
+        permissions,
+        pcomid: user.pcomid ? user.pcomid : undefined,
+    };
+
+    await session.save();
+
+    apiHelpers.success(res, {
+        data: {...session.user },
     });
+
     return;
 }
 

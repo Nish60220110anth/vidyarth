@@ -1,29 +1,34 @@
 // /pages/api/users/index.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient, USER_ROLE } from "@prisma/client";
-import { getIronSession, IronSessionData } from "iron-session";
-import { sessionOptions } from "@/lib/session";
+import { prisma } from '@/lib/prisma';
+import { ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import z from "zod";
+import { apiHelpers } from "@/lib/server/responseHelpers";
 
-const prisma = new PrismaClient();
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    get: {
+        permissions: [ACCESS_PERMISSION.ADMIN],
+    },
+};
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const session: IronSessionData = await getIronSession(req, res, sessionOptions);
+const GetQuerySchema = z.object({
+    role: z.enum(USER_ROLE),
+});
 
-    // if (!session || session?.role !== "ADMIN") {
-    //     return res.status(403).json({ error: "Access denied" });
-    // }
-
-    if (!session) {
-        return res.status(403).json({ error: "Access denied" });
-    }
+async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     if (req.method === "GET") {
-        const { role } = req.query;
 
-        const whereClause =
-            typeof role === "string"
-                ? { role: role as USER_ROLE }
-                : { role: { not: USER_ROLE.ADMIN } };
+        const parsedQuery = GetQuerySchema.safeParse(req.query);
+
+        if (!parsedQuery.success) {
+            apiHelpers.badRequest(res, `Invalid query parameters`);
+            return;
+        }
+
+        const { role } = parsedQuery.data;
+        const whereClause = role ? { role } : { role: { not: USER_ROLE.ADMIN } };
 
         try {
             const users = await prisma.user.findMany({
@@ -59,12 +64,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 },
             });
 
-            return res.status(200).json(users);
+            apiHelpers.success(res, users);
+            return;
         } catch (err) {
             console.error("Failed to fetch users:", err);
-            return res.status(500).json({ error: "Failed to fetch users" });
+            apiHelpers.error(res, "Failed to fetch users");
+            return;
         }
     }
 
     return res.status(405).json({ error: "Method not allowed" });
 }
+
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

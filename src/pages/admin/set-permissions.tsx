@@ -1,175 +1,270 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import axios, { AxiosResponse } from "axios";
 import { toast, Toaster } from "react-hot-toast";
 import { ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";
-import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
-import { baseUrl } from "@/lib/config";
+import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import { useRouter } from "next/router";
+
+type ApiResponse<T> = { success: boolean; data?: T; error?: string };
+
+type RolePermissionsPayload = {
+    permissions: string[];
+    description?: string | null;
+};
 
 const groupPermissions = (permissions: typeof ACCESS_PERMISSION): Record<string, string[]> => {
     const grouped: Record<string, string[]> = {};
-
     for (const perm of Object.values(permissions)) {
-        const key = (() => {
-            if (perm.startsWith("MANAGE_")) return "Access & Admin";
-            if (perm.startsWith("ENABLE_")) return "Enable Features";
-            if (perm.startsWith("EDIT_")) return "Editable Sections";
-            if (perm.includes("COMPANY")) return "Company Related";
-            if (perm.includes("CV") || perm.includes("DOMAIN")) return "CV & Domain Prep";
-            if (perm.includes("ALUMNI")) return "Alumni Experience";
-            return "Miscellaneous";
-        })();
-
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(perm);
+        const key =
+            perm.startsWith("MANAGE_")
+                ? "Access & Admin"
+                : perm.startsWith("ENABLE_")
+                    ? "Enable Features"
+                    : perm.startsWith("EDIT_")
+                        ? "Editable Sections"
+                        : perm.includes("COMPANY")
+                            ? "Company Related"
+                            : perm.includes("CV") || perm.includes("DOMAIN")
+                                ? "CV & Domain Prep"
+                                : perm.includes("ALUMNI")
+                                    ? "Alumni Experience"
+                                    : "Miscellaneous";
+        (grouped[key] ||= []).push(perm);
     }
-
     return grouped;
 };
 
-const permissionGroups = groupPermissions(ACCESS_PERMISSION);
-
+const PERMISSION_GROUPS = groupPermissions(ACCESS_PERMISSION);
 
 export default function SetPermissionsPerUser() {
+    const { basePath } = useRouter();
+
     const [selectedRole, setSelectedRole] = useState<USER_ROLE>(USER_ROLE.STUDENT);
     const [rolePermissions, setRolePermissions] = useState<Set<string>>(new Set());
     const [description, setDescription] = useState("");
-    const [isClient, setIsClient] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [search, setSearch] = useState("");
 
-    useEffect(() => { setIsClient(true); }, []);
+    const unwrap = <T,>(res: AxiosResponse<ApiResponse<T>>): T => {
+        if (res?.data?.success) return res.data.data as T;
+        throw new Error(res?.data?.error || `HTTP ${res?.status}`);
+    };
+
+    const getErr = (e: any) => e?.response?.data?.error || e?.message || "Something went wrong";
+
+    const loadRole = useCallback(
+        async (signal?: AbortSignal) => {
+            try {
+                setLoading(true);
+                const res = await axios.get<ApiResponse<RolePermissionsPayload>>(
+                    `${basePath}/api/permissions/${selectedRole}`,
+                    {
+                        signal,
+                        headers: { "x-access-permission": ACCESS_PERMISSION.ADMIN },
+                    }
+                );
+                const data = unwrap<RolePermissionsPayload>(res);
+                setRolePermissions(new Set(data.permissions || []));
+                setDescription(data.description || "");
+            } catch (e) {
+                toast.error(getErr(e));
+                setRolePermissions(new Set());
+                setDescription("");
+            } finally {
+                setLoading(false);
+            }
+        },
+        [basePath, selectedRole]
+    );
 
     useEffect(() => {
-        const init = async () => {
-            if (selectedRole) {
-                const res = await axios.get(`${baseUrl}/api/permissions/${selectedRole}`, {
-                    headers: {
-                        "x-access-permission": ACCESS_PERMISSION.ADMIN
-                    }
-                });
-
-                if (!res.data.success) {
-                    toast.error(`Failed to fetch permissions for ${selectedRole}`);
-                    return;
-                }
-
-                setRolePermissions(new Set(res.data.data.permissions));
-                setDescription(res.data.data.description || "");
-            }
-        }
-
-        init();
-    }, [selectedRole]);
+        const ac = new AbortController();
+        loadRole(ac.signal);
+        return () => ac.abort();
+    }, [loadRole]);
 
     const handleCheckboxChange = (permission: string) => {
         setRolePermissions(prev => {
-            const updated = new Set(prev);
-            updated.has(permission) ? updated.delete(permission) : updated.add(permission);
-            return updated;
+            const next = new Set(prev);
+            next.has(permission) ? next.delete(permission) : next.add(permission);
+            return next;
+        });
+    };
+
+    const toggleGroup = (perms: string[], on: boolean) => {
+        setRolePermissions(prev => {
+            const next = new Set(prev);
+            perms.forEach(p => (on ? next.add(p) : next.delete(p)));
+            return next;
         });
     };
 
     const savePermissions = async () => {
         try {
-            const res = await axios.post(`${baseUrl}/api/permissions/save`, {
-                role: selectedRole,
-                permissions: Array.from(rolePermissions),
-                description,
-            }, {
-                headers: {
-                    "x-access-permission": ACCESS_PERMISSION.ADMIN
-                }
-            });
-
-            if (res.data.success) {
-                toast.success(`Permissions updated for ${selectedRole}`);
-            } else {
-                toast.error(`Failed to update permissions: ${res.data.error}`);
-            }
-
-        } catch (error) {
-            toast.error(`Failed to update permissions for ${selectedRole}`);
+            setSaving(true);
+            const res = await axios.post<ApiResponse<{}>>(
+                `${basePath}/api/permissions/save`,
+                {
+                    role: selectedRole,
+                    permissions: Array.from(rolePermissions),
+                    description,
+                },
+                { headers: { "x-access-permission": ACCESS_PERMISSION.ADMIN } }
+            );
+            unwrap(res);
+            toast.success("Saved");
+        } catch (e) {
+            toast.error(getErr(e));
+        } finally {
+            setSaving(false);
         }
     };
 
-    const renderPermissions = (label: string, permissions: string[]) => {
-        return (
-            <div className="mb-10">
-                <h2 className="text-2xl font-semibold text-cyan-300 mb-4 tracking-wide">{label}</h2>
-                <div
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 bg-gray-800 border border-gray-700 p-6 rounded-xl shadow-md min-h-[50px] max-w-6xl w-full mx-auto"
-                >
-                    {permissions.map((perm) => {
-                        const isChecked = rolePermissions.has(perm);
-                        return (
-                            <div
-                                key={perm}
-                                className="flex items-center gap-3 text-gray-200 cursor-pointer"
-                                onClick={() => handleCheckboxChange(perm)}
-                            >
-                                {isChecked ? (
-                                    <CheckCircleIcon className="h-5 w-5 text-cyan-400" />
-                                ) : (
-                                    <XCircleIcon className="h-5 w-5 text-gray-500" />
-                                )}
-                                <span>{perm}</span>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
+    const filteredGroups = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        if (!q) return PERMISSION_GROUPS;
+        const out: Record<string, string[]> = {};
+        for (const [label, perms] of Object.entries(PERMISSION_GROUPS)) {
+            const list = perms.filter(p => p.toLowerCase().includes(q));
+            if (list.length) out[label] = list;
+        }
+        return out;
+    }, [search]);
 
     return (
-        <div className="min-h-screen px-4 py-10 md:px-12 bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white">
-            {isClient && <Toaster position="top-right" />}
-
-            <h1 className="text-4xl md:text-5xl font-extrabold text-center mb-10 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-500 animate-fade-in">
-                Set Role Permissions
-            </h1>
-
-            <div className="flex flex-col items-center gap-6 max-w-5xl mx-auto">
-                <div className="w-full text-center">
-                    <label className="text-lg font-semibold">
-                        Select Role:
+        <div className="min-h-screen bg-gradient-to-b from-[#0b1520] via-[#0a141d] to-[#0b1520] text-cyan-100">
+            <Toaster position="top-right" />
+            <div className="mx-auto max-w-6xl px-4 py-8">
+                <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-extrabold text-cyan-300">Set Role Permissions</h1>
+                    </div>
+                    <div className="flex items-center gap-3">
                         <select
                             value={selectedRole}
-                            onChange={(e) => setSelectedRole(e.target.value as USER_ROLE)}
-                            className="ml-3 px-4 py-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                            onChange={e => setSelectedRole(e.target.value as USER_ROLE)}
+                            disabled={saving}
+                            className="rounded-lg border border-cyan-900/60 bg-[#0f1822] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
                         >
-                            {Object.keys(USER_ROLE).map((role) => (
-                                <option key={role} value={role}>{role}</option>
+                            {Object.keys(USER_ROLE).map(r => (
+                                <option key={r} value={r}>
+                                    {r}
+                                </option>
                             ))}
                         </select>
-                    </label>
-                </div>
-
-                <div className="w-full max-w-2xl">
-                    <input
-                        type="text"
-                        placeholder="Enter description for this role"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="w-full p-3 rounded-md bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    />
-                </div>
-
-                <div className="w-full mt-8 space-y-10 max-w-5xl">
-                    {Object.entries(permissionGroups).map(([label, perms]) =>
-                        <div key={label}>
-                            {renderPermissions(label, perms)}
-                        </div>
-                    )}
-                    <div className="flex justify-center">
                         <button
-                            onClick={savePermissions}
-                            className="bg-cyan-400 hover:bg-cyan-300 text-gray-900 font-semibold px-8 py-3 rounded-xl shadow transition duration-300 ease-in-out"
+                            onClick={() => loadRole()}
+                            disabled={loading || saving}
+                            className="rounded-lg bg-cyan-400 px-3 py-2 text-sm font-semibold text-[#0a141d] hover:bg-cyan-300 disabled:opacity-50"
                         >
-                            Save Permissions
+                            Reload
                         </button>
                     </div>
                 </div>
 
+                <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <input
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        placeholder="Role description"
+                        className="sm:col-span-2 rounded-lg border border-cyan-900/60 bg-[#0f1822] px-3 py-2 text-sm placeholder-cyan-500/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    />
+                    <input
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder="Search permissions"
+                        className="rounded-lg border border-cyan-900/60 bg-[#0f1822] px-3 py-2 text-sm placeholder-cyan-500/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    />
+                </div>
+
+                <div className="space-y-8">
+                    {loading ? (
+                        <div className="grid grid-cols-1 gap-6">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="rounded-2xl border border-cyan-900/60 bg-[#0b1014]/80 p-6">
+                                    <div className="h-5 w-40 rounded bg-cyan-900/30 mb-4 animate-pulse" />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {Array.from({ length: 6 }).map((__, j) => (
+                                            <div key={j} className="h-9 rounded bg-cyan-900/30 animate-pulse" />
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        Object.entries(filteredGroups).map(([label, perms]) => {
+                            const selectedCount = perms.filter(p => rolePermissions.has(p)).length;
+                            const allSelected = selectedCount === perms.length && perms.length > 0;
+                            const noneSelected = selectedCount === 0;
+                            return (
+                                <div key={label} className="rounded-2xl border border-cyan-900/60 bg-[#0b1014]/80 p-6">
+                                    <div className="mb-4 flex items-center justify-between">
+                                        <h2 className="text-lg font-semibold text-cyan-300">{label}</h2>
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <span className="text-cyan-300/70">
+                                                {selectedCount}/{perms.length} selected
+                                            </span>
+                                            <button
+                                                onClick={() => toggleGroup(perms, true)}
+                                                disabled={saving || allSelected}
+                                                className="rounded border border-cyan-900/60 bg-[#0a141d] px-2 py-1 hover:bg-[#0e1e2b] disabled:opacity-50"
+                                            >
+                                                Select all
+                                            </button>
+                                            <button
+                                                onClick={() => toggleGroup(perms, false)}
+                                                disabled={saving || noneSelected}
+                                                className="rounded border border-cyan-900/60 bg-[#0a141d] px-2 py-1 hover:bg-[#0e1e2b] disabled:opacity-50"
+                                            >
+                                                Clear
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {perms.map(perm => {
+                                            const checked = rolePermissions.has(perm);
+                                            return (
+                                                <label
+                                                    key={perm}
+                                                    className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${checked
+                                                            ? "border-cyan-700/60 bg-[#0f1b25]"
+                                                            : "border-cyan-900/60 bg-[#0f1822]"
+                                                        } ${saving ? "opacity-60" : "hover:bg-[#102231]"}`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        className="hidden"
+                                                        checked={checked}
+                                                        onChange={() => handleCheckboxChange(perm)}
+                                                        disabled={saving}
+                                                    />
+                                                    {checked ? (
+                                                        <CheckCircleIcon className="h-5 w-5 text-cyan-400" />
+                                                    ) : (
+                                                        <XCircleIcon className="h-5 w-5 text-cyan-500/40" />
+                                                    )}
+                                                    <span className="text-cyan-100 break-all">{perm}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                <div className="mt-10 flex justify-center">
+                    <button
+                        onClick={savePermissions}
+                        disabled={saving || loading}
+                        className="rounded-xl bg-cyan-400 px-8 py-3 text-sm font-semibold text-[#0a141d] hover:bg-cyan-300 disabled:opacity-50"
+                    >
+                        {saving ? "Saving..." : "Save Permissions"}
+                    </button>
+                </div>
             </div>
         </div>
     );

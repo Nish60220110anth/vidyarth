@@ -51,6 +51,7 @@ export const YouTubeEmbedFieldDescriptions: Record<string, string> = {
 
 export default function ManageVideoList() {
     const [videoList, setVideoList] = useState<VideoEntry[]>([]);
+    const {basePath} = useRouter();
 
     const [editId, setEditId] = useState<number | null>(null);
     const [editedVideo, setEditedVideo] = useState<Partial<VideoEntry> & { image_file?: File; isNewImageUploaded?: boolean }>({
@@ -452,7 +453,7 @@ export default function ManageVideoList() {
                                         {editCompany ? (
                                             <>
                                                 {editCompany.logo_url ? (
-                                                    <Image src={editCompany.logo_url} alt="logo" width={24} height={24} className="rounded" />
+                                                    <Image src={`${basePath}/${editCompany.logo_url}`} alt="logo" width={24} height={24} className="rounded" />
                                                 ) : (
                                                     <div className="w-6 h-6 bg-gray-200 rounded" />
                                                 )}
@@ -460,7 +461,7 @@ export default function ManageVideoList() {
                                             </>
                                         ) : video.company_logo && video.company_full ? (
                                             <>
-                                                <Image src={video.company_logo} alt="logo" width={24} height={24} className="rounded" />
+                                                <Image src={`${basePath}/${video.company_logo}`} alt="logo" width={24} height={24} className="rounded" />
                                                 <span className="font-medium">{video.company_full}</span>
                                             </>
                                         ) : (
@@ -502,7 +503,7 @@ export default function ManageVideoList() {
                                 <>
                                     <div className="col-span-1 flex justify-center items-center">
                                         {video.company_logo ? (
-                                            <Image src={video.company_logo} alt="logo" width={40} height={40} className="rounded" />
+                                            <Image src={`${basePath}/${video.company_logo}`} alt="logo" width={40} height={40} className="rounded" />
                                         ) : (
                                             <div className="w-10 h-10 bg-gray-200 rounded" />
                                         )}

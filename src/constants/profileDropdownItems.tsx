@@ -35,7 +35,7 @@ export function getProfileDropdownItems({
             label: "Profile",
             icon: (cls) => <User className={cls} />,
             perm: ACCESS_PERMISSION.ENABLE_PROFILE,
-            component: () => <Profile name={name} email={email} role={role} />,
+            component: () => <Profile />,
             show: true,
         },
         SHORTLISTS: {

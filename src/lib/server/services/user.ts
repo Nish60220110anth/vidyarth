@@ -1,4 +1,4 @@
-import {prisma} from '@/lib/prisma';
+import {prisma} from '../../prisma';
 
 async function getUserByEmail(email_id?: string) {
     return prisma.user.findUniqueOrThrow({

@@ -3,7 +3,7 @@ import { DOMAIN, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG, ACCESS_PERMISSION } from "
 import { getIronSession, IronSessionData } from "iron-session";
 import { sessionOptions } from "@/lib/session";
 import { bucket } from "@/lib/firebase-admin";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { apiHelpers } from "@/lib/server/responseHelpers";
 import { getFieldValue } from "@/utils/parseApiField";
@@ -290,7 +290,7 @@ async function handler(
 
             if (is_default) {
                 const user = await prisma.user.findUnique({
-                    where: { email_id: session.email },
+                    where: { email_id: session.user?.email },
                     select: { id: true },
                 });
 

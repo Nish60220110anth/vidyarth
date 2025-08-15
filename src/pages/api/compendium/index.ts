@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import formidable from 'formidable';
 import { bucket } from "@/lib/firebase-admin";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import { MethodConfig, withPermissionCheck } from '@/lib/server/withPermissionCheck';
 import { ACCESS_PERMISSION, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from '@prisma/client';
 import { getFieldValue } from '@/utils/parseApiField';

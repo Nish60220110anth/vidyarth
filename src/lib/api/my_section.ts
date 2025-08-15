@@ -1,7 +1,7 @@
 import { ACCESS_PERMISSION } from "@prisma/client";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { baseUrl } from "../config";
+import { baseUrl } from "@/lib/config";
 import { NewsEntry } from "@/components/MySection";
 
 const getShortlistsBySession = async (count: number) => {

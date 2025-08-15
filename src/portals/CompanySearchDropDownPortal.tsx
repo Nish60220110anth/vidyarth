@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Company } from "@/components/CompanySearchDropDown";
+import { useRouter } from "next/router";
 
 interface Props {
     anchorEl: HTMLElement | null;
@@ -33,6 +34,7 @@ export default function CompanySearchDropdownPortal({
     className,
 }: Props) {
     const portalRef = useRef<HTMLUListElement>(null);
+    const {basePath} = useRouter();
     const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rafId = useRef<number | null>(null);
     const [mounted, setMounted] = useState(false);
@@ -204,7 +206,7 @@ export default function CompanySearchDropdownPortal({
                                 >
                                     {company.logo_url ? (
                                         <img
-                                            src={company.logo_url}
+                                            src={`${basePath}/${company.logo_url}`}
                                             alt={company.company_name}
                                             className="h-6 w-6 object-contain"
                                         />

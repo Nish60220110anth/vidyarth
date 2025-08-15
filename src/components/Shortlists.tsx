@@ -19,6 +19,7 @@ import {
 import axios from "axios";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import { toast } from "react-hot-toast";
+import { useRouter } from "next/router";
 
 /* ---------------------------------- Types ---------------------------------- */
 
@@ -58,6 +59,7 @@ export default function UserShortlistTable() {
     const [shortlists, setShortlists] = useState<Shortlist[]>([]);
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const {basePath} = useRouter();
 
     // query + filters
     const [search, setSearch] = useState("");
@@ -85,7 +87,7 @@ export default function UserShortlistTable() {
         try {
             setIsRefreshing(true);
             setLoading(true);
-            const res = await axios.get("/api/shortlists", {
+            const res = await axios.get(`${basePath}/api/shortlists`, {
                 headers: {
                     "x-access-permission": ACCESS_PERMISSION.ENABLE_MY_SECTION,
                 },

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { baseUrl } from '@/lib/config';
+import toast from 'react-hot-toast';
 
 export type SessionInfo = {
     email: string;
@@ -12,10 +13,18 @@ export type SessionInfo = {
 async function fetchSession() {
     try {
         const response = await axios.get(`${baseUrl}/api/auth/user`);
-        const data = response.data;
+
+        if (!response.data.success) {
+            console.error('Error fetching session:', response.data.message);
+            return {
+                success: false, 
+                data: null
+            };
+        } 
+
         return {
             success: true,
-            data: data,
+            data: response.data.data
         };
     } catch (error: any) {
         console.error('Error fetching session:', error.response?.data || error.message);

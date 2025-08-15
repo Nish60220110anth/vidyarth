@@ -1,21 +1,36 @@
 // /pages/api/users/[id].ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getIronSession, IronSessionData } from 'iron-session';
-import { sessionOptions } from '@/lib/session';
 import { prisma } from "@/lib/prisma";
 import { apiHelpers } from '@/lib/server/responseHelpers';
+import { MethodConfig, withPermissionCheck } from '@/lib/server/withPermissionCheck';
+import { ACCESS_PERMISSION } from '@prisma/client';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const session = await getIronSession<IronSessionData>(req, res, sessionOptions);
-
-    if (!session || session?.role !== "ADMIN") {
-        return apiHelpers.unauthorized(res, "UnAuthorized Request")
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    patch: {
+        permissions: [
+            ACCESS_PERMISSION.ADMIN
+        ],
+        filters: {
+            [ACCESS_PERMISSION.ADMIN]: {
+                priority: 1,
+                filter: {},
+            }
+        }
+    },
+    delete: {
+        permissions: [
+            ACCESS_PERMISSION.ADMIN
+        ],
+        filters: {
+            [ACCESS_PERMISSION.ADMIN]: {
+                priority: 1,
+                filter: {},
+            }
+        }
     }
-    if (req.method !== "PATCH" && req.method !== "DELETE") {
-        res.setHeader("Allow", ["PATCH", "DELETE"]);
-        return apiHelpers.methodNotAllowed(res)
-    }
+};
 
+async function handler(req: NextApiRequest, res: NextApiResponse) {
     const userId = parseInt(req.query.id as string);
 
     if (req.method === 'PATCH') {
@@ -29,7 +44,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             })
 
             if (!user) {
-                return apiHelpers.notFound(res, "User not found")
+                apiHelpers.notFound(res, "User not found")
+                return;
             }
 
             const updatedUser = await prisma.user.update({
@@ -41,9 +57,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 },
             });
 
-            return apiHelpers.success(res, updatedUser);
+            apiHelpers.success(res, {
+                data: updatedUser
+            });
+            return;
         } catch (error: any) {
-            return apiHelpers.error(res, error || 'User update failed', 500);
+            apiHelpers.error(res, error || 'User update failed', 500);
+            return;
         }
     }
     else if (req.method === 'DELETE') {
@@ -55,16 +75,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             })
 
             if (!user) {
-                return apiHelpers.notFound(res, "User not found")
+                apiHelpers.notFound(res, "User not found")
+                return;
             }
 
             await prisma.user.delete({
                 where: { id: userId },
             });
 
-            return apiHelpers.success(res, { success: true });
+            apiHelpers.success(res, {});
+            return;
         } catch (error: any) {
-            return apiHelpers.error(res, error || 'User deletion failed', 500);
+            apiHelpers.error(res, error || 'User deletion failed', 500);
+            return;
         }
     }
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

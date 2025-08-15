@@ -1,6 +1,4 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { getIronSession, IronSessionData } from "iron-session";
-import { sessionOptions } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";
@@ -27,19 +25,10 @@ const GetQuerySchema = z.object({
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
 
-    const session: IronSessionData = await getIronSession(req, res, sessionOptions);
-
     const parsedQuery = GetQuerySchema.safeParse(req.query);
 
     if (!parsedQuery.success) {
         apiHelpers.error(res, `Invalid query parameters: ${parsedQuery.error}`, 400);
-        return;
-    }
-
-    console.log("Session role:", session.role);
-
-    if (session.role !== USER_ROLE.ADMIN) {
-        apiHelpers.forbidden(res, "You do not have permission to access this resource");
         return;
     }
 

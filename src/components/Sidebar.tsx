@@ -28,6 +28,7 @@ import SidebarUserProfile from "./sidebar/SidebarUserProfile ";
 
 // Types
 import type { Company } from "./CompanySearchDropDown";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SidebarProps {
     email: string;
@@ -40,6 +41,7 @@ interface SidebarProps {
 export default function Sidebar({ email, role, onLogout, name, id }: SidebarProps) {
 
     const router = useRouter();
+    const { user } = useAuth();
 
     /* Refs */
     const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -115,20 +117,20 @@ export default function Sidebar({ email, role, onLogout, name, id }: SidebarProp
 
     useEffect(() => {
         const run = async () => {
-            if (role) {
-                const perms = await fetchPermissionsFromSession({
+            if (user) {
+                const perms = fetchPermissionsFromSession({
                     sections_permissions,
                     profile_dropdown_items
-                });
+                }, user);
                 setPermissions(perms);
             } else {
                 try {
                     const res = await getUserFromSession();
                     if (res.role) {
-                        const perms = await fetchPermissionsFromSession({
+                        const perms = fetchPermissionsFromSession({
                             sections_permissions,
                             profile_dropdown_items
-                        });
+                        }, user);
                         setPermissions(perms);
                     } else {
                         toast.error(res.error || "Failed to fetch user role");

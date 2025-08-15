@@ -1,27 +1,29 @@
 // /pages/api/users/get-specific.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
-import { getIronSession, IronSessionData } from "iron-session";
-import { sessionOptions } from "@/lib/session";
+import { prisma } from '@/lib/prisma';
+import z from "zod";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { ACCESS_PERMISSION } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const GetQuerySchema = z.object({
+    id: z.array(z.number()).nonempty("IDs array cannot be empty"),
+});
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const session = await getIronSession<IronSessionData>(req, res, sessionOptions);
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    get: {
+        permissions: [ACCESS_PERMISSION.ADMIN, ACCESS_PERMISSION.MANAGE_MY_COHORT],
+    }
+}; 
 
-    if (!session || (session.role !== "ADMIN" && session.role !== "DISHA")) {
-        return res.status(403).json({ error: "Unauthorized" });
+
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+    const parsedQuery = GetQuerySchema.safeParse(req.query);
+
+    if (!parsedQuery.success) {
+        return res.status(400).json({ error: parsedQuery.error.issues });
     }
 
-    if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method not allowed" });
-    }
-
-    const { ids } = req.body;
-
-    if (!Array.isArray(ids) || ids.length === 0) {
-        return res.status(400).json({ error: "Invalid or missing user IDs" });
-    }
+    const { id: ids } = parsedQuery.data;
 
     try {
         const users = await prisma.user.findMany({
@@ -62,3 +64,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: "Internal server error" });
     }
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

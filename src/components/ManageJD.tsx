@@ -62,6 +62,7 @@ type SortKey = "company_full" | "role" | "placement_cycle_type" | "active";
 
 export default function ManageJDList() {
     const router = useRouter();
+    const { basePath } = router;
 
     const [placementCycles, setPlacementCycles] = useState<{
         id: number;
@@ -117,15 +118,6 @@ export default function ManageJDList() {
         setTimeout(() => {
             setIsRefreshing(false);
         }, 1000)
-    };
-
-    const fetchCycles = async () => {
-        setIsRefreshing(true);
-        const res = await fetchAllCycles();
-        setPlacementCycles(res);
-        setTimeout(() => {
-            setIsRefreshing(false);
-        }, 1000);
     };
 
     const refreshData = useCallback(async () => {
@@ -276,7 +268,7 @@ export default function ManageJDList() {
         }
 
         try {
-            const res = await axios.put("/api/jd/", formData, {
+            const res = await axios.put(`${basePath}/api/jd/`, formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                     "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_JD
@@ -435,7 +427,7 @@ export default function ManageJDList() {
         }
 
         try {
-            const res = await axios.get(`/api/company/get-domain/${companyId}`, {
+            const res = await axios.get(`${basePath}/api/company/get-domain/${companyId}`, {
                 headers: {
                     "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_JD
                 }
@@ -585,7 +577,7 @@ export default function ManageJDList() {
                     <button
                         onClick={async () => {
                             try {
-                                const res = await axios.post("/api/jd", {
+                                const res = await axios.post(`${basePath}/api/jd`, {
                                     is_default: true
                                 }, {
                                     headers: {
@@ -684,7 +676,7 @@ export default function ManageJDList() {
                                         {editCompany ? (
                                             <>
                                                 {editCompany.logo_url ? (
-                                                    <Image src={editCompany.logo_url} alt="logo" width={24} height={24} className="rounded" />
+                                                    <Image src={`${basePath}/${editCompany.logo_url}`} alt="logo" width={24} height={24} className="rounded" />
                                                 ) : (
                                                     <div className="w-6 h-6 bg-gray-200 rounded" />
                                                 )}
@@ -692,7 +684,7 @@ export default function ManageJDList() {
                                             </>
                                         ) : jd.company_logo && jd.company_full ? (
                                             <>
-                                                <Image src={jd.company_logo} alt="logo" width={24} height={24} className="rounded" />
+                                                <Image src={`${basePath}/${jd.company_logo}`} alt="logo" width={24} height={24} className="rounded" />
                                                 <span className="font-medium">{jd.company_full}</span>
                                             </>
                                         ) : (
@@ -734,7 +726,7 @@ export default function ManageJDList() {
                                 <>
                                     <div className="col-span-1 flex justify-center items-center">
                                         {jd.company_logo ? (
-                                            <Image src={jd.company_logo} alt="logo" width={40} height={40} className="rounded" />
+                                            <Image src={`${basePath}/${jd.company_logo}`} alt="logo" width={40} height={40} className="rounded" />
                                         ) : (
                                             <div className="w-10 h-10 bg-gray-200 rounded" />
                                         )}

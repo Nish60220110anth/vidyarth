@@ -1,6 +1,6 @@
 // pages/api/company/create-default.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { ACCESS_PERMISSION } from "@prisma/client";
 
@@ -18,7 +18,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 data: {
                     company_name: "new-company",
                     company_full: "New Company",
-                    logo_url: "/company-logo/default-logo.jpg",
+                    logo_url: "company-logo/default-logo.jpg",
                     is_featured: false,
                     is_legacy: false,
                 },

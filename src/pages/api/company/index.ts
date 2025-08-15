@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { ACCESS_PERMISSION, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@prisma/client";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import { apiHelpers } from "@/lib/server/responseHelpers";
 import { createNotification } from "@/lib/server/notificationSink";
 import { generateSecureURL } from "@/utils/shared/secureUrlApi";

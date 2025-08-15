@@ -1,7 +1,7 @@
 // pages/api/sink-shortlist.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import Cors from "cors";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../lib/prisma";
 import { createNotification } from "@/lib/server/notificationSink";
 import {
     NOTIFICATION_SOURCE_INITIATOR,

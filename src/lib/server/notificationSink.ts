@@ -1,5 +1,5 @@
 import { DOMAIN, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE, Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../prisma";
 import z from "zod";
 
 export type CreateNotificationDTO = {

@@ -1,4 +1,4 @@
-import {prisma} from '@/lib/prisma';
+import {prisma} from '../../prisma';
 import { DOMAIN } from '@prisma/client';
 
 async function getStudentCVs(userId: number) {

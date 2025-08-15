@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import axios from "axios";
 import { renderTemplate } from "@/utils/emailTemplate";
 import { toTitleCase } from "@/components/Profile";

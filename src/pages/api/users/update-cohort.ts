@@ -1,14 +1,12 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
 import { getIronSession, IronSession, IronSessionData } from "iron-session";
 import { sessionOptions } from "@/lib/session";
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const session: IronSession<IronSessionData> = await getIronSession(req, res, sessionOptions);
 
-    if (!session || (session.role !== "ADMIN" && session.role !== "DISHA")) {
+    if (!session || (session?.user?.role !== "ADMIN" && session?.user?.role !== "DISHA")) {
         return res.status(403).json({ error: "Unauthorized" });
     }
 

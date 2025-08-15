@@ -3,7 +3,7 @@ model user {
 
   name     String
   pgpid    String? @unique
-  pcomid   String?
+  pcomid   Int?
   email_id String  @unique
 
   password String
@@ -29,8 +29,8 @@ model user {
   // DISHA mentorship role (1-to-many)
   disha_mentees dishamentee[] @relation("dishamentor")
 
-  domain_preference      userdomainpreference?   @relation("userdomain")
-  known_languages        userlanguage[]          @relation("languagesknown")
+  // domain_preference      userdomainpreference?   @relation("userdomain")
+  // known_languages        userlanguage[]          @relation("languagesknown")
   shortlists             shortlist[]             @relation("shortlistusers")
   announcements          announcements[]         @relation("announcements_user")
   student_cv             student_cv[]
@@ -40,6 +40,8 @@ model user {
 
   ccEmails  email_content[] @relation("EmailCC")
   bccEmails email_content[] @relation("EmailBCC")
+
+  whatsapp_number  String?
 
   @@unique([pgpid, pcomid])
 }
@@ -69,17 +71,17 @@ model shadowpair {
   user2Id Int  @unique
 }
 
-model userlanguage {
-  id Int @id @default(autoincrement())
+// model userlanguage {
+//   id Int @id @default(autoincrement())
 
-  user_id Int
-  user    user @relation("languagesknown", fields: [user_id], references: [id])
+//   user_id Int
+//   user    user @relation("languagesknown", fields: [user_id], references: [id])
 
-  language    LANGUAGE
-  proficiency PROFICIENCY
+//   language    LANGUAGE
+//   proficiency PROFICIENCY
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+//   created_at DateTime @default(now())
+//   updated_at DateTime @updatedAt
 
-  @@unique([user_id, language])
-}
+//   @@unique([user_id, language])
+// }

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../prisma";
 
 const createDefaultVideo = async () => {
     const defaultVideo = await prisma.video.create({

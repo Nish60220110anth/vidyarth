@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../lib/prisma";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { apiHelpers } from "@/lib/server/responseHelpers";

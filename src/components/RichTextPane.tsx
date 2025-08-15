@@ -76,7 +76,7 @@ function OnChangePlugin({ onChange }: { onChange: (editorState: EditorState, edi
         return editor.registerUpdateListener(({ editorState }) => {
             onChange(editorState, editor);
         });
-    }, [editor.getEditorState(), onChange]);
+    }, [editor, onChange]);
 
     return null;
 }
@@ -126,6 +126,9 @@ export function RichTextPane({ OnSetContent, editable, lexicalState, placeholder
         setIsMounted(true);
     }, [])
 
+    const containerHeight =
+        typeof height === "number" ? `${height}px` : height;
+
     if (!isMounted) return null
 
     const OnChange = (_editorState: EditorState, _editor: LexicalEditor) => {
@@ -138,11 +141,13 @@ export function RichTextPane({ OnSetContent, editable, lexicalState, placeholder
             <LexicalComposer initialConfig={{ ...editorConfig }}>
                 <div
                     className="editor-container w-full"
-                    // style={{ ['--editor-h' as any]: height }}
+                    style={{ height: containerHeight }}
                 >
                     {editable && (
-                        <div className="editor-toolbar">
-                            <ToolbarPlugin />
+                        <div className="sticky top-0 z-20 backdrop-blur">
+                            <div className="py-2">
+                                <ToolbarPlugin />
+                            </div>
                         </div>
                     )}
                     <ReadOnlyPlugin editable={editable} />

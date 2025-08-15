@@ -3,7 +3,6 @@ import Head from 'next/head';
 import { GetServerSideProps } from 'next';
 import { getSession } from '@/lib/getSession';
 import { USER_ROLE } from '@prisma/client';
-import { IronSession, IronSessionData } from 'iron-session';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -44,9 +43,9 @@ export default function AdminPage() {
 }
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
-    const session: IronSession<IronSessionData> = await getSession(ctx);
+    const session = await getSession(ctx);
 
-    if (!session.email || session.role !== USER_ROLE.ADMIN) {
+    if (!session?.user?.email || session?.user?.role !== USER_ROLE.ADMIN) {
         return {
             redirect: {
                 destination: '/',
@@ -57,9 +56,9 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
 
     return {
         props: {
-            email: session.email,
-            role: session.role,
-            name: session.name,
+            email: session?.user?.email,
+            role: session?.user?.role,
+            name: session?.user?.name,
         },
     };
   };

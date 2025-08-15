@@ -1,6 +1,18 @@
 import { SessionOptions } from 'iron-session';
 import 'iron-session';
 
+export type SessionUser = {
+    id: number,
+    email: string,
+    role: string,
+    name: string,
+    
+    pcomid?: number,
+    permissions?: string[],
+    is_active?: boolean
+    is_verified?: boolean
+}
+
 export const sessionOptions: SessionOptions = {
     password: process.env.SESSION_PASSWORD as string,
     cookieName: 'vidyarth_user',
@@ -12,8 +24,6 @@ export const sessionOptions: SessionOptions = {
 
 declare module 'iron-session' {
     interface IronSessionData {
-        email?: string;
-        role?: string;
-        name?: string;
+        user: SessionUser;
     }
 }

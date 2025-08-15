@@ -1,6 +1,6 @@
 // /pages/api/placement-cycles/[id].ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { ACCESS_PERMISSION, PLACEMENT_CYCLE_STATUS, PLACEMENT_CYCLE_TYPE } from "@prisma/client";
 import { ToInt } from "@/lib/server/zod_utils";

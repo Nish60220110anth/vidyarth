@@ -3,9 +3,9 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { baseUrl } from "../config";
 
-const fetchCVForUserID = async (id: number) => {
+const fetchCVForUserID = async (basePath: string, id: number) => {
     try {
-        const res = await axios.get(`${baseUrl}/api/cv/?user_id=${id}`, {
+        const res = await axios.get(`${basePath}/api/cv/?user_id=${id}`, {
             headers: {
                 'x-access-permission': ACCESS_PERMISSION.ENABLE_MY_CV
             }
@@ -24,8 +24,8 @@ const fetchCVForUserID = async (id: number) => {
     }
 };
 
-const fetchCVFile = async (cv_path: string) => {
-    const res = await fetch(`${baseUrl}/api/cv/fetch?file=${encodeURIComponent(cv_path)}`, {
+const fetchCVFile = async (basePath: string, cv_path: string) => {
+    const res = await fetch(`${basePath}/api/cv/fetch?file=${encodeURIComponent(cv_path)}`, {
         headers: {
             'x-access-permission': ACCESS_PERMISSION.ENABLE_MY_CV
         }
@@ -34,7 +34,7 @@ const fetchCVFile = async (cv_path: string) => {
     return URL.createObjectURL(blob);
 }
 
-const putStudentCV = async (cv_id: number, domain?: string, comment?: string) => {
+const putStudentCV = async (basePath: string, cv_id: number, domain?: string, comment?: string) => {
     try {
         const res = await axios.put(`${baseUrl}/api/cv/`, {
             cv_id,

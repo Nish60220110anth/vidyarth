@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { bucket } from "@/lib/firebase-admin";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 
 export const config = {
     api: {

@@ -1,22 +1,15 @@
 import { baseUrl } from "@/lib/config";
-import { USER_ROLE } from "@prisma/client";
+import { ACCESS_PERMISSION } from "@prisma/client";
 import axios from "axios";
 import toast from "react-hot-toast";
 
-const fetchUserInfoQuery = async (name: string, email: string, role: USER_ROLE) => {
+const fetchUserInfoQuery = async (userId: number) => {
     try {
-        const queryRes = await axios.get(`${baseUrl}/api/users/query`, {
-            params: { name, email, role },
+        const detailRes = await axios.get(`${baseUrl}/api/users/${userId}`, {
+            headers: {
+                "x-access-permission": ACCESS_PERMISSION.ENABLE_PROFILE,
+            }
         });
-
-        if (!queryRes.data.success) {
-            console.error("Error in /api/users/query:", queryRes.data.error);
-            toast.error(queryRes.data.error);
-            return null;
-        }
-
-        const userId = queryRes.data.data.id;
-        const detailRes = await axios.get(`${baseUrl}/api/users/${userId}`);
 
         if (detailRes.data.success) {
             return detailRes.data.data;

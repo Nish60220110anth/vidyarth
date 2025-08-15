@@ -3,6 +3,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { ACCESS_PERMISSION } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { MethodConfig, withPermissionCheck } from '@/lib/server/withPermissionCheck';
+import { getIronSession, IronSessionData } from 'iron-session';
+import { sessionOptions } from '@/lib/session';
+import { apiHelpers } from '@/lib/server/responseHelpers';
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
@@ -18,15 +21,16 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
     const userId = parseInt(req.query.id as string);
+
     if (isNaN(userId)) {
         return res.status(400).json({ success: false, error: "Invalid user ID" });
     }
 
-    // const session = await getIronSession<IronSessionData>(req, res, sessionOptions);
+    const session = await getIronSession<IronSessionData>(req, res, sessionOptions);
 
     if (req.method === 'GET') {
         try {
-            const user = await prisma.user.findUnique({
+            const user = await prisma.user.findUniqueOrThrow({
                 where: { id: userId },
                 include: {
                     disha_profile: {
@@ -53,14 +57,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 },
             });
 
-            if (!user) {
-                return res.status(404).json({ success: false, error: "User not found" });
+            if (session.user?.id !== user.id) {
+                apiHelpers.forbidden(res);
+                return;
             }
-            // const isSelf = user.name === session.name && user.email_id === session.email;
-
-            // if (!isSelf) {
-            //     return res.status(403).json({ success: false, error: "Access denied" });
-            // }
 
             let result: Record<string, any> = {
                 id: user.id,
@@ -77,6 +77,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     ? {
                         name: user.disha_profile.mentor.name,
                         email_id: user.disha_profile.mentor.email_id,
+                        whatsapp_number: user.disha_profile.mentor.whatsapp_number,
                     }
                     : null;
 
@@ -118,8 +119,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
     }
 
-
-
     if (req.method === 'PATCH') {
 
         const { role, is_active, is_verified } = req.body;
@@ -154,4 +153,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
 }
 
-export default handler;
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);

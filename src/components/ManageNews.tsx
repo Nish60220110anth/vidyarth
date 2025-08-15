@@ -10,6 +10,7 @@ import { debounceAsync } from "@/utils/debounce";
 
 export default function ManageNews() {
     const router = useRouter();
+    const { basePath } = router;
 
     const [newsList, setNewsList] = useState<news[]>([]);
     const [search, setSearch] = useState("");
@@ -270,10 +271,9 @@ export default function ManageNews() {
                                         setNewsList(newsList.filter((g) => g.id !== id));
                                     }}
                                     OnNewsUpdate={(unews) => {
-                                        console.log(unews)
                                         setNewsList(newsList.map((g) => {
                                             if (g.id === unews.id) {
-                                                return unews;
+                                                return { ...g, ...unews };
                                             } else {
                                                 return g;
                                             }

@@ -84,7 +84,7 @@ export function withPermissionCheck(METHOD_PERMISSIONS: PermissionMap) {
             // if (await checkRateLimit(req, res)) return;
 
             const session: IronSessionData = await getIronSession(req, res, sessionOptions);
-            const role: USER_ROLE = (session?.role as USER_ROLE) ?? USER_ROLE.STUDENT;
+            const role: USER_ROLE = (session.user?.role as USER_ROLE) ?? USER_ROLE.STUDENT;
 
             const permissions = await getPermissions(role);
             const method = req.method?.toLowerCase() || "";

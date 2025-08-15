@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { DOMAIN, ACCESS_PERMISSION, NOTIFICATION_TYPE, NOTIFICATION_SUBTYPE, NOTIFICATION_SOURCE_INITIATOR } from "@prisma/client";
 import { bucket } from "@/lib/firebase-admin";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import formidable from "formidable";
 import fs from "fs";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";

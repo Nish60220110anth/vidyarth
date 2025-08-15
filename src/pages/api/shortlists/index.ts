@@ -2,7 +2,7 @@
 import { sessionOptions } from "@/lib/session";
 import { getIronSession, IronSessionData } from "iron-session";
 import { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import { apiHelpers } from "@/lib/server/responseHelpers";
@@ -40,7 +40,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         const { count } = parsedQuery.data;
 
         const user = await prisma.user.findUniqueOrThrow({
-            where: { email_id: userSession.email },
+            where: { email_id: userSession.user?.email },
             select: {
                 id: true,
                 pcomid: true,

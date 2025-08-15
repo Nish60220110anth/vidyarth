@@ -1,61 +1,33 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 
 import Sidebar from "@/components/Sidebar";
 import UserLoadingScreen from "@/components/UserLoadingScreen";
 import { baseUrl } from "@/lib/config";
-
-type User = {
-    id: number;
-    email: string;
-    role: string;
-    name: string;
-};
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Dashboard() {
     const router = useRouter();
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { user, status, error, refresh, logout } = useAuth();
 
     useEffect(() => {
-        const ac = new AbortController();
-        (async () => {
-            try {
-                const res = await fetch(`${baseUrl}/api/auth/user`, { signal: ac.signal });
-                console.log(`res: ${res}`);
-                if (!res.ok) {
-                    router.replace(`${baseUrl}/`);
-                    return;
-                }
-                const data: User = await res.json();
-                setUser(data);
-            } catch (err: any) {
-                if (err?.name !== "AbortError") router.replace(`${baseUrl}/`);
-            } finally {
-                if (!ac.signal.aborted) {
-                    setTimeout(() => {
-                        setLoading(false)
-                    }, 1000);
-                };
-            }
-        })();
-        return () => ac.abort();
-    }, [router]);
-
-    const handleLogout = useCallback(async () => {
-        try {
-            const res = await fetch(`${baseUrl}/api/auth/user`, { method: "DELETE" });
-            if (!res.ok) throw new Error();
-            toast.success("Logged out");
-        } catch {
-            toast.error("Failed to log out");
-        } finally {
+        if (status === "unauthenticated") {
             router.replace(`${baseUrl}/`);
         }
-    }, [router]);
-    
-    if (loading || !user) {
+    }, [status, router]);
+
+    const handleLogout = async () => {
+        const ok = await logout();
+        if (ok) {
+            toast.success("Logged out");
+            router.replace(`${baseUrl}/`);
+        } else {
+            toast.error("Failed to log out");
+        }
+    };
+
+    if (status === "idle" || status === "loading") {
         return (
             <UserLoadingScreen
                 headline="Preparing your dashboard"
@@ -71,11 +43,41 @@ export default function Dashboard() {
                 progressStep={2}
                 progressIntervalMs={80}
                 maxIdleProgress={99}
-                active={loading}
-                surpressReducedMotion={true}
+                active
+                surpressReducedMotion
             />
         );
     }
+
+    if (status === "error" && !user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0d1b24] to-[#0a141d] text-cyan-100">
+                <div className="w-full max-w-md rounded-2xl border border-cyan-900 bg-[#0c0f11]/95 p-6 shadow-[0_0_24px_rgba(0,255,255,0.12)]">
+                    <h1 className="text-2xl font-semibold text-cyan-300 mb-2">We hit a snag</h1>
+                    <p className="text-cyan-200/80 text-sm mb-4">
+                        {error ?? "Something went wrong. Please try again."}
+                    </p>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={refresh}
+                            className="px-4 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-[#0a141d] font-medium transition"
+                        >
+                            Retry
+                        </button>
+                        <button
+                            onClick={() => router.replace(`${baseUrl}/`)}
+                            className="px-4 py-2 rounded-xl border border-cyan-800 text-cyan-200 hover:bg-[#0f1720] transition"
+                        >
+                            Back to Login
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!user) return null;
+
     return (
         <Sidebar
             email={user.email}

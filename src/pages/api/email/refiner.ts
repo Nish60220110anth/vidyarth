@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import axios from "axios";
 import { USER_ROLE } from "@prisma/client";
 import { baseUrl } from "@/lib/config";

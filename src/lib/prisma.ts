@@ -1,15 +1,28 @@
 // lib/prisma.ts
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '@prisma/client';
+import dotenv from 'dotenv';
 
-const getPrisma = () =>
-    new PrismaClient();
+const env = process.env.NODE_ENV ?? 'development';
+const envFile =
+    env === 'production' ? '.env.production'
+        : env === 'test' ? '.env.test'
+            : '.env.development';
 
-declare global {
-    var prisma: ReturnType<typeof getPrisma> | undefined;
+dotenv.config({ path: envFile });
+dotenv.config();
+
+if (!process.env.DATABASE_URL) {
+    throw new Error(`DATABASE_URL is missing (NODE_ENV=${env}, tried ${envFile}).`);
 }
 
-export const prisma = global.prisma ?? getPrisma();
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-if (process.env.NODE_ENV !== "production") {
-    global.prisma = prisma;
-}
+export const prisma =
+    globalForPrisma.prisma ??
+    new PrismaClient({
+        datasources: { db: { url: process.env.DATABASE_URL } },
+    });
+
+if (env !== 'production') globalForPrisma.prisma = prisma;
+
+export default prisma;

@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -10,6 +8,7 @@ import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 import { getNewsForCompanies, getShortlistsBySession } from "@/lib/api/my_section";
 import { onRouteTo } from "@/utils/urlClick";
+import { useAuth } from "@/contexts/AuthContext";
 
 /* --------------------------- Types & constants --------------------------- */
 
@@ -155,7 +154,6 @@ export default function MySection() {
 
     //fetch news only when the shortlist IDs actually change
     useEffect(() => {
-        // initial: if no companies, clear and stop
         if (!companyIdsKey) {
             setNews([]);
             setLoadingNews(false);
@@ -196,14 +194,12 @@ export default function MySection() {
         };
     }, [companyIdsKey]);
 
-    // Initial load: only fetch shortlists; news will follow via effect above
     useEffect(() => {
         (async () => {
             await fetchShortlists();
         })();
     }, [fetchShortlists]);
 
-    // Refresh shortlists; news will refetch automatically if IDs change
     const handleRefreshShortlists = useCallback(async () => {
         setRefreshing(true);
         await fetchShortlists();

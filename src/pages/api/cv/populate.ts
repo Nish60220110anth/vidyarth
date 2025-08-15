@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import fs from "fs";
 import path from "path";
 import { ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";

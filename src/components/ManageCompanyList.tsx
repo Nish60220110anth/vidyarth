@@ -5,12 +5,24 @@ import { useRouter } from "next/router";
 import Image from "next/image";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { ChevronUpIcon, ChevronDownIcon, PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { ArrowPathIcon, ArrowUpTrayIcon, CheckCircleIcon, CheckIcon, PencilIcon, TrashIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import {
+    ChevronUpIcon,
+    ChevronDownIcon,
+    PlusIcon,
+    XMarkIcon,
+} from "@heroicons/react/24/outline";
+import {
+    ArrowPathIcon,
+    ArrowUpTrayIcon,
+    CheckCircleIcon,
+    CheckIcon,
+    PencilIcon,
+    TrashIcon,
+    XCircleIcon,
+} from "@heroicons/react/24/solid";
 import { debounce } from "lodash";
 import { fetchCompanyListWithPermission } from "@/lib/api/company";
 import { ACCESS_PERMISSION } from "@prisma/client";
-import { baseUrl } from "@/lib/config";
 
 interface Company {
     id: number;
@@ -29,66 +41,52 @@ type SortKey = "company_name" | "company_full";
 export const ALL_DOMAINS = ["CONSULTING", "FINANCE", "MARKETING", "PRODMAN", "GENMAN", "OPERATIONS"];
 
 export const DOMAIN_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-    FINANCE: {
-        bg: "bg-green-100",
-        text: "text-green-800",
-        border: "border-green-300",
-    },
-    MARKETING: {
-        bg: "bg-pink-100",
-        text: "text-pink-800",
-        border: "border-pink-300",
-    },
-    CONSULTING: {
-        bg: "bg-blue-100",
-        text: "text-blue-800",
-        border: "border-blue-300",
-    },
-    PRODMAN: {
-        bg: "bg-purple-100",
-        text: "text-purple-800",
-        border: "border-purple-300",
-    },
-    OPERATIONS: {
-        bg: "bg-yellow-100",
-        text: "text-yellow-800",
-        border: "border-yellow-300",
-    },
-    GENMAN: {
-        bg: "bg-orange-100",
-        text: "text-orange-800",
-        border: "border-orange-300",
-    },
+    FINANCE: { bg: "bg-green-100", text: "text-green-800", border: "border-green-300" },
+    MARKETING: { bg: "bg-pink-100", text: "text-pink-800", border: "border-pink-300" },
+    CONSULTING: { bg: "bg-blue-100", text: "text-blue-800", border: "border-blue-300" },
+    PRODMAN: { bg: "bg-purple-100", text: "text-purple-800", border: "border-purple-300" },
+    OPERATIONS: { bg: "bg-yellow-100", text: "text-yellow-800", border: "border-yellow-300" },
+    GENMAN: { bg: "bg-orange-100", text: "text-orange-800", border: "border-orange-300" },
 };
 
+const TOAST = {
+    loadFail: "Could not load companies",
+    created: "Company created",
+    createFail: "Could not create company",
+    saved: "Saved changes",
+    saveFail: "Could not save changes",
+    deleted: "Company deleted",
+    deleteFail: "Could not delete company",
+    logoFail: "Could not upload logo",
+};
 
 export default function ManageCompanyList() {
     const [companies, setCompanies] = useState<Company[]>([]);
     const [allCompanies, setAllCompanies] = useState<Company[]>([]);
-
     const [editId, setEditId] = useState<number | null>(null);
     const [domainMenuOpenId, setDomainMenuOpenId] = useState<number | null>(null);
     const [editedLogoFile, setEditedLogoFile] = useState<File | null>(null);
-
     const [originalCompany, setOriginalCompany] = useState<Partial<Company>>({});
     const [editedCompany, setEditedCompany] = useState<Partial<Company>>({});
-
     const [sortKey, setSortKey] = useState<SortKey>("company_name");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-    const router = useRouter();
     const [editedDomains, setEditedDomains] = useState<string[]>([]);
     const [updatedCompanyIds, setUpdatedCompanyIds] = useState<Set<number>>(new Set());
-
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [newCompanyId, setNewCompanyId] = useState<number | null>(null);
-
     const [selectedDomain, setSelectedDomain] = useState<string>("ALL");
     const [isRefreshing, setIsRefreshing] = useState(false);
 
+    const { basePath } = useRouter();
+
+    // Avoid double initial fetch in React 18 Strict Mode
+    const didInitRef = useRef(false);
+
+    // Deduplicate concurrent fetches
+    const inFlightFetchRef = useRef<Promise<void> | null>(null);
+
     useEffect(() => {
-        if (editId === newCompanyId && inputRef.current) {
-            inputRef.current.focus();
-        }
+        if (editId === newCompanyId && inputRef.current) inputRef.current.focus();
     }, [editId, newCompanyId]);
 
     useEffect(() => {
@@ -98,61 +96,80 @@ export default function ManageCompanyList() {
         }
     }, [newCompanyId]);
 
+    // Ensure featured is true if legacy toggled on (without mutating during render)
     useEffect(() => {
-        fetchCompanies();
-    }, []);
-
-    const fetchCompanies = async (domainOverride?: string) => {
-        try {
-            setIsRefreshing(true);
-
-            let res;
-
-            if (updatedCompanyIds.size > 0) {
-                const ids = Array.from(updatedCompanyIds);
-                res = await axios.post(`${baseUrl}/api/company/fetch-multiple`, { ids }, {
-                    headers: {
-                        "x-access-permission": "MANAGE_COMPANY_LIST",
-                    },
-                });
-            } else {
-                res = await fetchCompanyListWithPermission(ACCESS_PERMISSION.MANAGE_COMPANY_LIST);
-            }
-
-            const fetchedCompanies = res.filter((c: Company) => c.id > 0);
-            const domainToUse = domainOverride || selectedDomain;
-
-            setAllCompanies((prev) => {
-                if (updatedCompanyIds.size > 0) {
-                    const map = new Map(prev.map(c => [c.id, c]));
-                    for (const company of fetchedCompanies) {
-                        map.set(company.id, company);
-                    }
-                    return Array.from(map.values());
-                } else {
-                    return fetchedCompanies;
-                }
-            });
-
-            setCompanies((prev) => {
-                const base = updatedCompanyIds.size > 0
-                    ? [...new Set([...prev, ...fetchedCompanies])]
-                    : fetchedCompanies;
-
-                return domainToUse === "ALL"
-                    ? base
-                    : base.filter((c: Company) =>
-                        c.domains.some((d) => d.domain === domainToUse)
-                    );
-            });
-
-            if (updatedCompanyIds.size > 0) setUpdatedCompanyIds(new Set());
-        } catch (err) {
-            toast.error("Failed to load companies");
-        } finally {
-            setTimeout(() => setIsRefreshing(false), 1000);
+        if (editId && editedCompany.is_legacy && !editedCompany.is_featured) {
+            setEditedCompany((prev) => ({ ...prev, is_featured: true }));
         }
+    }, [editId, editedCompany.is_legacy, editedCompany.is_featured]);
+
+    const extractCompanies = (res: any): Company[] => {
+        const data = Array.isArray(res) ? res : res?.data;
+        const list = Array.isArray(data) ? data : data?.companies;
+        const items = Array.isArray(list) ? list : [];
+        return items.filter((c: Company) => c?.id > 0);
     };
+
+    const mergeById = (prev: Company[], next: Company[]) => {
+        const map = new Map(prev.map((c) => [c.id, c]));
+        next.forEach((c) => map.set(c.id, c));
+        return Array.from(map.values());
+    };
+
+    const fetchCompanies = useCallback(
+        async (domainOverride?: string) => {
+            if (inFlightFetchRef.current) return inFlightFetchRef.current;
+
+            const p = (async () => {
+                try {
+                    setIsRefreshing(true);
+
+                    let fetchedCompanies: Company[] = [];
+                    if (updatedCompanyIds.size > 0) {
+                        const ids = Array.from(updatedCompanyIds);
+                        const res = await axios.post(`${basePath}/api/company/fetch-multiple`, { ids }, {
+                            headers: { "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_LIST },
+                        });
+                        fetchedCompanies = extractCompanies(res);
+                    } else {
+                        const res = await fetchCompanyListWithPermission(ACCESS_PERMISSION.MANAGE_COMPANY_LIST);
+                        fetchedCompanies = extractCompanies(res);
+                    }
+
+                    const domainToUse = domainOverride || selectedDomain;
+
+                    setAllCompanies((prev) =>
+                        updatedCompanyIds.size > 0 ? mergeById(prev, fetchedCompanies) : fetchedCompanies
+                    );
+
+                    setCompanies((prev) => {
+                        const base =
+                            updatedCompanyIds.size > 0 ? mergeById(prev, fetchedCompanies) : fetchedCompanies;
+                        return domainToUse === "ALL"
+                            ? base
+                            : base.filter((c) => c.domains.some((d) => d.domain === domainToUse));
+                    });
+
+                    if (updatedCompanyIds.size > 0) setUpdatedCompanyIds(new Set());
+                } catch {
+                    toast.error(TOAST.loadFail);
+                } finally {
+                    setIsRefreshing(false);
+                    inFlightFetchRef.current = null;
+                }
+            })();
+
+            inFlightFetchRef.current = p;
+            return p;
+        },
+        [basePath, selectedDomain, updatedCompanyIds]
+    );
+
+    useEffect(() => {
+        if (didInitRef.current) return;
+        didInitRef.current = true;
+        fetchCompanies();
+    }, [fetchCompanies]);
 
     const handleEdit = (id: number) => {
         setEditId(id);
@@ -167,129 +184,145 @@ export default function ManageCompanyList() {
     const handleSave = useCallback(async () => {
         if (!editId) return;
 
-        let newLogoUrl = originalCompany.logo_url;
+        const payload: Partial<Company> = {
+            id: editId,
+            company_name: editedCompany.company_name,
+            company_full: editedCompany.company_full,
+            is_legacy: !!editedCompany.is_legacy,
+            is_featured: !!editedCompany.is_featured,
+        };
+
+        const headers = { "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_LIST, "Content-Type": "application/json" };
 
         try {
-            await axios.put(`${baseUrl}/api/company`, {
-                id: editId,
-                company_name: editedCompany.company_name,
-                company_full: editedCompany.company_full,
-                is_legacy: editedCompany.is_legacy,
-                is_featured: editedCompany.is_featured,
-            }, {
-                headers: {
-                    "x-access-permission": "MANAGE_COMPANY_LIST"
-                }
-            });
+            // Save main fields + domains in parallel
+            await Promise.all([
+                axios.put(`${basePath}/api/company`, payload, { headers }),
+                axios.post(
+                    `${basePath}/api/company/set-domain`,
+                    { company_id: editId, domains: editedDomains },
+                    { headers: { "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_LIST } }
+                ),
+            ]);
 
-            await axios.post(`${baseUrl}/api/company/set-domain`, {
-                company_id: editId,
-                domains: editedDomains,
-            }, {
-                headers: {
-                    "x-access-permission": "MANAGE_COMPANY_LIST"
-                }
-            });
+            let newLogoUrl = originalCompany.logo_url;
 
             if (editedLogoFile) {
                 const formData = new FormData();
                 formData.append("logo", editedLogoFile);
-
                 try {
-                    const res = await axios.post(`${baseUrl}/api/company/upload-logo/${editId}`, formData, {
-                        headers: {
-                            "x-access-permission": "MANAGE_COMPANY_LIST"
-                        }
+                    const r = await axios.post(`${basePath}/api/company/upload-logo/${editId}`, formData, {
+                        headers: { "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_LIST },
                     });
-
-                    newLogoUrl = res.data.logo_url;
+                    newLogoUrl = r?.data?.logo_url || newLogoUrl;
                 } catch {
-                    toast.error("Logo upload failed");
+                    toast.error(TOAST.logoFail);
                 }
             }
 
-            const updatedCompany: Company = {
-                ...(companies.find(c => c.id === editId)!),
+            const merged: Company = {
+                ...(companies.find((c) => c.id === editId)!),
                 company_name: editedCompany.company_name || "",
                 company_full: editedCompany.company_full || "",
-                is_legacy: editedCompany.is_legacy || false,
-                is_featured: editedCompany.is_featured || false,
-                domains: editedDomains.map(domain => ({ domain })),
+                is_legacy: !!editedCompany.is_legacy,
+                is_featured: !!editedCompany.is_featured,
+                domains: editedDomains.map((domain) => ({ domain })),
                 logo_url: newLogoUrl,
+                updated_at: new Date().toISOString(),
             };
 
-            setCompanies(prev =>
-                prev.map(c => (c.id === editId ? updatedCompany : c))
-            );
-
-            setAllCompanies(prev =>
-                prev.map(c => (c.id === editId ? updatedCompany : c))
-            );
+            // Local optimistic update (no refetch)
+            setCompanies((prev) => prev.map((c) => (c.id === editId ? merged : c)));
+            setAllCompanies((prev) => prev.map((c) => (c.id === editId ? merged : c)));
             setUpdatedCompanyIds((prev) => new Set(prev).add(editId));
-            toast.success("Updated");
+
+            toast.success(TOAST.saved);
+
             setEditId(null);
             setDomainMenuOpenId(null);
             setEditedLogoFile(null);
             setEditedDomains([]);
         } catch {
-            toast.error("Update failed");
+            toast.error(TOAST.saveFail);
         }
-    }, [editId, editedCompany, editedDomains, companies, originalCompany.logo_url, editedLogoFile]);
-
+    }, [editId, editedCompany, editedDomains, companies, originalCompany.logo_url, editedLogoFile, basePath]);
 
     const isDisabled = useMemo(() => {
-        return (
+        const sameBasics =
             originalCompany.company_name === editedCompany.company_name &&
             originalCompany.company_full === editedCompany.company_full &&
-            originalCompany.is_legacy === editedCompany.is_legacy &&
-            originalCompany.is_featured === editedCompany.is_featured &&
-            originalCompany.logo_url === editedCompany.logo_url &&
-            JSON.stringify(originalCompany.domains?.map((d: any) => d.domain).sort()) ===
-            JSON.stringify([...editedDomains].sort())
-        );
+            !!originalCompany.is_legacy === !!editedCompany.is_legacy &&
+            !!originalCompany.is_featured === !!editedCompany.is_featured &&
+            originalCompany.logo_url === editedCompany.logo_url;
+
+        const origDomains = (originalCompany.domains as any)?.map((d: any) => d.domain).sort() || [];
+        const currDomains = [...editedDomains].sort();
+
+        return sameBasics && JSON.stringify(origDomains) === JSON.stringify(currDomains);
     }, [originalCompany, editedCompany, editedDomains]);
 
     useEffect(() => {
         const base =
             selectedDomain === "ALL"
                 ? allCompanies
-                : allCompanies.filter((c) =>
-                    c.domains.some((d) => d.domain === selectedDomain)
-                );
-
+                : allCompanies.filter((c) => c.domains.some((d) => d.domain === selectedDomain));
         setCompanies(base);
     }, [selectedDomain, allCompanies]);
 
+    const baseCompanies = useMemo(() => {
+        return selectedDomain === "ALL"
+            ? allCompanies
+            : allCompanies.filter((c) => c.domains.some((d) => d.domain === selectedDomain));
+    }, [selectedDomain, allCompanies]);
+
+    const handleSearch = useCallback(
+        debounce((value: string) => {
+            if (!value) {
+                setCompanies(baseCompanies);
+                return;
+            }
+            const lower = value.toLowerCase();
+            const filtered = baseCompanies.filter(
+                (c) =>
+                    c.company_name.toLowerCase().includes(lower) ||
+                    c.company_full.toLowerCase().includes(lower)
+            );
+            setCompanies(filtered);
+        }, 200),
+        [baseCompanies]
+    );
+
     useEffect(() => {
         const handleShortcutCopyPaste = async (e: KeyboardEvent) => {
-
             const active = document.activeElement as HTMLInputElement | HTMLTextAreaElement | null;
-
-            if (!active || (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) return;
+            if (!active || active.tagName === "INPUT" || active.tagName === "TEXTAREA") return;
 
             if (e.ctrlKey && e.shiftKey && e.code === "KeyC") {
                 e.preventDefault();
-                const selectedText = active.value.substring(active.selectionStart || 0, active.selectionEnd || 0);
-                await navigator.clipboard.writeText(selectedText);
+                const selectedText = active.value?.substring(
+                    (active as any).selectionStart || 0,
+                    (active as any).selectionEnd || 0
+                );
+                if (selectedText) await navigator.clipboard.writeText(selectedText);
             }
 
             if (e.ctrlKey && e.shiftKey && e.code === "KeyV") {
                 e.preventDefault();
                 const pasteText = await navigator.clipboard.readText();
-                const start = active.selectionStart || 0;
-                const end = active.selectionEnd || 0;
-                const before = active.value.substring(0, start);
-                const after = active.value.substring(end);
+                const start = (active as any).selectionStart || 0;
+                const end = (active as any).selectionEnd || 0;
+                const before = (active as any).value?.substring(0, start) || "";
+                const after = (active as any).value?.substring(end) || "";
                 const newValue = before + pasteText + after;
 
                 const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
                 nativeSetter?.call(active, newValue);
                 active.dispatchEvent(new Event("input", { bubbles: true }));
-                active.setSelectionRange(before.length + pasteText.length, before.length + pasteText.length);
+                (active as any).setSelectionRange(before.length + pasteText.length, before.length + pasteText.length);
             }
 
             if (e.key === "Escape") {
-                document.activeElement instanceof HTMLElement && document.activeElement.blur();
+                (document.activeElement as HTMLElement | null)?.blur();
                 setDomainMenuOpenId(null);
             }
 
@@ -303,25 +336,20 @@ export default function ManageCompanyList() {
         return () => document.removeEventListener("keydown", handleShortcutCopyPaste);
     }, [editId, handleSave]);
 
-
     const handleDelete = async (id: number) => {
         try {
-            const res = await axios.delete(`${baseUrl}/api/company?cid=${id}`, {
-                headers: {
-                    "x-access-permission": "MANAGE_COMPANY_LIST"
-                }
+            const res = await axios.delete(`${basePath}/api/company?cid=${id}`, {
+                headers: { "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_LIST },
             });
-
-            if (!res.data.success) {
-                toast.error(res.data.error || "Delete failed")
+            if (!res?.data?.success) {
+                toast.error(res?.data?.error || TOAST.deleteFail);
                 return;
             }
-
-            toast.success("Deleted");
-            setCompanies(prev => prev.filter(c => c.id !== id));
-            setAllCompanies(prev => prev.filter(c => c.id !== id));
+            setCompanies((prev) => prev.filter((c) => c.id !== id));
+            setAllCompanies((prev) => prev.filter((c) => c.id !== id));
+            toast.success(TOAST.deleted);
         } catch {
-            toast.error("Delete failed");
+            toast.error(TOAST.deleteFail);
         }
     };
 
@@ -330,49 +358,15 @@ export default function ManageCompanyList() {
     };
 
     const handleCheckboxChange = (field: "is_featured" | "is_legacy", value: boolean) => {
-        setEditedCompany((prev) => ({
-            ...prev,
-            [field]: value,
-        }));
+        setEditedCompany((prev) => ({ ...prev, [field]: value }));
     };
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         setEditedLogoFile(file);
-        setEditedCompany((prev) => ({
-            ...prev,
-            logo_url: URL.createObjectURL(file),
-        }));
+        setEditedCompany((prev) => ({ ...prev, logo_url: URL.createObjectURL(file) }));
     };
-
-    const baseCompanies = useMemo(() => {
-        return selectedDomain === "ALL"
-            ? allCompanies
-            : allCompanies.filter((c) =>
-                c.domains.some((d) => d.domain === selectedDomain)
-            );
-    }, [selectedDomain, allCompanies]);
-
-    const handleSearch = useCallback(
-        debounce((value: string) => {
-            if (!value) {
-                setCompanies(baseCompanies);
-                return;
-            }
-
-            const lower = value.toLowerCase();
-            const filtered = baseCompanies.filter(
-                (c) =>
-                    c.company_name.toLowerCase().includes(lower) ||
-                    c.company_full.toLowerCase().includes(lower)
-            );
-
-            setCompanies(filtered);
-        }, 200),
-        [baseCompanies]
-    );
 
     const toggleSort = (key: SortKey) => {
         if (key === sortKey) {
@@ -393,21 +387,24 @@ export default function ManageCompanyList() {
         });
     }, [companies, sortKey, sortOrder]);
 
-    if(editedCompany.is_legacy) {
-        editedCompany.is_featured = true
-    }
+    const logoSrc = (logo?: string, updatedAt?: string) => {
+        if (!logo) return "";
+        const withBase = logo.startsWith("/") ? `${basePath}${logo}` : `${basePath}/${logo}`;
+        const v = updatedAt ? `?v=${encodeURIComponent(updatedAt)}` : "";
+        return `${withBase}${v}`;
+    };
 
     return (
         <div className="px-4 py-6 md:px-10 md:py-10 bg-gray-100 min-h-screen">
             <div className="sticky top-0 bg-gray-100 pb-4 z-20">
-                {/* Breadcrumb */}
                 <div className="text-sm text-gray-600 flex gap-2 mb-2">
-                    <span onClick={() => router.push("/")} className="cursor-pointer hover:text-cyan-600">Dashboard</span>
+                    <span onClick={() => location.assign(`${basePath || ""}/`)} className="cursor-pointer hover:text-cyan-600">
+                        Dashboard
+                    </span>
                     <span>/</span>
                     <span className="text-gray-900 font-semibold">Manage Companies</span>
                 </div>
 
-                {/* Title */}
                 <motion.h1
                     layoutScroll
                     className="text-2xl md:text-3xl font-bold text-gray-900"
@@ -419,9 +416,7 @@ export default function ManageCompanyList() {
                 </motion.h1>
 
                 <div className="mt-4 flex justify-between items-center">
-                    {/* Left side: Search + Refresh */}
                     <div className="items-center flex flex-col md:flex-row md:items-center gap-2 mt-4">
-                        {/* Domain Filter Dropdown */}
                         <select
                             value={selectedDomain}
                             onChange={(e) => setSelectedDomain(e.target.value)}
@@ -435,7 +430,6 @@ export default function ManageCompanyList() {
                             ))}
                         </select>
 
-                        {/* Search Bar */}
                         <motion.input
                             type="text"
                             placeholder="Search companies..."
@@ -446,50 +440,68 @@ export default function ManageCompanyList() {
                         />
 
                         <button
-                            onClick={async (e) => {
+                            onClick={async () => {
                                 await fetchCompanies(selectedDomain);
                             }}
                             className="p-2 rounded-md border border-gray-300 text-gray-600 hover:text-cyan-600 hover:border-cyan-500 transition shadow-sm hover:shadow-md"
                             title="Refresh company list"
                         >
-
                             <motion.div
                                 animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
-                                transition={{
-                                    repeat: isRefreshing ? Infinity : 0,
-                                    repeatType: "loop",
-                                    ease: "linear",
-                                    duration: 1,
-                                }}
+                                transition={{ repeat: isRefreshing ? Infinity : 0, repeatType: "loop", ease: "linear", duration: 1 }}
                             >
                                 <ArrowPathIcon className="h-5 w-5" />
                             </motion.div>
-
                         </button>
-
                     </div>
 
-
-                    {/* Right side: Add button */}
                     <button
-
                         onClick={async () => {
                             try {
-                                const res = await axios.post(`${baseUrl}/api/company/create-default`);
-                                toast.success("Company added");
-                                await fetchCompanies();
-                                setEditId(res.data.id);
+                                const res = await axios.post(
+                                    `${basePath}/api/company/create-default`,
+                                    {},
+                                    { headers: { "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_LIST } }
+                                );
+                                const created: Company =
+                                    res?.data && res.data.id
+                                        ? {
+                                            id: res.data.id,
+                                            company_name: res.data.company_name || "",
+                                            company_full: res.data.company_full || "",
+                                            logo_url: res.data.logo_url || "",
+                                            is_legacy: !!res.data.is_legacy,
+                                            is_featured: !!res.data.is_featured,
+                                            domains: Array.isArray(res.data.domains) ? res.data.domains : [],
+                                            updated_at: res.data.updated_at,
+                                            created_at: res.data.created_at,
+                                        }
+                                        : {
+                                            id: Date.now(), // fallback
+                                            company_name: "New Company",
+                                            company_full: "New Company",
+                                            logo_url: "",
+                                            is_legacy: false,
+                                            is_featured: false,
+                                            domains: [],
+                                        };
+
+                                setAllCompanies((prev) => [created, ...prev]);
+                                setCompanies((prev) => [created, ...prev]);
+                                setEditId(created.id);
                                 setEditedCompany({
-                                    company_name: res.data.company_name,
-                                    company_full: res.data.company_full,
+                                    company_name: created.company_name,
+                                    company_full: created.company_full,
+                                    is_legacy: created.is_legacy,
+                                    is_featured: created.is_featured,
                                 });
-                                setNewCompanyId(res.data.id);
+                                setEditedDomains(created.domains.map((d) => d.domain));
+                                setNewCompanyId(created.id);
+                                toast.success(TOAST.created);
                             } catch {
-                                toast.error("Failed to add company");
+                                toast.error(TOAST.createFail);
                             }
                         }}
-
-
                         className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-md text-sm font-medium shadow transition"
                     >
                         + Add Company
@@ -498,11 +510,10 @@ export default function ManageCompanyList() {
 
                 {companies.length > 0 && (
                     <p className="text-sm text-gray-600 mt-2 ml-1">
-                        Showing {companies.length} news item{companies.length > 1 ? "s" : ""}
+                        Showing {companies.length} item{companies.length > 1 ? "s" : ""}
                     </p>
                 )}
 
-                {/* Table header */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -510,20 +521,18 @@ export default function ManageCompanyList() {
                     className="hidden md:grid mt-6 grid-cols-14 gap-4 font-semibold text-gray-700 text-sm uppercase tracking-wide"
                 >
                     <div className="col-span-2">Logo</div>
-                    <div className="col-span-3 flex items-center gap-1 cursor-pointer" onClick={() => toggleSort("company_full")}>Full Name
-                        {sortKey === "company_full" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
+                    <div className="col-span-3 flex items-center gap-1 cursor-pointer" onClick={() => toggleSort("company_full")}>
+                        Full Name {sortKey === "company_full" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
                     </div>
-                    <div className="col-span-2 flex items-center gap-1 cursor-pointer" onClick={() => toggleSort("company_name")}>Name
-                        {sortKey === "company_name" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
+                    <div className="col-span-2 flex items-center gap-1 cursor-pointer" onClick={() => toggleSort("company_name")}>
+                        Name {sortKey === "company_name" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
                     </div>
                     <div className="col-span-3">Domains</div>
                     <div className="col-span-1">Legacy</div>
                     <div className="col-span-1">Featured</div>
                     <div className="col-span-2">Actions</div>
                 </motion.div>
-
             </div>
-
 
             {companies.length === 0 ? (
                 <div className="text-gray-500 text-center mt-10 text-base">No companies available.</div>
@@ -545,7 +554,7 @@ export default function ManageCompanyList() {
                                     <div className="flex items-center gap-2">
                                         {company.logo_url ? (
                                             <Image
-                                                src={`${company.logo_url}?v=${company.updated_at || Date.now()}`}
+                                                src={logoSrc(company.logo_url, company.updated_at)}
                                                 alt="Logo"
                                                 width={40}
                                                 height={40}
@@ -560,15 +569,9 @@ export default function ManageCompanyList() {
                                                 <label htmlFor={`logo-${company.id}`} className="text-xs text-cyan-600 cursor-pointer">
                                                     <ArrowUpTrayIcon className="w-4 h-4" />
                                                 </label>
-                                                <input
-                                                    id={`logo-${company.id}`}
-                                                    type="file"
-                                                    className="hidden"
-                                                    onChange={(e) => handleLogoUpload(e, company.id)}
-                                                />
+                                                <input id={`logo-${company.id}`} type="file" className="hidden" onChange={(e) => handleLogoUpload(e, company.id)} />
                                             </>
                                         )}
-
                                     </div>
                                 </div>
 
@@ -583,11 +586,9 @@ export default function ManageCompanyList() {
                                     ) : (
                                         <div className="text-gray-800">{company.company_full}</div>
                                     )}
-
                                 </div>
 
                                 <div className="col-span-2">
-
                                     {isEditing ? (
                                         <input
                                             value={isEditing ? editedCompany.company_name ?? "" : company.company_name}
@@ -597,27 +598,16 @@ export default function ManageCompanyList() {
                                     ) : (
                                         <div className="text-gray-800">{company.company_name}</div>
                                     )}
-
                                 </div>
 
                                 <div className="col-span-3 flex flex-wrap gap-1 relative group">
-
                                     {(isEditing ? editedDomains : company.domains.map((d) => d.domain)).map((domain, i) => {
-                                        const color = DOMAIN_COLORS[domain] || { bg: "bg-gray-100", text: "text-gray-800" };
+                                        const color = DOMAIN_COLORS[domain] || { bg: "bg-gray-100", text: "text-gray-800", border: "" };
                                         return (
-                                            <motion.div
-                                                key={i}
-                                                whileHover={{ scale: 1.05 }}
-                                                className={`inline-flex items-center gap-1 ${color.bg} ${color.text} ${color.border} text-xs px-2 py-0.5 rounded transition duration-200`}
-                                            >
+                                            <motion.div key={i} whileHover={{ scale: 1.05 }} className={`inline-flex items-center gap-1 ${color.bg} ${color.text} ${color.border} text-xs px-2 py-0.5 rounded transition duration-200`}>
                                                 <span>{domain}</span>
                                                 {isEditing && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditedDomains((prev) => prev.filter((d) => d !== domain));
-                                                        }}
-                                                        className="hover:text-red-600"
-                                                    >
+                                                    <button onClick={() => setEditedDomains((prev) => prev.filter((d) => d !== domain))} className="hover:text-red-600">
                                                         <XMarkIcon className="w-3 h-3" />
                                                     </button>
                                                 )}
@@ -625,19 +615,11 @@ export default function ManageCompanyList() {
                                         );
                                     })}
 
-                                    {
-                                        isEditing &&
-                                        <motion.button
-                                            whileHover={{ scale: 1.2 }}
-                                            className="ml-1 p-1 rounded hover:bg-gray-200 transition"
-                                            onClick={() => {
-                                                setDomainMenuOpenId(company.id);
-                                            }}
-                                        >
+                                    {isEditing && (
+                                        <motion.button whileHover={{ scale: 1.2 }} className="ml-1 p-1 rounded hover:bg-gray-200 transition" onClick={() => setDomainMenuOpenId(company.id)}>
                                             <PlusIcon className="w-4 h-4 text-gray-600 hover:text-cyan-600" />
                                         </motion.button>
-
-                                    }
+                                    )}
 
                                     {domainMenuOpenId === company.id && (
                                         <div className="absolute top-6 left-0 z-10 bg-white shadow-md rounded border p-2 space-y-1">
@@ -657,43 +639,27 @@ export default function ManageCompanyList() {
                                     )}
                                 </div>
 
-
                                 <div className="col-span-1 flex justify-center">
                                     {isEditing ? (
-                                        <button onClick={() => {
-                                            const curr = editedCompany.is_legacy;
-                                            handleCheckboxChange("is_legacy", !editedCompany.is_legacy)
-                                        }}>
-                                            {editedCompany.is_legacy ? (
-                                                <CheckCircleIcon className="w-5 h-5 text-yellow-500" />
-                                            ) : (
-                                                <XCircleIcon className="w-5 h-5 text-gray-400" />
-                                            )}
+                                        <button onClick={() => handleCheckboxChange("is_legacy", !editedCompany.is_legacy)}>
+                                            {editedCompany.is_legacy ? <CheckCircleIcon className="w-5 h-5 text-yellow-500" /> : <XCircleIcon className="w-5 h-5 text-gray-400" />}
                                         </button>
+                                    ) : company.is_legacy ? (
+                                        <CheckCircleIcon className="w-5 h-5 text-yellow-500" />
                                     ) : (
-                                        company.is_legacy ? (
-                                            <CheckCircleIcon className="w-5 h-5 text-yellow-500" />
-                                        ) : (
-                                            <XCircleIcon className="w-5 h-5 text-gray-400" />
-                                        )
+                                        <XCircleIcon className="w-5 h-5 text-gray-400" />
                                     )}
                                 </div>
 
                                 <div className="col-span-1 flex justify-center">
                                     {isEditing ? (
                                         <button onClick={() => handleCheckboxChange("is_featured", !editedCompany.is_featured)}>
-                                            {editedCompany.is_featured ? (
-                                                <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                                            ) : (
-                                                <XCircleIcon className="w-5 h-5 text-gray-400" />
-                                            )}
+                                            {editedCompany.is_featured ? <CheckCircleIcon className="w-5 h-5 text-green-500" /> : <XCircleIcon className="w-5 h-5 text-gray-400" />}
                                         </button>
+                                    ) : company.is_featured ? (
+                                        <CheckCircleIcon className="w-5 h-5 text-yellow-500" />
                                     ) : (
-                                        company.is_featured ? (
-                                            <CheckCircleIcon className="w-5 h-5 text-yellow-500" />
-                                        ) : (
-                                            <XCircleIcon className="w-5 h-5 text-gray-400" />
-                                        )
+                                        <XCircleIcon className="w-5 h-5 text-gray-400" />
                                     )}
                                 </div>
 
@@ -703,17 +669,18 @@ export default function ManageCompanyList() {
                                             <button
                                                 disabled={isDisabled}
                                                 onClick={handleSave}
-                                                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm shadow transition
-        ${isDisabled ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"}`}
+                                                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm shadow transition ${isDisabled ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"
+                                                    }`}
                                             >
                                                 <CheckIcon className="w-4 h-4" /> Save
                                             </button>
 
                                             <button
                                                 onClick={() => {
-                                                    setEditId(null)   
+                                                    setEditId(null);
                                                     setDomainMenuOpenId(null);
                                                     setEditedDomains([]);
+                                                    setEditedCompany({});
                                                 }}
                                                 className="flex items-center gap-1 px-3 py-1.5 bg-gray-600 text-white rounded-md text-sm shadow hover:bg-gray-700 transition"
                                             >
@@ -742,9 +709,6 @@ export default function ManageCompanyList() {
                     })}
                 </AnimatePresence>
             )}
-
         </div>
     );
 }
-
-

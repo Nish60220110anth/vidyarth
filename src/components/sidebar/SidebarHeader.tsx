@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { useRouter } from "next/router";
 
 interface SidebarHeaderProps {
     collapsed: boolean;
@@ -7,15 +8,19 @@ interface SidebarHeaderProps {
 }
 
 export default function SidebarHeader({ collapsed, toggleSidebar }: SidebarHeaderProps) {
+
+    const { basePath } = useRouter();
+    
     return (
         <div className="flex items-center justify-between p-4 border-b border-gray-800 mt-2 flex-row">
             {!collapsed ? (
                 <div className="flex items-center gap-3 mt-2">
                     <Image
-                        src="/logo.png"
+                        src={`${basePath}/logo.png`}
                         alt="Logo"
                         width={40}
                         height={40}
+                        sizes="40px"
                         className="object-contain filter invert brightness-0 saturate-100 hue-rotate-[170deg]"
                         priority
                     />
@@ -23,10 +28,11 @@ export default function SidebarHeader({ collapsed, toggleSidebar }: SidebarHeade
                 </div>
             ) : (
                 <Image
-                    src="/logo.png"
+                    src={`${basePath}/logo.png`}
                     alt="Logo"
                     width={40}
                     height={40}
+                    sizes="40px"
                     className="object-contain filter invert brightness-0 saturate-100 hue-rotate-[170deg] mt-2"
                     priority
                 />

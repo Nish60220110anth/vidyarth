@@ -3,16 +3,20 @@ import { getIronSession, IronSession, IronSessionData } from 'iron-session';
 import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
 import { prisma } from "@/lib/prisma";
+import { apiHelpers } from '@/lib/server/responseHelpers';
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+
+    if (!(req.method === 'POST')) {
+        apiHelpers.methodNotAllowed(res, req.method, ['POST']);
+        return;
     }
 
     const { email, password } = req.body;
 
     if (!email || !password) {
-        return res.status(400).json({ error: 'Missing credentials' });
+        apiHelpers.badRequest(res, 'Missing credentials');
+        return;
     }
 
     try {
@@ -21,33 +25,45 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         });
 
         if (!user) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+            apiHelpers.unauthorized(res, 'Invalid email or password');
+            return;
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+            apiHelpers.unauthorized(res, 'Invalid email or password');
+            return;
         }
 
-        if(user.is_active === false) {
-            return res.status(403).json({ error: 'Account is inactive. Please contact support.', success: false });
+        if (user.is_active === false) {
+            apiHelpers.forbidden(res, 'Account is inactive. Please contact support.');
+            return;
         }
 
-        if(user.is_verified === false) {
-            return res.status(403).json({ error: 'Account is not verified. Please contact support', success: false });
+        if (user.is_verified === false) {
+            apiHelpers.forbidden(res, 'Account is not verified. Please contact support.');
+            return;
         }
 
         const session: IronSession<IronSessionData> = await getIronSession(req, res, sessionOptions);
-        session.email = user.email_id;
-        session.role = user.role;
-        session.name = user.name;
-        
+        session.user = {
+            id: user.id,
+            email: user.email_id,
+            role: user.role,
+            name: user.name,
+            is_active: user.is_active,
+            is_verified: user.is_verified,
+            pcomid: user.pcomid ? user.pcomid : undefined,
+        };
         await session.save();
 
-        return res.status(200).json({ message: 'Login successful', role: user.role, success: true });
+        apiHelpers.success(res, {user: session.user });
+        return;
+
     } catch (error) {
         console.error('Login error:', error);
-        return res.status(500).json({ error: 'Internal server error' , success: false});
+        apiHelpers.error(res, 'Internal server error');
+        return;
     }
 }
 

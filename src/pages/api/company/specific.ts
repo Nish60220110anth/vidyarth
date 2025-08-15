@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import { apiHelpers } from "@/lib/server/responseHelpers";
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {

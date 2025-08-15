@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";
 import { getIronSession, IronSessionData } from "iron-session";
 import { sessionOptions } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { apiHelpers } from "@/lib/server/responseHelpers";
 
@@ -21,7 +21,7 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
 async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const session: IronSessionData = await getIronSession(req, res, sessionOptions);
-    const role = session?.role as USER_ROLE;
+    const role = session?.user?.role as USER_ROLE;
 
     if (req.method === "GET") {
         try {

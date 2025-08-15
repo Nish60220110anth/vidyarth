@@ -1,7 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import axios from 'axios';
-import toast from "react-hot-toast";
-import { ACCESS_PERMISSION, notification_properties, NOTIFICATION_TYPE, USER_ROLE } from '@prisma/client';
+import { notification_properties, NOTIFICATION_TYPE, USER_ROLE } from '@prisma/client';
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowPathIcon, CheckCircleIcon, CheckIcon, PencilIcon, XCircleIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { useRouter } from 'next/router';
@@ -13,10 +11,6 @@ export default function EmailProps() {
     const router = useRouter();
 
     const types = Object.keys(NOTIFICATION_TYPE);
-
-    const roles = useMemo(() => {
-        return [null, ...Object.keys(USER_ROLE).filter(role => !role.startsWith("CCA_"))];
-    }, []);
 
     const [originalProperties, setOriginalProperties] = useState<Record<string, NotificationProperty>>({});
     const [editProperties, setEditProperties] = useState<Record<string, NotificationProperty>>({});
