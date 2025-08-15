@@ -8,8 +8,6 @@ import { apiHelpers } from "@/lib/server/responseHelpers";
 import { z } from "zod";
 import { ToInt } from "@/lib/server/zod_utils";
 
-// GET: ?userId=123
-// POST: { userId, title, brief, is_link, where_to_look, link_name }
 
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
@@ -67,7 +65,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     }
                 })
 
-                if ((user?.email_id !== session.email) || !user?.is_active || !user?.is_verified) {
+                if ((user?.email_id !== session?.user?.email) || !user?.is_active || !user?.is_verified) {
                     apiHelpers.forbidden(res, "You do not have permission to access this user's announcements");
                     return;
                 }
@@ -120,12 +118,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 },
             });
 
-            apiHelpers.created(res, { data: newAnnouncement })
+            apiHelpers.created(res, { data: newAnnouncement });
             return;
         }
     } catch (error: any) {
         console.error("Error handling announcements API:", error);
-        apiHelpers.error(res, "Internal Server Error", 500, { error: error })
+        apiHelpers.error(res, "Internal Server Error", 500, { error: error });
         return;
     }
 }

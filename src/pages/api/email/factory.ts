@@ -36,7 +36,7 @@ const ccBccEmails = (type: NOTIFICATION_TYPE, only_for_target: boolean) => {
                 cc: ["pgp40432@iiml.ac.in"],
                 bcc: ["placement_systems@iiml.ac.in"]
             }
-        case NOTIFICATION_TYPE.CV_PREP:
+        case NOTIFICATION_TYPE.ROUND_PREP:
             return only_for_target ? {
                 cc: ["pgp40432@iiml.ac.in"],
                 bcc: ["placement_systems@iiml.ac.in"]
@@ -399,24 +399,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // === CV_PREP LOGIC ===
-        const cvPrepProps = await prisma.notification_properties.findUniqueOrThrow({
-            where: { type: NOTIFICATION_TYPE.CV_PREP },
+        // === ROUND_PREP LOGIC ===
+        const roundPrepProps = await prisma.notification_properties.findUniqueOrThrow({
+            where: { type: NOTIFICATION_TYPE.ROUND_PREP },
         });
 
-        const sendEmailCVPrep = cvPrepProps.send_email;
+        const sendEmailRoundPrep = roundPrepProps.send_email;
 
-        if (sendEmailCVPrep) {
-            const cvPrepNotis = await prisma.notification.findMany({
+        if (sendEmailRoundPrep) {
+            const roundPrepNotis = await prisma.notification.findMany({
                 where: {
-                    type: NOTIFICATION_TYPE.CV_PREP,
+                    type: NOTIFICATION_TYPE.ROUND_PREP,
                     is_handled: false,
                 },
                 include: { links: true },
             });
 
-            if (cvPrepNotis.length > 0) {
-                const latest = cvPrepNotis.reduce((a, b) =>
+            if (roundPrepNotis.length > 0) {
+                const latest = roundPrepNotis.reduce((a, b) =>
                     new Date(a.updated_at) > new Date(b.updated_at) ? a : b
                 );
 
@@ -424,13 +424,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const dateStr = updatedAt.toLocaleDateString();
                 const timeStr = updatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
-                const link = latest.links.find(l => l.link_name === "cv_prep_link");
-                const cvPrepLink = link?.link || "";
-                const cvPrepLinkName = toTitleCase((link?.link_name || "").replaceAll("_", " "));
+                const link = latest.links.find(l => l.link_name === "round_prep_link");
+                const roundPrepLink = link?.link || "";
+                const roundPrepLinkName = toTitleCase((link?.link_name || "").replaceAll("_", " "));
 
-                const subject = renderSubjectTemplate(NOTIFICATION_TYPE.CV_PREP, {});
+                const subject = renderSubjectTemplate(NOTIFICATION_TYPE.ROUND_PREP, {});
 
-                const body = renderBodyTemplate(NOTIFICATION_TYPE.CV_PREP, {
+                const body = renderBodyTemplate(NOTIFICATION_TYPE.ROUND_PREP, {
                     updated_at: `${dateStr} ${timeStr}`,
                     pcom_id: "{{pcom_id}}",
                     name: "{{name}}"
@@ -438,9 +438,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     { name: toTitleCase((link?.link_name || "").replaceAll("_", " ")), url: link?.link || "" }
                 ]);
 
-                const brief = renderBriefTemplate(NOTIFICATION_TYPE.CV_PREP, {});
+                const brief = renderBriefTemplate(NOTIFICATION_TYPE.ROUND_PREP, {});
 
-                const targetRole = cvPrepProps.role || USER_ROLE.ADMIN;
+                const targetRole = roundPrepProps.role || USER_ROLE.ADMIN;
                 const recipient_user_ids = (await prisma.user.findMany({
                     where: {
                         role: targetRole,
@@ -450,24 +450,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     select: { id: true },
                 })).map(u => ({
                     userId: u.id,
-                    delay_minutes: cvPrepProps.delay_minutes || 15,
+                    delay_minutes: roundPrepProps.delay_minutes || 15,
                 }));
 
                 emailContentBlocks.push({
-                    type: NOTIFICATION_TYPE.CV_PREP,
+                    type: NOTIFICATION_TYPE.ROUND_PREP,
                     email_content: {
                         title: subject,
                         content: body,
                         brief,
-                        cc: ccBccEmails(NOTIFICATION_TYPE.CV_PREP, cvPrepProps.only_for_target).cc,
-                        bcc: ccBccEmails(NOTIFICATION_TYPE.CV_PREP, cvPrepProps.only_for_target).bcc,
+                        cc: ccBccEmails(NOTIFICATION_TYPE.ROUND_PREP, roundPrepProps.only_for_target).cc,
+                        bcc: ccBccEmails(NOTIFICATION_TYPE.ROUND_PREP, roundPrepProps.only_for_target).bcc,
                     },
                     recipient_user_ids,
                     announcement: {
                         title: subject,
                         brief,
-                        where_to_look: cvPrepLink,
-                        link_name: cvPrepLinkName,
+                        where_to_look: roundPrepLink,
+                        link_name: roundPrepLinkName,
                         is_link: true,
                     }
                 });

@@ -11,12 +11,14 @@ import { ALL_DOMAINS } from "./ManageCompanyList";
 // Types
 import type { Company } from "./CompanySearchDropDown";
 import { fetchCompanyListWithPermission } from "@/lib/api/company";
+import { useRouter } from "next/router";
+import { toast } from "react-hot-toast";
 
 function groupByFirstLetter(companies: Company[]): Record<string, Company[]> {
     const grouped: Record<string, Company[]> = {};
 
     companies.forEach((company) => {
-        const firstLetter = company.company_full[0].toUpperCase();
+        const firstLetter = company.company_full[0]?.toUpperCase() || "#";
         if (!grouped[firstLetter]) grouped[firstLetter] = [];
         grouped[firstLetter].push(company);
     });
@@ -24,7 +26,9 @@ function groupByFirstLetter(companies: Company[]): Record<string, Company[]> {
     return Object.keys(grouped)
         .sort()
         .reduce((acc, key) => {
-            acc[key] = grouped[key].sort((a, b) => a.company_full.localeCompare(b.company_full));
+            acc[key] = grouped[key].sort((a, b) =>
+                a.company_full.localeCompare(b.company_full)
+            );
             return acc;
         }, {} as Record<string, Company[]>);
 }
@@ -51,12 +55,16 @@ function SkeletonCard() {
     );
 }
 
-export default function AllCompaniesDirectory({ onCompanySelected }: AllCompaniesDirectoryProps) {
+export default function AllCompaniesDirectory({
+    onCompanySelected,
+}: AllCompaniesDirectoryProps) {
     // Data
     const [allCompanies, setAllCompanies] = useState<Company[]>([]);
 
     // Grouping cache
-    const [groupedCompanies, setGroupedCompanies] = useState<Record<string, Company[]>>({});
+    const [groupedCompanies, setGroupedCompanies] = useState<
+        Record<string, Company[]>
+    >({});
 
     // Filters & UI
     const [selectedDomain, setSelectedDomain] = useState<string>("ALL");
@@ -73,6 +81,7 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
     const [isLoading, setIsLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
+    const { basePath } = useRouter();
 
     // total items after filtering/grouping (used to stop infinite scroll)
     const totalFiltered = useMemo(
@@ -95,7 +104,9 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
 
                 setLoadingMore(true);
                 await new Promise((res) => setTimeout(res, 800));
-                setVisibleCompanyCount((prev) => Math.min(prev + 40, totalFiltered));
+                setVisibleCompanyCount((prev) =>
+                    Math.min(prev + 40, totalFiltered)
+                );
                 setLoadingMore(false);
             },
             {
@@ -111,15 +122,51 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
 
     const fetchData = async () => {
         setIsRefreshing(true);
-        const res = await fetchCompanyListWithPermission(ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY);
-        setAllCompanies(res);
+        try {
+            const res = await fetchCompanyListWithPermission(
+                ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+            );
+            if (!res?.success) {
+                toast.error(res?.error || "Failed to fetch company list.");
+                setAllCompanies([]);
+                return;
+            }
+            setAllCompanies(res.data || []);
+        } catch (e: any) {
+            toast.error(e?.message || "Failed to fetch company list.");
+            setAllCompanies([]);
+        } finally {
+            setIsRefreshing(false);
+        }
     };
 
     useEffect(() => {
-        setIsLoading(true);
-        fetchData();
-        const t = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(t);
+        let cancelled = false;
+        (async () => {
+            setIsLoading(true);
+            try {
+                const res = await fetchCompanyListWithPermission(
+                    ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+                );
+                if (cancelled) return;
+                if (!res?.success) {
+                    toast.error(res?.error || "Failed to fetch company list.");
+                    setAllCompanies([]);
+                } else {
+                    setAllCompanies(res.data || []);
+                }
+            } catch (e: any) {
+                if (!cancelled) {
+                    toast.error(e?.message || "Failed to fetch company list.");
+                    setAllCompanies([]);
+                }
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     useEffect(() => {
@@ -127,7 +174,9 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
             (entries) => {
                 const visibleSections = entries
                     .filter((entry) => entry.isIntersecting)
-                    .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+                    .sort(
+                        (a, b) => a.boundingClientRect.top - b.boundingClientRect.top
+                    );
 
                 if (visibleSections.length > 0 && !suppressObserver) {
                     setActiveLetter(visibleSections[0].target.id);
@@ -168,16 +217,24 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
         );
 
         setGroupedCompanies(groupByFirstLetter(sorted));
+        // reset pagination when filter changes
+        setVisibleCompanyCount(10);
     }, [allCompanies, selectedDomain]);
 
     const getDomainStyle = (domain: string) => {
         const styles: Record<string, string> = {
-            FINANCE: "bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-black/5",
-            MARKETING: "bg-rose-50    text-rose-700    border-rose-200    ring-1 ring-black/5",
-            CONSULTING: "bg-sky-50     text-sky-700     border-sky-200     ring-1 ring-black/5",
-            PRODMAN: "bg-violet-50  text-violet-700  border-violet-200  ring-1 ring-black/5",
-            OPERATIONS: "bg-amber-50   text-amber-800   border-amber-200   ring-1 ring-black/5",
-            GENMAN: "bg-teal-50    text-teal-700    border-teal-200    ring-1 ring-black/5",
+            FINANCE:
+                "bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-black/5",
+            MARKETING:
+                "bg-rose-50    text-rose-700    border-rose-200    ring-1 ring-black/5",
+            CONSULTING:
+                "bg-sky-50     text-sky-700     border-sky-200     ring-1 ring-black/5",
+            PRODMAN:
+                "bg-violet-50  text-violet-700  border-violet-200  ring-1 ring-black/5",
+            OPERATIONS:
+                "bg-amber-50   text-amber-800   border-amber-200   ring-1 ring-black/5",
+            GENMAN:
+                "bg-teal-50    text-teal-700    border-teal-200    ring-1 ring-black/5",
         };
 
         return styles[domain] || "bg-gray-100 text-gray-700 border-gray-300";
@@ -187,9 +244,7 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
 
     return (
         <>
-            <div
-                className="flex md:flex-col gap-2 fixed bottom-0 md:top-1/2 md:right-4 left-0 right-0 justify-center md:justify-start md:left-auto transform md:-translate-y-1/2 bg-[#0a141d]/80 md:bg-transparent p-2 md:p-0 border-t md:border-0 z-50 overflow-x-auto no-scrollbar"
-            >
+            <div className="flex md:flex-col gap-2 fixed bottom-0 md:top-1/2 md:right-4 left-0 right-0 justify-center md:justify-start md:left-auto transform md:-translate-y-1/2 bg-[#0a141d]/80 md:bg-transparent p-2 md:p-0 border-t md:border-0 z-50 overflow-x-auto no-scrollbar">
                 {activeLetters.map((letter) => (
                     <a
                         key={letter}
@@ -199,8 +254,8 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                             setTimeout(() => setSuppressObserver(false), 600);
                         }}
                         className={`text-xs font-medium px-2 py-1 rounded-md transition-all ${activeLetter === letter
-                            ? "text-cyan-500 font-bold bg-cyan-50 md:bg-transparent"
-                            : "text-gray-300 hover:text-cyan-400"
+                                ? "text-cyan-500 font-bold bg-cyan-50 md:bg-transparent"
+                                : "text-gray-300 hover:text-cyan-400"
                             }`}
                     >
                         {letter}
@@ -213,20 +268,23 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                     <div className="flex gap-2 flex-1 overflow-x-auto no-scrollbar">
                         <button
                             className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-full border whitespace-nowrap ${selectedDomain === "ALL"
-                                ? "bg-cyan-100 text-cyan-800 border-cyan-400"
-                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                                    ? "bg-cyan-100 text-cyan-800 border-cyan-400"
+                                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
                                 }`}
                             onClick={() => setSelectedDomain("ALL")}
                         >
                             All
                         </button>
                         {ALL_DOMAINS.map((domain) => {
-                            const tagClass = getDomainStyle(domain) || getDomainStyle("Other");
+                            const tagClass =
+                                getDomainStyle(domain) || getDomainStyle("Other");
                             const active = selectedDomain === domain;
                             return (
                                 <button
                                     key={domain}
-                                    className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-full border whitespace-nowrap transition ${active ? tagClass : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                                    className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-full border whitespace-nowrap transition ${active
+                                            ? tagClass
+                                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
                                         }`}
                                     onClick={() => setSelectedDomain(domain)}
                                 >
@@ -246,7 +304,11 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                     ? "bg-white text-gray-700 hover:text-cyan-700"
                                     : "bg-cyan-100 text-cyan-800 hover:bg-cyan-200"
                                 }`}
-                            title={viewMode === "grid" ? "Switch to List View" : "Switch to Grid View"}
+                            title={
+                                viewMode === "grid"
+                                    ? "Switch to List View"
+                                    : "Switch to Grid View"
+                            }
                         >
                             <motion.span
                                 animate={{ rotate: viewMode === "grid" ? 0 : 360 }}
@@ -263,13 +325,12 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                         </motion.button>
 
                         <button
-                            onClick={() => {
-                                fetchData();
-                            }}
+                            onClick={fetchData}
                             className={`p-2 sm:p-2.5 rounded-full border text-gray-600 border-slate-300
               bg-white hover:bg-slate-50 hover:text-cyan-700 hover:border-cyan-400
               transition shadow-sm hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300`}
                             title="Refresh"
+                            aria-label="Refresh companies"
                         >
                             <motion.div
                                 initial={false}
@@ -284,7 +345,6 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                 <ArrowPathIcon className="h-4 w-4 sm:h-5 sm:w-5 text-inherit" />
                             </motion.div>
                         </button>
-
                     </div>
                 </div>
 
@@ -302,7 +362,9 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                 {Object.entries(groupedCompanies).map(([letter, companies]) =>
                     viewMode === "grid" ? (
                         <div key={letter} id={letter} className="mb-8 scroll-mt-24 min-h-[120px]">
-                            <h2 className="text-xl font-bold text-slate-600 mb-3 scroll-mt-24">{letter}</h2>
+                            <h2 className="text-xl font-bold text-slate-600 mb-3 scroll-mt-24">
+                                {letter}
+                            </h2>
 
                             <motion.div
                                 key={selectedDomain}
@@ -336,7 +398,7 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                                     <div className="flex items-center justify-center h-12 w-12 rounded-full bg-slate-100">
                                                         {company.logo_url ? (
                                                             <img
-                                                                src={company.logo_url}
+                                                                src={`${basePath}/${company.logo_url}`}
                                                                 alt={company.company_name}
                                                                 className="h-8 w-8 object-contain"
                                                             />
@@ -349,7 +411,9 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                                         <p className="text-sm font-semibold text-slate-900 group-hover:text-cyan-700 transition-colors">
                                                             {company.company_name}
                                                         </p>
-                                                        <p className="text-xs text-slate-500">{company.company_full}</p>
+                                                        <p className="text-xs text-slate-500">
+                                                            {company.company_full}
+                                                        </p>
 
                                                         <div className="flex flex-wrap gap-1 mt-1">
                                                             {company.domains.slice(0, 2).map(({ domain }) => (
@@ -386,7 +450,9 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                         </div>
                     ) : (
                         <div key={letter} id={letter} className="mb-6 scroll-mt-24 min-h-[60px]">
-                            <h2 className="text-base font-semibold text-slate-500 mb-2">{letter}</h2>
+                            <h2 className="text-base font-semibold text-slate-500 mb-2">
+                                {letter}
+                            </h2>
 
                             <motion.div
                                 layout
@@ -415,7 +481,7 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                                 <div className="w-10 h-10 flex justify-center items-center bg-slate-100 rounded-full mr-4 shrink-0">
                                                     {company.logo_url ? (
                                                         <img
-                                                            src={company.logo_url}
+                                                            src={`${basePath}/${company.logo_url}`}
                                                             alt={company.company_name}
                                                             className="h-6 w-6 object-contain"
                                                         />
@@ -458,7 +524,9 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                 {isLoading && (
                     <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
                         <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
-                        <p className="text-cyan-200 text-lg font-medium animate-pulse">Loading Companies...</p>
+                        <p className="text-cyan-200 text-lg font-medium animate-pulse">
+                            Loading Companies...
+                        </p>
                     </div>
                 )}
             </div>

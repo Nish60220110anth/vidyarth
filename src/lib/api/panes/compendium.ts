@@ -15,14 +15,23 @@ const fetchCompendiumByCompanyID = async (company_id: number) => {
         if (!res.data.success) {
             console.error("Failed to fetch compendium:", res.data.error);
             toast.error(res.data.error);
-            return null;
+            return {
+                success: false,
+                error: res.data.error
+            };
         }
 
-        return res.data;
+        return {
+            success: true,
+            data: res.data
+        };
     } catch (error) {
         console.error("Failed to fetch compendium:", error);
         toast.error("Failed to fetch compendium");
-        return null;
+        return {
+            success: false,
+            error: "Failed to fetch compendium"
+        };
     }
 }
 
@@ -39,15 +48,23 @@ const updateCompendium = async (company_id: number, formData: FormData) => {
         if (!res.data.success) {
             console.error("Failed to save compendium:", res.data.error);
             toast.error(res.data.error);
-            return false;
+            return {
+                success: false,
+                error: res.data.error
+            };
         }
 
-        return true;
+        return {
+            success: true
+        };
     }
     catch (error) {
         console.error("Failed to save compendium:", error);
         toast.error("Failed to save compendium");
-        return false;
+        return {
+            success: false,
+            error: "Failed to save compendium"
+        };
     }
 }
 

@@ -2,49 +2,25 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 type Props = {
+    open?: boolean;
     headline?: string;
     subline?: string;
     tips?: string[];
-
-    /** Show/hide the overlay */
-    active?: boolean;
-
-    /** Rotate tip every N ms */
-    tipIntervalMs?: number;
-
-    initialProgress?: number;     // start value
-    progressStep?: number;        // increment per tick
-    progressIntervalMs?: number;  // tick interval
-    maxIdleProgress?: number;     // cap while still loading (e.g., 90)
-
-    /** Controlled progress (use either this OR the uncontrolled props above) */
     progress?: number;
-
-    /** When true, animates to 100 and calls onFinished() */
-    finish?: boolean;
-    surpressReducedMotion?: boolean;
-    onFinished?: () => void;
+    complete?: boolean;
+    onComplete?: () => void;
 };
 
 export default function UserLoadingScreen({
+    open = true,
     headline = "Preparing your dashboard",
     subline = "Fetching your profile and permissions…",
     tips,
-    active = true,
-
-    tipIntervalMs = 2400,
-
-    initialProgress = 8,
-    progressStep = 1,
-    progressIntervalMs = 90,
-    maxIdleProgress = 90,
-
     progress,
-    finish = false,
-    surpressReducedMotion = true,
-    onFinished,
+    complete = false,
+    onComplete,
 }: Props) {
-    const prefersReducedMotion = surpressReducedMotion ? false : useReducedMotion();
+    const prefersReducedMotion = useReducedMotion();
 
     const defaultTips = useMemo(
         () =>
@@ -58,43 +34,45 @@ export default function UserLoadingScreen({
     );
 
     const [tipIndex, setTipIndex] = useState(0);
-    const [internalProgress, setInternalProgress] = useState(initialProgress);
+    const [internalProgress, setInternalProgress] = useState(8);
+
+    const TIP_ROTATE_MS = 2400;
+    const TICK_MS = 90;
+    const STEP = 1;
+    const MAX_IDLE = 90;
+    const FINISH_EASE_MS = prefersReducedMotion ? 100 : 450;
 
     const effectiveProgress =
         typeof progress === "number" ? progress : internalProgress;
 
     useEffect(() => {
-        if (!active || defaultTips.length === 0) return;
-        const tipTimer = setInterval(() => {
-            setTipIndex((i) => (i + 1) % defaultTips.length);
-        }, tipIntervalMs);
-        return () => clearInterval(tipTimer);
-    }, [active, defaultTips.length, tipIntervalMs]);
+        if (!open || defaultTips.length === 0) return;
+        const id = setInterval(
+            () => setTipIndex((i) => (i + 1) % defaultTips.length),
+            TIP_ROTATE_MS
+        );
+        return () => clearInterval(id);
+    }, [open, defaultTips.length]);
 
     useEffect(() => {
-        if (!active) return;
-        if (typeof progress === "number") return; // controlled mode
-
-        const progTimer = setInterval(() => {
-            setInternalProgress((p) => (p < maxIdleProgress ? p + progressStep : p));
-        }, progressIntervalMs);
-
-        return () => clearInterval(progTimer);
-    }, [active, progress, progressIntervalMs, progressStep, maxIdleProgress]);
+        if (!open) return;
+        if (typeof progress === "number") return;
+        const id = setInterval(() => {
+            setInternalProgress((p) => (p < MAX_IDLE ? p + STEP : p));
+        }, TICK_MS);
+        return () => clearInterval(id);
+    }, [open, progress]);
 
     useEffect(() => {
-        if (!active) return;
-        if (!finish) return;
-
-        // Smoothly animate to 100, then call onFinished
-        const t = setTimeout(() => {
+        if (!open || !complete) return;
+        const id = setTimeout(() => {
             setInternalProgress(100);
-            onFinished?.();
-        }, prefersReducedMotion ? 100 : 450); // brief ease-out window
-        return () => clearTimeout(t);
-    }, [active, finish, prefersReducedMotion, onFinished]);
+            onComplete?.();
+        }, FINISH_EASE_MS);
+        return () => clearTimeout(id);
+    }, [open, complete, FINISH_EASE_MS, onComplete]);
 
-    if (!active) return null;
+    if (!open) return null;
 
     return (
         <div
@@ -102,7 +80,6 @@ export default function UserLoadingScreen({
             role="status"
             aria-live="polite"
         >
-            {/* Backdrop glows */}
             <div className="absolute inset-0 pointer-events-none">
                 <div
                     className="absolute -top-24 -left-24 w-72 h-72 rounded-full blur-3xl opacity-20"
@@ -121,36 +98,59 @@ export default function UserLoadingScreen({
             </div>
 
             <div className="relative w-full max-w-lg mx-4">
-                {/* Spinner */}
+                {/* Smooth 3s spinner */}
                 <div className="flex flex-col items-center mb-7">
                     <div className="relative">
-                        <motion.div
-                            className="h-18 w-18 md:h-20 md:w-20 rounded-full border-4 border-cyan-400/70 border-t-transparent"
-                            animate={prefersReducedMotion ? undefined : { rotate: 360 }}
-                            transition={
-                                prefersReducedMotion
-                                    ? undefined
-                                    : { repeat: Infinity, ease: "linear", duration: 1.1 }
-                            }
-                        />
+                        {prefersReducedMotion ? (
+                            <div
+                                className="rounded-full border-4 border-cyan-400/70"
+                                style={{ width: 72, height: 72 }}
+                                aria-label="Loading"
+                            />
+                        ) : (
+                            <motion.div
+                                className="relative rounded-full border-4 border-cyan-400/70 border-t-transparent"
+                                style={{ width: 72, height: 72, willChange: "transform" }}
+                                initial={{ rotate: 0 }}
+                                animate={{ rotate: 360 }}
+                                transition={{
+                                    duration: 3,
+                                    ease: [0.22, 1.0, 0.36, 1.0], 
+                                }}
+                                aria-label="Loading"
+                            >
+                                {/* subtle sheen that sweeps once in 3s */}
+                                <motion.div
+                                    className="absolute inset-0 rounded-full"
+                                    style={{
+                                        background:
+                                            "conic-gradient(from 0deg, rgba(255,255,255,0.22) 0deg, transparent 60deg 360deg)",
+                                        mask: "radial-gradient(farthest-side, transparent 62%, black 63%)",
+                                        WebkitMask:
+                                            "radial-gradient(farthest-side, transparent 62%, black 63%)",
+                                    }}
+                                    initial={{ rotate: 0, opacity: 0.7 }}
+                                    animate={{ rotate: 360, opacity: 0 }}
+                                    transition={{ duration: 5, ease: "easeInOut" }}
+                                    aria-hidden
+                                />
+                            </motion.div>
+                        )}
                         <div
                             className="absolute inset-0 rounded-full blur-md opacity-40"
                             style={{ boxShadow: "0 0 50px rgba(34,211,238,0.35)" }}
+                            aria-hidden
                         />
                     </div>
                 </div>
 
-                {/* Headline / Subline */}
                 <div className="text-center mb-5">
                     <h2 className="text-2xl md:text-3xl font-semibold tracking-wide text-cyan-200">
                         {headline}
                     </h2>
-                    <p className="mt-2 text-base md:text-lg text-cyan-300/85">
-                        {subline}
-                    </p>
+                    <p className="mt-2 text-base md:text-lg text-cyan-300/85">{subline}</p>
                 </div>
 
-                {/* Progress bar with animated gradient fill */}
                 <div className="mt-4">
                     <div className="h-2.5 w-full rounded-full bg-[#0b1a22] border border-cyan-900/60 overflow-hidden">
                         <motion.div
@@ -160,17 +160,9 @@ export default function UserLoadingScreen({
                                 backgroundImage:
                                     "linear-gradient(90deg, rgba(34,211,238,0.9), rgba(6,182,212,0.9))",
                             }}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${effectiveProgress}%` }}
-                            transition={
-                                prefersReducedMotion
-                                    ? { duration: 0.2 }
-                                    : { type: "spring", stiffness: 120, damping: 22 }
-                            }
                         />
                     </div>
 
-                    {/* Shimmer overlay */}
                     {!prefersReducedMotion && (
                         <motion.div
                             className="relative -mt-2 h-2.5 w-full pointer-events-none overflow-hidden rounded-full"
@@ -191,7 +183,6 @@ export default function UserLoadingScreen({
                     </div>
                 </div>
 
-                {/* Rotating tips */}
                 <div className="mt-6 h-14 flex items-center justify-center">
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -207,7 +198,6 @@ export default function UserLoadingScreen({
                     </AnimatePresence>
                 </div>
 
-                {/* Footer line */}
                 <p className="mt-7 text-center text-[12px] md:text-sm text-cyan-300/70">
                     Secure session · Optimizing for your role &amp; permissions
                 </p>

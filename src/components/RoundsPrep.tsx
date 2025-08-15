@@ -2,7 +2,7 @@ import { fetchSession, SessionInfo } from "@/utils/api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { RichTextPane } from "./RichTextPane";
-import { ACCESS_PERMISSION, DOMAIN } from "@prisma/client";
+import { ACCESS_PERMISSION, ROUND_TYPE } from "@prisma/client";
 import { useIsMobile } from "@/hooks/useMobile";
 import { convertListsToParagraphs } from "@/utils/convertListToPara";
 import { motion } from "framer-motion";
@@ -13,12 +13,40 @@ import {
     ArrowPathIcon,
     ExclamationTriangleIcon,
 } from "@heroicons/react/24/solid";
-import { DOMAIN_COLORS } from "./ManageCompanyList";
 import { useRouter } from "next/router";
-import { fetchDomainContent, updateDomainContent } from "@/lib/api/domainprep";
 import { useAuth } from "@/contexts/AuthContext";
+import { fetchRoundPrepContent, updateRoundPrepContent } from "@/lib/api/roundprep";
 
-export default function DomainPrep() {
+const ROUND_COLORS: Record<
+    ROUND_TYPE | 'DEFAULT',
+    { bg: string; text: string; ring: string; border: string }
+> = {
+    HR: {
+        bg: 'bg-fuchsia-900/20',
+        text: 'text-fuchsia-300',
+        ring: 'ring-fuchsia-600/40',
+        border: 'border-fuchsia-600/30',
+    },
+    PI: {
+        bg: 'bg-emerald-900/20',
+        text: 'text-emerald-300',
+        ring: 'ring-emerald-600/40',
+        border: 'border-emerald-600/30',
+    },
+    GD: {
+        bg: 'bg-rose-900/20',
+        text: 'text-rose-300',
+        ring: 'ring-rose-600/40',
+        border: 'border-rose-600/30',
+    },
+    DEFAULT: {
+        bg: 'bg-slate-800/50',
+        text: 'text-slate-300',
+        ring: 'ring-slate-600/30',
+        border: 'border-slate-600/30',
+    },
+};
+export default function RoundPrep() {
     const isMobile = useIsMobile();
     const router = useRouter();
     const { user } = useAuth();
@@ -31,9 +59,9 @@ export default function DomainPrep() {
     const [error, setError] = useState<string>("");
 
     const [originalContent, setOriginalContent] = useState<
-        Partial<Record<DOMAIN, string>>
+        Partial<Record<ROUND_TYPE, string>>
     >({});
-    const [selectedDomain, setSelectedDomain] = useState<DOMAIN>(DOMAIN.CONSULTING);
+    const [selectedRound, setSelectedRound] = useState<ROUND_TYPE>(ROUND_TYPE.GD);
     const [content, setContent] = useState<string>("");
 
     const [isEditing, setIsEditing] = useState(false);
@@ -50,15 +78,15 @@ export default function DomainPrep() {
     useEffect(() => {
         if (!router.isReady) return;
 
-        const domains = Object.keys(DOMAIN).map((p) => p.toLowerCase());
+        const rounds = Object.keys(ROUND_TYPE).map((p) => p.toLowerCase());
         const tabParam = (router.query.tab as string | undefined)?.toLowerCase();
-        const validTab = domains.find((p) => p === tabParam);
+        const validTab = rounds.find((p) => p === tabParam);
 
         if (validTab) {
-            setSelectedDomain(validTab.toUpperCase() as DOMAIN);
+            setSelectedRound(validTab.toUpperCase() as ROUND_TYPE);
         } else {
-            const defaultTab = domains[0];
-            setSelectedDomain(defaultTab.toUpperCase() as DOMAIN);
+            const defaultTab = rounds[0];
+            setSelectedRound(defaultTab.toUpperCase() as ROUND_TYPE);
 
             if (tabParam) {
                 router.replace(
@@ -74,13 +102,13 @@ export default function DomainPrep() {
         if (user) setPermissions(user.permissions || []);
     }, [user]);
 
-    const fetchAndCacheDomain = useCallback(
-        async (domain: DOMAIN, opts?: { force?: boolean; silent?: boolean }) => {
+    const fetchAndCacheRound = useCallback(
+        async (round: ROUND_TYPE, opts?: { force?: boolean; silent?: boolean }) => {
             const force = !!opts?.force;
             const silent = !!opts?.silent;
 
-            if (!force && originalContent[domain] !== undefined) {
-                setContent(originalContent[domain] as string);
+            if (!force && originalContent[round] !== undefined) {
+                setContent(originalContent[round] as string);
                 return;
             }
 
@@ -90,18 +118,18 @@ export default function DomainPrep() {
             }
 
             try {
-                const res = await fetchDomainContent(domain);
+                const res = await fetchRoundPrepContent(round);
                 if (!res?.success) {
-                    const msg = res?.error || `Failed to load content for ${domain}`;
+                    const msg = res?.error || `Failed to load content for ${round}`;
                     if (!silent) toast.error(msg);
                     setError(msg);
-                    setOriginalContent((prev) => ({ ...prev, [domain]: "" }));
+                    setOriginalContent((prev) => ({ ...prev, [round]: "" }));
                     setContent("");
                     return;
                 }
 
                 const payload = res.data || "";
-                setOriginalContent((prev) => ({ ...prev, [domain]: payload }));
+                setOriginalContent((prev) => ({ ...prev, [round]: payload }));
                 setContent(payload);
                 if (!silent) toast.success("Loaded");
             } catch (e: any) {
@@ -127,19 +155,19 @@ export default function DomainPrep() {
 
     useEffect(() => {
         if (!session) return;
-        fetchAndCacheDomain(selectedDomain);
-    }, [session, selectedDomain, fetchAndCacheDomain]);
+        fetchAndCacheRound(selectedRound);
+    }, [session, selectedRound, fetchAndCacheRound]);
 
     const saveDomainContent = useCallback(async () => {
         if (!session) return;
         setSaving(true);
         try {
-            const res = await updateDomainContent(selectedDomain, content);
+            const res = await updateRoundPrepContent(selectedRound, content);
             if (!res?.success) {
                 toast.error(res?.error || "Save failed");
                 return;
             }
-            setOriginalContent((prev) => ({ ...prev, [selectedDomain]: content }));
+            setOriginalContent((prev) => ({ ...prev, [selectedRound]: content }));
             setIsEditing(false);
             toast.success("Saved");
         } catch (e: any) {
@@ -147,21 +175,21 @@ export default function DomainPrep() {
         } finally {
             setSaving(false);
         }
-    }, [selectedDomain, content, session]);
+    }, [selectedRound, content, session]);
 
-    const refreshCurrentDomain = useCallback(async () => {
+    const refreshCurrentRound = useCallback(async () => {
         setRefreshing(true);
-        await fetchAndCacheDomain(selectedDomain, { force: true, silent: true });
+        await fetchAndCacheRound(selectedRound, { force: true, silent: true });
         setRefreshing(false);
         toast.success("Refreshed");
-    }, [selectedDomain, fetchAndCacheDomain]);
+    }, [selectedRound, fetchAndCacheRound]);
 
     const isEditor =
         !!session?.role && permissions.includes(ACCESS_PERMISSION.EDIT_COMPANY_INFO);
 
     const isDirty = useMemo(
-        () => content !== (originalContent[selectedDomain] ?? ""),
-        [content, originalContent, selectedDomain]
+        () => content !== (originalContent[selectedRound] ?? ""),
+        [content, originalContent, selectedRound]
     );
 
     if (loading) {
@@ -171,7 +199,7 @@ export default function DomainPrep() {
                     <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
                 </div>
                 <p className="mt-4 text-lg font-semibold text-cyan-700">
-                    Loading {selectedDomain} Prep Content…
+                    Loading {selectedRound} Prep Content…
                 </p>
                 <div className="mt-6 space-y-2 w-3/4">
                     <div className="h-3 bg-gray-200 rounded-full" />
@@ -193,7 +221,7 @@ export default function DomainPrep() {
                     {error || "Something went wrong. Please try again."}
                 </p>
                 <button
-                    onClick={() => fetchAndCacheDomain(selectedDomain, { force: true })}
+                    onClick={() => fetchAndCacheRound(selectedRound, { force: true })}
                     className="mt-4 inline-flex items-center gap-2 rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm text-red-700 hover:bg-red-100"
                 >
                     <ArrowPathIcon className="h-4 w-4" />
@@ -212,33 +240,32 @@ export default function DomainPrep() {
         >
             {/* Tabs */}
             <div className="sticky top-0 z-20 bg-[#0c0f11] border-b border-cyan-900 px-2 sm:px-6 py-3 overflow-x-auto whitespace-nowrap flex gap-2 backdrop-blur supports-[backdrop-filter]:bg-[#0c0f11]/90">
-                {Object.values(DOMAIN).map((dom) => {
+                {Object.values(ROUND_TYPE).map((round) => {
                     const color =
-                        DOMAIN_COLORS[dom] ?? {
+                        ROUND_COLORS[round] ?? {
                             bg: "bg-cyan-900",
                             text: "text-cyan-300",
                             border: "border-cyan-700",
                         };
-                    const isSelected = selectedDomain === dom;
+                    const isSelected = selectedRound === round;
 
                     return (
                         <button
-                            key={dom}
+                            key={round}
                             onClick={() => {
                                 setIsEditing(false);
                                 setError("");
-                                router.replace(
-                                    { pathname: router.pathname, query: { ...router.query, tab: dom.toLowerCase() } },
-                                    undefined,
-                                    { shallow: true }
-                                );
+                                router.replace({
+                                    pathname: router.pathname,
+                                    query: { ...router.query, tab: round.toLowerCase() },
+                                }, undefined, { shallow: true });
                             }}
                             className={`text-sm px-4 py-1.5 rounded-full font-medium border transition-all duration-200 ${isSelected
                                     ? `${color.bg} ${color.text} ${color.border} border-transparent shadow-sm`
                                     : `bg-[#0c0f11] text-cyan-100 border-cyan-800 hover:${color.bg} hover:${color.text} hover:${color.border}`
                                 }`}
                         >
-                            {dom}
+                            {round}
                         </button>
                     );
                 })}
@@ -256,7 +283,7 @@ export default function DomainPrep() {
                     {isEditor && (
                         <div className="sticky top-0 z-10 border-b border-cyan-800 py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-[#0a141d]">
                             <button
-                                onClick={refreshCurrentDomain}
+                                onClick={refreshCurrentRound}
                                 disabled={refreshing}
                                 className={`px-4 py-1.5 text-sm rounded-md border border-cyan-500 text-cyan-300 bg-transparent transition-all duration-200 font-medium flex items-center gap-2 ${refreshing ? "opacity-70 cursor-not-allowed" : "hover:bg-cyan-900/30 hover:shadow-md"
                                     }`}
@@ -277,7 +304,7 @@ export default function DomainPrep() {
                                 <div className="flex flex-col sm:flex-row gap-2 w/full sm:w-auto">
                                     <button
                                         onClick={() => {
-                                            setContent(originalContent[selectedDomain] ?? "");
+                                            setContent(originalContent[selectedRound] ?? "");
                                             setIsEditing(false);
                                         }}
                                         disabled={saving}
@@ -306,7 +333,7 @@ export default function DomainPrep() {
                     <div className="flex-1 min-h-0 overflow-y-auto pb-6">
                         <div className="h-full">
                             <RichTextPane
-                                key={selectedDomain}
+                                key={selectedRound}
                                 editable={isEditing}
                                 lexicalState={
                                     !isEditing

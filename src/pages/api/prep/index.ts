@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import fs from 'fs';
 import path from 'path';
 import { MethodConfig, withPermissionCheck } from '@/lib/server/withPermissionCheck';
-import { ACCESS_PERMISSION, DOMAIN, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_TYPE } from '@prisma/client';
+import { ACCESS_PERMISSION, DOMAIN, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_TYPE, ROUND_TYPE } from '@prisma/client';
 import { apiHelpers } from '@/lib/server/responseHelpers';
 import crypto from 'crypto'; // For optional ETag
 import { createNotification } from '@/lib/server/notificationSink';
@@ -23,14 +23,16 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
 };
 
 const GetQuerySchema = z.object({
-    rType: z.enum(['overview', 'domain']),
+    rType: z.enum(['round', 'domain']),
     d: z.enum(Object.values(DOMAIN)).optional(),
+    r: z.enum(Object.values(ROUND_TYPE)).optional(),
 });
 
 const PutBodySchema = z.object({
-    rType: z.enum(['overview', 'domain']),
+    rType: z.enum(['round', 'domain']),
     content: z.string().min(1, "Content is required"),
     d: z.enum(Object.values(DOMAIN)).optional(),
+    r: z.enum(Object.values(ROUND_TYPE)).optional(),
 }).strict();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -46,8 +48,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         let filePath = "";
 
-        if (parsedQuery.data.rType === "overview") {
-            filePath = path.join(PREP_DIR, `overview.txt`);
+        if (parsedQuery.data.rType === "round") {
+            filePath = path.join(PREP_DIR, `round_type-${parsedQuery.data.r}.txt`);
         } else {
             filePath = path.join(PREP_DIR, `domain-${parsedQuery.data.d}.txt`);
         }
@@ -79,13 +81,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return;
         }
 
-        const { rType, content, d } = parsedBody.data;
+        const { rType, content, d, r } = parsedBody.data;
 
         try {
             let filePath = "";
 
-            if (rType === "overview") {
-                filePath = path.join(PREP_DIR, `overview.txt`);
+            if (rType === "round") {
+                filePath = path.join(PREP_DIR, `round_type-${r}.txt`);
             } else {
                 filePath = path.join(PREP_DIR, `domain-${d}.txt`);
             }
@@ -96,17 +98,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             fs.writeFileSync(filePath, content, 'utf-8');
 
-            if (rType === "overview") {
+            if (rType === "round") {
 
-                const secureUrlResp = await generateSecureURL("CV_PREP", 0)
+                const secureUrlResp = await generateSecureURL("ROUND_PREP", 0)
 
                 if (secureUrlResp.success) {
                     createNotification({
-                        type: NOTIFICATION_TYPE.CV_PREP,
+                        type: NOTIFICATION_TYPE.ROUND_PREP,
                         initiator: NOTIFICATION_SOURCE_INITIATOR.UPDATED,
+                        round: r,
                         links: [{
-                            link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}`,
-                            link_name: "cv_prep_link"
+                            link: `${baseUrl}/dashboard/?auth=${encodeURIComponent(secureUrlResp.url)}&tab=${r}`,
+                            link_name: "round_prep_link"
                         }]
                     });
                 } else {

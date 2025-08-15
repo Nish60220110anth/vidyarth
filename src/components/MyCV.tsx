@@ -63,11 +63,15 @@ export default function MyCV({ id, name }: Props) {
     const otherCVs = useMemo(() => cvs.filter(cv => !cv.is_primary), [cvs]);
 
     const handleDownload = async (cv: CVEntry) => {
+        let download_filename = cv.cv_filename;
+        if (cv.is_primary) {
+            download_filename = `${user?.pcomid}_${toTitleCase(user?.name || "")}_CV_Primary.pdf`;
+        }
         try {
             const url = await fetchCVFile(basePath, cv.cv_path);
             const a = document.createElement("a");
             a.href = url;
-            a.download = cv.cv_filename;
+            a.download = download_filename;
             a.click();
             window.URL.revokeObjectURL(url);
         } catch {

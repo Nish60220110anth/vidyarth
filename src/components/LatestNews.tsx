@@ -17,6 +17,7 @@ export default function LatestNews() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [errorMsg, setErrorMsg] = useState<string>("");
 
     const [newsDomainTag, setNewsDomainTag] = useState("ALL");
     const [newsSubdomainTag, setNewsSubdomainTag] = useState("ALL");
@@ -42,10 +43,19 @@ export default function LatestNews() {
         () =>
             debounceAsync(async (opts?: { id?: number; search?: string }) => {
                 setIsRefreshing(true);
+                setErrorMsg("");
                 try {
                     const q = buildQuery(opts);
-                    const data = await getNewsOnQuery(q);
-                    setNewsList(data);
+                    const res = await getNewsOnQuery(q);
+                    if (res.success) {
+                        setNewsList(res.data ?? []);
+                    } else {
+                        setNewsList([]);
+                        setErrorMsg(res.error || "Failed to fetch news.");
+                    }
+                } catch (e: any) {
+                    setNewsList([]);
+                    setErrorMsg(e?.message || "Failed to fetch news.");
                 } finally {
                     setIsRefreshing(false);
                 }
@@ -55,27 +65,43 @@ export default function LatestNews() {
 
     const fetchNews = useCallback(() => debouncedRefresh(), [debouncedRefresh]);
 
+    // Initial + filter-driven fetch
     useEffect(() => {
-        setLoading(true);
-        fetchNews();
-        setTimeout(() => setLoading(false), 400);
+        let mounted = true;
+        (async () => {
+            setLoading(true);
+            await fetchNews();
+            if (mounted) setLoading(false);
+        })();
+        return () => {
+            mounted = false;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDomain, dateRange, newsDomainTag, newsSubdomainTag]);
 
+    // Debounced search
     useEffect(() => {
-        const timeout = setTimeout(() => {
+        const t = setTimeout(() => {
             fetchNews();
         }, 400);
-        return () => clearTimeout(timeout);
-    }, [search]);
+        return () => clearTimeout(t);
+    }, [search, fetchNews]);
 
     const groupedNews = useMemo(() => {
         const grouped: Record<string, news[]> = {};
         newsList.forEach((item) => {
-            const date = format(new Date(item.created_at), "yyyy-MM-dd");
-            if (!grouped[date]) grouped[date] = [];
-            grouped[date].push(item);
+            const d = item?.created_at ? new Date(item.created_at) : new Date();
+            const dateKey = format(d, "yyyy-MM-dd");
+            if (!grouped[dateKey]) grouped[dateKey] = [];
+            grouped[dateKey].push(item);
         });
-        return grouped;
+
+        // Sort groups by date desc for a nicer read
+        return Object.fromEntries(
+            Object.entries(grouped).sort(
+                ([a], [b]) => new Date(b).getTime() - new Date(a).getTime()
+            )
+        );
     }, [newsList]);
 
     if (loading) {
@@ -101,8 +127,13 @@ export default function LatestNews() {
                         {/* Refresh Button */}
                         <button
                             onClick={fetchNews}
-                            className="p-2 rounded-md border border-cyan-800 text-cyan-300 hover:text-cyan-100 hover:border-cyan-400 transition"
+                            disabled={isRefreshing}
+                            className={`p-2 rounded-md border transition ${isRefreshing
+                                    ? "border-cyan-900 text-cyan-700 cursor-wait"
+                                    : "border-cyan-800 text-cyan-300 hover:text-cyan-100 hover:border-cyan-400"
+                                }`}
                             title="Refresh news"
+                            aria-label="Refresh news"
                         >
                             <motion.div
                                 animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
@@ -130,6 +161,7 @@ export default function LatestNews() {
                             }}
                             className="p-2 rounded-md border border-rose-800 text-rose-400 hover:text-white hover:border-rose-500 transition"
                             title="Reset filters"
+                            aria-label="Reset filters"
                         >
                             <motion.div
                                 animate={isResetting ? { x: [-5, 0] } : { x: 0 }}
@@ -140,30 +172,58 @@ export default function LatestNews() {
                         </button>
 
                         {/* Filters */}
-                        <select value={selectedDomain} onChange={(e) => setSelectedDomain(e.target.value)} className="px-2 py-1 rounded bg-[#10232c] border border-cyan-800 text-cyan-200">
+                        <select
+                            value={selectedDomain}
+                            onChange={(e) => setSelectedDomain(e.target.value)}
+                            className="px-2 py-1 rounded bg-[#10232c] border border-cyan-800 text-cyan-200"
+                        >
                             <option value="ALL">All Domains</option>
                             {ALL_DOMAINS.map((d) => (
-                                <option key={d} value={d}>{d}</option>
+                                <option key={d} value={d}>
+                                    {d}
+                                </option>
                             ))}
                         </select>
 
-                        <select value={newsDomainTag} onChange={(e) => setNewsDomainTag(e.target.value)} className="px-2 py-1 rounded bg-[#10232c] border border-cyan-800 text-cyan-200">
+                        <select
+                            value={newsDomainTag}
+                            onChange={(e) => setNewsDomainTag(e.target.value)}
+                            className="px-2 py-1 rounded bg-[#10232c] border border-cyan-800 text-cyan-200"
+                        >
                             <option value="ALL">All News Domain Tags</option>
                             {Object.keys(NEWS_DOMAIN_TAG).map((tag) => (
-                                <option key={tag} value={tag}>{tag}</option>
+                                <option key={tag} value={tag}>
+                                    {tag}
+                                </option>
                             ))}
                         </select>
 
-                        <select value={newsSubdomainTag} onChange={(e) => setNewsSubdomainTag(e.target.value)} className="px-2 py-1 rounded bg-[#10232c] border border-cyan-800 text-cyan-200">
+                        <select
+                            value={newsSubdomainTag}
+                            onChange={(e) => setNewsSubdomainTag(e.target.value)}
+                            className="px-2 py-1 rounded bg-[#10232c] border border-cyan-800 text-cyan-200"
+                        >
                             <option value="ALL">All News Subdomain Tags</option>
                             {Object.keys(NEWS_SUBDOMAIN_TAG).map((tag) => (
-                                <option key={tag} value={tag}>{tag}</option>
+                                <option key={tag} value={tag}>
+                                    {tag}
+                                </option>
                             ))}
                         </select>
 
-                        <input type="date" value={dateRange.from} onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })} className="px-2 py-1 rounded bg-[#10232c] border border-cyan-800 text-cyan-200" />
+                        <input
+                            type="date"
+                            value={dateRange.from}
+                            onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+                            className="px-2 py-1 rounded bg-[#10232c] border border-cyan-800 text-cyan-200"
+                        />
                         <span className="text-cyan-400">to</span>
-                        <input type="date" value={dateRange.to} onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })} className="px-2 py-1 rounded bg-[#10232c] border border-cyan-800 text-cyan-200" />
+                        <input
+                            type="date"
+                            value={dateRange.to}
+                            onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+                            className="px-2 py-1 rounded bg-[#10232c] border border-cyan-800 text-cyan-200"
+                        />
 
                         <motion.input
                             value={search}
@@ -174,6 +234,13 @@ export default function LatestNews() {
                             className="px-2 py-1 rounded w-64 bg-[#10232c] border border-cyan-800 placeholder-cyan-500 text-cyan-200"
                         />
                     </div>
+
+                    {/* Inline error (non-blocking) */}
+                    {errorMsg && (
+                        <div className="text-sm px-3 py-1.5 rounded-md border border-rose-900/60 bg-rose-900/20 text-rose-200">
+                            {errorMsg}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -182,13 +249,12 @@ export default function LatestNews() {
                 {newsList.length > 0 ? (
                     Object.entries(groupedNews).map(([date, newsItems]) => (
                         <div key={date} className="mt-6">
-                            <h2 className="text-lg font-semibold text-cyan-200 mb-2 border-b border-cyan-800">{format(new Date(date), "dd MMM yyyy")}</h2>
+                            <h2 className="text-lg font-semibold text-cyan-200 mb-2 border-b border-cyan-800">
+                                {format(new Date(date), "dd MMM yyyy")}
+                            </h2>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 auto-rows-fr">
                                 {newsItems.map((n) => (
-                                    <div
-                                        key={`${n.id}-${n.updated_at}`}
-                                        className="overflow-hidden rounded-lg"
-                                    >
+                                    <div key={`${n.id}-${n.updated_at}`} className="overflow-hidden rounded-lg">
                                         <motion.div
                                             whileHover={{ scale: 1.03 }}
                                             transition={{ duration: 0.2, ease: "easeInOut" }}
@@ -208,8 +274,18 @@ export default function LatestNews() {
                     ))
                 ) : (
                     <div className="flex items-center justify-center text-cyan-500 py-20 italic">
-                        <svg className="w-8 h-8 mr-2" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25m-7.5 3.75V5.25M3 9h18M4.5 19.5h15a.75.75 0 00.75-.75V9.75H3.75v9a.75.75 0 00.75.75z" />
+                        <svg
+                            className="w-8 h-8 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={1.5}
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M15.75 9V5.25m-7.5 3.75V5.25M3 9h18M4.5 19.5h15a.75.75 0 00.75-.75V9.75H3.75v9a.75.75 0 00.75.75z"
+                            />
                         </svg>
                         No news found. Try adjusting filters or search.
                     </div>

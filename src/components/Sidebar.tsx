@@ -122,16 +122,16 @@ export default function Sidebar({ email, role, onLogout, name, id }: SidebarProp
                     sections_permissions,
                     profile_dropdown_items
                 }, user);
-                setPermissions(perms);
+                setPermissions(perms.data || {});
             } else {
                 try {
                     const res = await getUserFromSession();
-                    if (res.role) {
+                    if (res.data) {
                         const perms = fetchPermissionsFromSession({
                             sections_permissions,
                             profile_dropdown_items
                         }, user);
-                        setPermissions(perms);
+                        setPermissions(perms.data || {});
                     } else {
                         toast.error(res.error || "Failed to fetch user role");
                     }
@@ -267,10 +267,6 @@ export default function Sidebar({ email, role, onLogout, name, id }: SidebarProp
 
                 <main className="flex-1 bg-[#0a141d] text-cyan-100 flex flex-col min-h-0 overflow-hidden">
                     <SidebarTopBar
-                        id={id}
-                        email={email}
-                        name={name}
-                        role={role}
                         permissions={permissions}
                         profile_dropdown_items={profile_dropdown_items}
                         showProfileMenu={showProfileMenu}

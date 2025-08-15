@@ -1,4 +1,4 @@
-import { DOMAIN, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE, Prisma } from "@prisma/client";
+import { DOMAIN, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE, Prisma, ROUND_TYPE } from "@prisma/client";
 import { prisma } from "../prisma";
 import z from "zod";
 
@@ -10,6 +10,7 @@ export type CreateNotificationDTO = {
     companyId?: number | null | undefined;
     domain?: DOMAIN | null | undefined;
     links: { link: string; link_name: string }[];
+    round?: ROUND_TYPE | null | undefined;
 };
 
 const NotificationSchema = z.object({
@@ -19,6 +20,7 @@ const NotificationSchema = z.object({
     shortlistId: z.number().min(1).nullable().optional(),
     companyId: z.number().min(1).nullable().optional(),
     domain: z.enum(DOMAIN).nullable().optional(),
+    round: z.enum(ROUND_TYPE).nullable().optional(),
     links: z.array(z.object({
         link: z.url(),
         link_name: z.string().max(255),
@@ -53,6 +55,7 @@ export async function createNotification(input: CreateNotificationDTO) {
             ...(parsed.data.shortlistId != null && { shortlist: { connect: { id: parsed.data.shortlistId } } }),
             ...(parsed.data.companyId != null && { company: { connect: { id: parsed.data.companyId } } }),
             links: { create: parsed.data.links },
+            round: parsed.data.round ?? null,
         },
         include: { links: true },
     });

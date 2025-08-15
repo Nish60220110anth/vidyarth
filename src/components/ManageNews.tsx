@@ -59,7 +59,9 @@ export default function ManageNews() {
                 try {
                     const q = buildQuery(opts);
                     const data = await getNewsOnQuery(q, ACCESS_PERMISSION.MANAGE_NEWS);
-                    setNewsList(data);
+                    if(data.success) {
+                        setNewsList(data.data);
+                    }
                 } finally {
                     setIsRefreshing(false);
                 }
@@ -206,8 +208,8 @@ export default function ManageNews() {
                     <button
                         onClick={async () => {
                             const res = await createDefaultNews();
-                            if (res) {
-                                setNewsList([...newsList, res]);
+                            if (res.success) {
+                                setNewsList([...newsList, res.data]);
                             }
                         }}
                         className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-md text-sm font-medium shadow transition"

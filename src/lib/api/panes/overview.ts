@@ -1,60 +1,57 @@
 import { baseUrl } from "@/lib/config";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import axios from "axios";
-import toast from "react-hot-toast";
 
-const fetchOverviewContent = async (company_id: number) => {
+type ApiResult<T> = {
+    success: boolean;
+    data: T | null;
+    error?: string;
+};
+
+export const fetchOverviewContent = async (
+    company_id: number
+): Promise<ApiResult<string>> => {
     try {
-
         const res = await axios.get(`${baseUrl}/api/overview`, {
             params: { companyId: company_id },
             headers: {
-                "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
-            }
+                "x-access-permission": ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY,
+            },
         });
 
-        if (!res.data.success) {
-            console.error("Error fetching overview content:", res.data.error);
-            toast.error(res.data.error);
-            return null;
+        const { success, data, error } = res.data ?? {};
+        if (!success) {
+            return { success: false, data: null, error: error || "Failed to load overview content" };
         }
 
-        return res.data.data;
-
-    } catch (err: any) {
-        console.error("Error fetching overview content:", err);
-        toast.error("Failed to load overview content");
-        return null;
+        return { success: true, data: (data as string) ?? "", error: undefined };
+    } catch (e: any) {
+        return { success: false, data: null, error: e?.message || "Failed to load overview content" };
     }
-}
+};
 
-const updateOverviewContent = async (company_id: number, content: string) => {
+export const updateOverviewContent = async (
+    company_id: number,
+    content: string
+): Promise<ApiResult<string>> => {
     try {
-        const res = await axios.put(`${baseUrl}/api/overview`, {
-            companyId: company_id,
-            content
-        }, {
-            headers: {
-                "x-access-permission": ACCESS_PERMISSION.EDIT_COMPANY_INFO
+        const res = await axios.put(
+            `${baseUrl}/api/overview`,
+            { companyId: company_id, content },
+            {
+                headers: {
+                    "x-access-permission": ACCESS_PERMISSION.EDIT_COMPANY_INFO,
+                },
             }
-        });
+        );
 
-        if (!res.data.success) {
-            console.error("Error updating overview content:", res.data.error);
-            toast.error(res.data.error);
-            return null;
+        const { success, data, error } = res.data ?? {};
+        if (!success) {
+            return { success: false, data: null, error: error || "Failed to update overview content" };
         }
 
-        return res.data.data;
-
-    } catch (err: any) {
-        console.error("Error updating overview content:", err);
-        toast.error("Failed to update overview content");
-        return null;
+        return { success: true, data: (data as string) ?? "", error: undefined };
+    } catch (e: any) {
+        return { success: false, data: null, error: e?.message || "Failed to update overview content" };
     }
-}
-
-export {
-    fetchOverviewContent,
-    updateOverviewContent
-}
+};

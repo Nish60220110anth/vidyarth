@@ -7,7 +7,7 @@ import WelcomePage from "@/components/Welcome";
 import MySection from "@/components/MySection";
 import AllCompaniesDirectory from "@/components/AllCompaniesDirectory";
 import LatestNews from "@/components/LatestNews";
-import HowToPrepareCV from "@/components/CVPrep";
+import RoundsPrep from "@/components/RoundsPrep";
 import DomainCVPrepGuide from "@/components/DomainPrep";
 import ManageCompanyList from "@/components/ManageCompanyList";
 import ManageNews from "@/components/ManageNews";
@@ -20,7 +20,7 @@ import { NextRouter } from "next/router";
 import { JSX } from "react";
 import { Company } from "@/components/CompanySearchDropDown";
 
-import { Home, Users, Briefcase, Newspaper, FileText, ClipboardList, Monitor, BarChart2, Video, Settings2, Rss, FileUser, Tag } from 'lucide-react';
+import { Home, Users, Briefcase, FileText, ClipboardList, Monitor, BarChart2, Video, Settings2, Rss, FileUser, Tag } from 'lucide-react';
 
 type SectionItem = {
     section: string;
@@ -40,7 +40,7 @@ type GetSectionsPermissionsArgs = {
     router: NextRouter;
     onCompanySelected: (company: Company) => void;
 };
-export function getSectionsPermissions({ id, name, email, role, router, onCompanySelected }: GetSectionsPermissionsArgs): Record<string, SectionItem> {
+export function getSectionsPermissions({ router, onCompanySelected }: GetSectionsPermissionsArgs): Record<string, SectionItem> {
     const all: Record<string, SectionItem> = {
         DASHBOARD: {
             section: "_generic",
@@ -85,21 +85,21 @@ export function getSectionsPermissions({ id, name, email, role, router, onCompan
             component: () => <LatestNews />,
             shortcut: "N", show: true,
         },
-        CV_PREP: {
+        ROUND_PREP: {
             section: "Preparation",
-            label: "CV Prep",
-            perm: ACCESS_PERMISSION.ENABLE_CV_PREP,
+            label: "Round",
+            perm: ACCESS_PERMISSION.ENABLE_ROUND_PREP,
             icon: (cls) => <FileUser className={cls} size={20} strokeWidth={1.5} />,
-            component: () => <HowToPrepareCV />,
-            shortcut: "V", show: true,
+            component: () => <RoundsPrep />,
+            shortcut: "U", show: true,
         },
         DOMAIN_PREP: {
             section: "Preparation",
-            label: "Domain Prep",
-            perm: ACCESS_PERMISSION.ENABLE_CV_PREP,
+            label: "Domain",
+            perm: ACCESS_PERMISSION.ENABLE_DOMAIN_PREP,
             icon: (cls) => <Tag className={cls} size={20} strokeWidth={1.5} />,
             component: () => <DomainCVPrepGuide />,
-            shortcut: "R", show: true,
+            shortcut: "A", show: true,
         },
         COMPANY_LIST: {
             section: "Manage Content",

@@ -62,7 +62,9 @@ export default function CompanySearchBar({
             try {
                 setLoading(true);
                 const res = await fetchCompanyListWithPermission(permission);
-                if (active) setAllCompanies(res ?? []);
+                if(res.success && active) {
+                    if (active) setAllCompanies(res.data ?? []);
+                }
             } catch (e) {
                 if (active) setAllCompanies([]);
                 // optionally: show a toast

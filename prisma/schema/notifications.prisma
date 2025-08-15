@@ -12,6 +12,7 @@ model notification {
   company   company? @relation(fields: [companyId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   domain DOMAIN?
+  round ROUND_TYPE?
   links  notification_link[]
 
   is_handled Boolean

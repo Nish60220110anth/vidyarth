@@ -1,7 +1,6 @@
 import { JSX, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import toast from "react-hot-toast";
-import axios from "axios";
 import {
     CheckCircleIcon,
     XCircleIcon,
@@ -25,10 +24,9 @@ import {
     ClipboardDocumentCheckIcon,
     AcademicCapIcon,
     QuestionMarkCircleIcon,
+    PlusIcon,
 } from "@heroicons/react/24/solid";
 
-
-import { PlusIcon } from "@heroicons/react/24/solid";
 import CompanySearchDropdown from "./CompanySearchDropDown";
 import PortalWrapper from "./PortableWrapper";
 import { ALL_DOMAINS } from "./ManageCompanyList";
@@ -51,17 +49,26 @@ const TAG_STYLES: Record<string, { icon: JSX.Element; color: string }> = {
     ENVIRONMENT_SUSTAINABILITY: { icon: <span className="text-green-600 text-lg">🍃</span>, color: "text-green-600" },
     LEGAL_COMPLIANCE: { icon: <ClipboardDocumentCheckIcon className="w-4 h-4" />, color: "text-amber-700" },
     EDUCATION_RESEARCH: { icon: <AcademicCapIcon className="w-4 h-4" />, color: "text-indigo-700" },
-    OTHER: { icon: <QuestionMarkCircleIcon className="w-4 h-4" />, color: "text-gray-500" }
+    OTHER: { icon: <QuestionMarkCircleIcon className="w-4 h-4" />, color: "text-gray-500" },
 };
 
+function escapeRegExp(input: string) {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
-    is_read = false
+export default function NewsCard({
+    news,
+    search,
+    OnNewsUpdate,
+    OnNewsDelete,
+    is_read = false,
 }: {
-    news: any; search?: string, OnNewsUpdate: (unews: news) => void, OnNewsDelete: (id: number) => void
-    is_read: boolean,
+    news: any;
+    search?: string;
+    OnNewsUpdate: (unews: news) => void;
+    OnNewsDelete: (id: number) => void;
+    is_read: boolean;
 }) {
-
     const [expanded, setExpanded] = useState(false);
     const [editMode, setEditMode] = useState(false);
 
@@ -72,7 +79,7 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
     const [isActive, setIsActive] = useState(news.is_active);
     const [isApproved, setIsApproved] = useState(news.is_approved);
     const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(news.image_url);
-    const [imageFormData, setImageFormData] = useState<FormData | null>();
+    const [imageFormData, setImageFormData] = useState<FormData | null>(null);
     const [isUploading, setIsUploading] = useState<boolean>(false);
 
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -83,11 +90,8 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
     const [link, setLink] = useState(news.link_to_source || "");
 
     useEffect(() => {
-        if (is_read) {
-            setEditMode(false);
-        }
-    }, [is_read, editMode]);
-
+        if (is_read) setEditMode(false);
+    }, [is_read]);
 
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
@@ -99,17 +103,12 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
 
     const highlightMatch = (text: string, query: string) => {
         if (!query) return text;
-
-        const regex = new RegExp(`(${query})`, "gi");
-        const parts = text.split(regex);
-
+        const safe = escapeRegExp(query);
+        const regex = new RegExp(`(${safe})`, "gi");
+        const parts = String(text ?? "").split(regex);
         return parts.map((part, index) =>
             part.toLowerCase() === query.toLowerCase() ? (
-                <span
-                    key={index}
-                    className="font-bold text-yellow-400 animate-highlight"
-                    style={{ padding: 0, margin: 0 }}
-                >
+                <span key={index} className="font-bold text-yellow-600 animate-highlight">
                     {part}
                 </span>
             ) : (
@@ -129,67 +128,102 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
         setSubdomainTag(news.subdomain_tag || "OTHER");
         setImageFormData(null);
         setPreviewImageUrl(news.image_url || null);
-    }
+    };
 
     useEffect(() => {
         if (editMode) {
-
             if (!imageFormData && news.image_url) {
-                setPreviewImageUrl(`${news.image_url}`);
+                setPreviewImageUrl(news.image_url);
             }
         } else {
             setPreviewImageUrl(null);
         }
+        // removed stray setImageFormData reference bug
+    }, [editMode, imageFormData, news.image_url]);
 
-        setImageFormData
-    }, [editMode]);
-
+    const sanitizedOutbound = (raw: string) => {
+        const cleaned = raw.trim();
+        if (!cleaned) return "";
+        try {
+            const hasProtocol = /^https?:\/\//i.test(cleaned);
+            return hasProtocol ? cleaned : `https://${cleaned}`;
+        } catch {
+            return cleaned;
+        }
+    };
 
     const handleSave = async () => {
+        // basic validation
+        if (!title?.trim()) {
+            toast.error("Title cannot be empty");
+            return;
+        }
+        if (!content?.trim()) {
+            toast.error("Content cannot be empty");
+            return;
+        }
+
         setIsUploading(true);
+        try {
+            const payload = {
+                id: news.id,
+                title: title.trim(),
+                content: content.trim(),
+                is_active: isActive,
+                is_approved: isApproved,
+                newsTag: domainTag,
+                subdomainTag,
+                domains: domainList,
+                companies: companyList.map((c: any) => c.company.id),
+                link_to_source: link.trim(),
+            };
 
-        const data = {
-            id: news.id,
-            title,
-            content,
-            is_active: isActive,
-            is_approved: isApproved,
-            newsTag: domainTag,
-            subdomainTag,
-            domains: domainList,
-            companies: companyList.map((c: any) => c.company.id),
-            link_to_source: link.trim()
-        };
+            const upd = await updateNews(payload.id, payload);
+            if (!upd?.success) {
+                toast.error(upd?.error || "Failed to save news");
+                return;
+            }
+            OnNewsUpdate(upd.data);
 
-        const res = await updateNews(data.id, data);
-        if (res) {
-            OnNewsUpdate(res);
+            if (imageFormData) {
+                const up = await uploadImage(imageFormData);
+                if (!up?.success) {
+                    toast.error(up?.error || "Image upload failed");
+                } else {
+                    // if API returns the updated news with new image url, bubble it up
+                    if (up.data) OnNewsUpdate(up.data);
+                    setImageFormData(null);
+                }
+            }
+
+            setEditMode(false);
+            toast.success("News saved");
+        } catch (e: any) {
+            toast.error(e?.message || "Failed to save");
+        } finally {
+            setIsUploading(false);
         }
-
-        if (imageFormData) {
-            const res = await uploadImage(imageFormData);
-            if (res) setImageFormData(null);
-        }
-
-        setEditMode(false);
-        setIsUploading(false);
     };
 
     const handleDelete = async () => {
-        const res = await deleteNewById(news.id);
-        if (res) {
+        try {
+            const res = await deleteNewById(news.id);
+            if (!res?.success) {
+                toast.error(res?.error || "Delete failed");
+                return;
+            }
             OnNewsDelete(news.id);
+            toast.success("Deleted");
+        } catch (e: any) {
+            toast.error(e?.message || "Delete failed");
+        } finally {
+            setShowDeleteConfirm(false);
         }
-        setShowDeleteConfirm(false);
-    }
+    };
 
     const formatDate = (isoString: string) => {
         const date = new Date(isoString);
-        return date.toLocaleDateString("en-IN", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-        });
+        return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
     };
 
     useEffect(() => {
@@ -197,15 +231,11 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
             setPreviewImageUrl(null);
             return;
         }
-
         const file = imageFormData.get("file") as File;
         if (file) {
             const url = URL.createObjectURL(file);
             setPreviewImageUrl(url);
-
-            return () => {
-                URL.revokeObjectURL(url);
-            };
+            return () => URL.revokeObjectURL(url);
         }
     }, [imageFormData]);
 
@@ -213,8 +243,12 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
         if (!showDeleteConfirm) return;
         const prev = document.body.style.overflow;
         document.body.style.overflow = "hidden";
-        return () => { document.body.style.overflow = prev; };
+        return () => {
+            document.body.style.overflow = prev;
+        };
     }, [showDeleteConfirm]);
+
+    const overlayMessage = imageFormData ? "Uploading image…" : "Saving…";
 
     return (
         <>
@@ -223,9 +257,7 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
-                className={`bg-white rounded-xl p-4 border border-gray-200 flex flex-col gap-4 w-full max-w-3xl cursor-pointer transition-transform ${!news.is_active
-                    ? "opacity-50 grayscale"
-                    : "hover:shadow-lg hover:ring-1 hover:ring-cyan-400 hover:scale-[1.01]"
+                className={`bg-white rounded-xl p-4 border border-gray-200 flex flex-col gap-4 w-full max-w-3xl cursor-pointer transition-transform ${!news.is_active ? "opacity-50 grayscale" : "hover:shadow-lg hover:ring-1 hover:ring-cyan-400 hover:scale-[1.01]"
                     }`}
             >
                 {/* Company tags */}
@@ -248,7 +280,7 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                         ))}
 
                         {!is_read && editMode && (
-                            <button onClick={() => setShowOverlay(true)} className="text-cyan-600 hover:text-cyan-800">
+                            <button onClick={() => setShowOverlay(true)} className="text-cyan-600 hover:text-cyan-800" aria-label="Add company">
                                 <PlusIcon className="w-5 h-5" />
                             </button>
                         )}
@@ -256,10 +288,7 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                         <AnimatePresence>
                             {showOverlay && (
                                 <PortalWrapper>
-                                    <div
-                                        className="fixed inset-0 z-50 flex items-center justify-center bg-white/10 backdrop-blur-sm text-gray-900"
-                                        onClick={() => setShowOverlay(false)}
-                                    >
+                                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/10 backdrop-blur-sm text-gray-900" onClick={() => setShowOverlay(false)}>
                                         <motion.div
                                             initial={{ opacity: 0, y: 30 }}
                                             animate={{ opacity: 1, y: 0 }}
@@ -286,27 +315,19 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                                 </PortalWrapper>
                             )}
                         </AnimatePresence>
-
                     </div>
                 )}
 
-
                 {/* Domains */}
-                {(editMode ? (
+                {editMode ? (
                     <div className="flex flex-wrap gap-2">
                         {ALL_DOMAINS.map((domain) => (
                             <button
                                 key={domain}
                                 onClick={() =>
-                                    setDomainList((prev: string[]) =>
-                                        prev.includes(domain)
-                                            ? prev.filter((d) => d !== domain)
-                                            : [...prev, domain]
-                                    )
+                                    setDomainList((prev: string[]) => (prev.includes(domain) ? prev.filter((d) => d !== domain) : [...prev, domain]))
                                 }
-                                className={`px-3 py-1 rounded-full border text-xs font-medium transition ${domainList.includes(domain)
-                                    ? "bg-cyan-600 text-white"
-                                    : "bg-gray-200 text-gray-700"
+                                className={`px-3 py-1 rounded-full border text-xs font-medium transition ${domainList.includes(domain) ? "bg-cyan-600 text-white" : "bg-gray-200 text-gray-700"
                                     }`}
                             >
                                 {domain}
@@ -323,15 +344,11 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                             ))}
                         </div>
                     )
-                ))}
+                )}
 
                 {/* News Tag */}
                 {editMode ? (
-                    <select
-                        value={domainTag}
-                        onChange={(e) => setDomainTag(e.target.value)}
-                        className="text-sm border rounded px-2 py-1 bg-white text-gray-900"
-                    >
+                    <select value={domainTag} onChange={(e) => setDomainTag(e.target.value)} className="text-sm border rounded px-2 py-1 bg-white text-gray-900">
                         {Object.keys(TAG_STYLES).map((tag) => (
                             <option key={tag} value={tag}>
                                 {tag.replace(/_/g, " ")}
@@ -350,11 +367,7 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
 
                 {/* SubDomain Tag */}
                 {editMode ? (
-                    <select
-                        value={subdomainTag}
-                        onChange={(e) => setSubdomainTag(e.target.value)}
-                        className="text-sm border rounded px-2 py-1 bg-white text-gray-900"
-                    >
+                    <select value={subdomainTag} onChange={(e) => setSubdomainTag(e.target.value)} className="text-sm border rounded px-2 py-1 bg-white text-gray-900">
                         {Object.keys(NEWS_SUBDOMAIN_TAG).map((tag) => (
                             <option key={tag} value={tag}>
                                 {tag.replace(/_/g, " ")}
@@ -363,30 +376,25 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                     </select>
                 ) : (
                     news.subdomain_tag && (
-                        <div className={`flex items-center gap-2 text-sm font-semibold bg-gray-50 px-2 py-1 rounded text-gray-800`}>
+                        <div className="flex items-center gap-2 text-sm font-semibold bg-gray-50 px-2 py-1 rounded text-gray-800">
                             {news.subdomain_tag.replace(/_/g, " ")}
                         </div>
                     )
                 )}
 
-
                 {/* Image */}
                 {news.image_url && (
                     <div className="relative w-full max-h-60 rounded-md overflow-hidden">
-                        {/* Clickable wrapper */}
                         <div
                             className={`${link.trim() ? "cursor-pointer" : "cursor-default"}`}
                             onClick={() => {
-                                if (link.trim()) {
-                                    const cleaned = link.trim();
-                                    const finalUrl = cleaned.startsWith("https") ? cleaned : `https://${cleaned}`;
-                                    window.open(finalUrl, "_blank");
-                                }
+                                const url = sanitizedOutbound(link);
+                                if (url) window.open(url, "_blank", "noopener,noreferrer");
                             }}
                         >
                             <img
                                 src={previewImageUrl || `${news.image_url}`}
-                                alt="News Visual"
+                                alt={news.title ? `News: ${news.title}` : "News Visual"}
                                 className={`w-full h-full object-cover transition-opacity duration-300 ${editMode ? "opacity-50" : "opacity-100"}`}
                             />
                         </div>
@@ -408,11 +416,9 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (!file) return;
-
                                         const formData = new FormData();
                                         formData.append("file", file);
                                         formData.append("id", news.id);
-
                                         setImageFormData(formData);
                                     }}
                                 />
@@ -433,7 +439,6 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                     />
                 )}
 
-
                 {/* Title */}
                 {editMode ? (
                     <input
@@ -442,9 +447,7 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                         className="text-xl font-bold text-gray-900 border-b border-gray-300 focus:outline-none"
                     />
                 ) : (
-                    <h2 className="text-xl font-bold text-gray-900 uppercase line-clamp-2">
-                        {highlightMatch(title, search || "")}
-                    </h2>
+                    <h2 className="text-xl font-bold text-gray-900 uppercase line-clamp-2">{highlightMatch(title, search || "")}</h2>
                 )}
 
                 {/* Content */}
@@ -457,13 +460,9 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                     />
                 ) : (
                     <div className="text-sm text-gray-600">
-
-                        <p className={`${expanded ? "line-clamp-none" : "line-clamp-3"}`}>
-                            {highlightMatch(content, search || "")}
-                        </p>
-
+                        <p className={`${expanded ? "line-clamp-none" : "line-clamp-3"}`}>{highlightMatch(content, search || "")}</p>
                         <div className="flex justify-end">
-                            {content.length > 120 && (
+                            {content?.length > 120 && (
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -481,105 +480,98 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                 {/* Verified + Author */}
                 <div className="flex justify-between items-start text-sm mt-2 border-t pt-2 border-gray-200">
                     <div className="flex-1">
-                        {
-                            !is_read && (
-                                editMode ? (
-                                    <select
-                                        value={isApproved ? "true" : "false"}
-                                        onChange={(e) => setIsApproved(e.target.value === "true")}
-                                        className="text-sm border rounded px-2 py-1 bg-white text-gray-900"
-                                    >
-                                        <option value="true">Verified</option>
-                                        <option value="false">Not Verified</option>
-                                    </select>
-                                ) : (
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${news.is_approved ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
-                                        {news.is_approved ? <CheckCircleIcon className="w-4 h-4" /> : <XCircleIcon className="w-4 h-4" />}
-                                        {news.is_approved ? "Verified" : "Not Verified"}
-                                    </span>
-                                ))
-                        }
+                        {!is_read &&
+                            (editMode ? (
+                                <select
+                                    value={isApproved ? "true" : "false"}
+                                    onChange={(e) => setIsApproved(e.target.value === "true")}
+                                    className="text-sm border rounded px-2 py-1 bg-white text-gray-900"
+                                >
+                                    <option value="true">Verified</option>
+                                    <option value="false">Not Verified</option>
+                                </select>
+                            ) : (
+                                <span
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${news.is_approved ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+                                        }`}
+                                >
+                                    {news.is_approved ? <CheckCircleIcon className="w-4 h-4" /> : <XCircleIcon className="w-4 h-4" />}
+                                    {news.is_approved ? "Verified" : "Not Verified"}
+                                </span>
+                            ))}
                     </div>
 
                     <div className="flex flex-col items-end text-right">
-                        {news.author?.name && (
-                            <span className="text-gray-600 font-medium italic">By {news.author.name}</span>
-                        )}
-                        {news.created_at && (
-                            <span className="text-gray-500 text-xs italic">
-                                {formatDate(news.created_at)}
-                            </span>
-                        )}
+                        {news.author?.name && <span className="text-gray-600 font-medium italic">By {news.author.name}</span>}
+                        {news.created_at && <span className="text-gray-500 text-xs italic">{formatDate(news.created_at)}</span>}
                     </div>
-
                 </div>
 
                 {/* Controls */}
-                {
-                    !is_read && (
-                        <div className="flex flex-wrap justify-between items-center mt-3 border-t pt-3 border-gray-200 gap-2">
+                {!is_read && (
+                    <div className="flex flex-wrap justify-between items-center mt-3 border-t pt-3 border-gray-200 gap-2">
+                        {editMode ? (
+                            <select
+                                value={isActive ? "true" : "false"}
+                                onChange={(e) => setIsActive(e.target.value === "true")}
+                                className="border px-2 py-1 rounded text-sm text-gray-900"
+                                disabled={isUploading}
+                            >
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        ) : (
+                            <span
+                                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium ${news.is_active ? "bg-green-50 text-green-700" : "bg-gray-200 text-gray-500"
+                                    }`}
+                            >
+                                <PowerIcon className="w-4 h-4" />
+                                {news.is_active ? "Active" : "Inactive"}
+                            </span>
+                        )}
 
+                        <div className="flex gap-2">
                             {editMode ? (
-                                <select
-                                    value={isActive ? "true" : "false"}
-                                    onChange={(e) => setIsActive(e.target.value === "true")}
-                                    className="border px-2 py-1 rounded text-sm text-gray-900"
-                                >
-                                    <option value="true">Active</option>
-                                    <option value="false">Inactive</option>
-                                </select>
+                                <>
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={isUploading}
+                                        className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm shadow hover:bg-green-700 transition disabled:opacity-60"
+                                    >
+                                        <CheckIcon className="w-4 h-4" /> {isUploading ? "Saving…" : "Save"}
+                                    </button>
+                                    <button
+                                        onClick={handleCancel}
+                                        disabled={isUploading}
+                                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-400 text-white rounded-md text-sm shadow hover:bg-gray-500 transition disabled:opacity-60"
+                                    >
+                                        <XMarkIcon className="w-4 h-4" /> Cancel
+                                    </button>
+                                </>
                             ) : (
-                                <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium ${news.is_active ? "bg-green-50 text-green-700" : "bg-gray-200 text-gray-500"}`}>
-                                    <PowerIcon className="w-4 h-4" />
-                                    {news.is_active ? "Active" : "Inactive"}
-                                </span>
+                                <>
+                                    <button
+                                        onClick={() => setEditMode(true)}
+                                        className="flex items-center gap-1 px-3 py-1.5 bg-cyan-600 text-white rounded-md text-sm shadow hover:bg-cyan-700 transition"
+                                    >
+                                        <PencilIcon className="w-4 h-4" /> Edit
+                                    </button>
+                                    <button
+                                        onClick={() => setShowDeleteConfirm(true)}
+                                        className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-md text-sm shadow hover:bg-red-600 transition"
+                                    >
+                                        <TrashIcon className="w-4 h-4" /> Delete
+                                    </button>
+                                </>
                             )}
-
-                            <div className="flex gap-2">
-                                {editMode ? (
-                                    <>
-                                        <button
-                                            onClick={handleSave}
-                                            className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm shadow hover:bg-green-700 transition"
-                                        >
-                                            <CheckIcon className="w-4 h-4" /> Save
-                                        </button>
-                                        <button
-                                            onClick={handleCancel}
-                                            className="flex items-center gap-1 px-3 py-1.5 bg-gray-400 text-white rounded-md text-sm shadow hover:bg-gray-500 transition"
-                                        >
-                                            <XMarkIcon className="w-4 h-4" /> Cancel
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button
-                                            onClick={() => setEditMode(true)}
-                                            className="flex items-center gap-1 px-3 py-1.5 bg-cyan-600 text-white rounded-md text-sm shadow hover:bg-cyan-700 transition"
-                                        >
-                                            <PencilIcon className="w-4 h-4" /> Edit
-                                        </button>
-                                        <button
-                                            onClick={() => setShowDeleteConfirm(true)}
-                                            className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-md text-sm shadow hover:bg-red-600 transition"
-                                        >
-                                            <TrashIcon className="w-4 h-4" /> Delete
-                                        </button>
-                                    </>
-                                )}
-                            </div>
                         </div>
-                    )
-                }
-
+                    </div>
+                )}
 
                 <AnimatePresence>
                     {!is_read && showDeleteConfirm && (
                         <PortalWrapper>
-                            <div
-                                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-                                onClick={() => setShowDeleteConfirm(false)}
-                            >
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)}>
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.95, y: 8 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -588,18 +580,11 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                                     className="w-full max-w-sm mx-4 rounded-xl bg-white p-6 shadow-xl"
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <p className="text-gray-900 text-lg font-semibold text-center">
-                                        Delete this news?
-                                    </p>
-                                    <p className="mt-1 text-gray-600 text-sm text-center">
-                                        This action cannot be undone.
-                                    </p>
+                                    <p className="text-gray-900 text-lg font-semibold text-center">Delete this news?</p>
+                                    <p className="mt-1 text-gray-600 text-sm text-center">This action cannot be undone.</p>
 
                                     <div className="mt-5 flex justify-center gap-3">
-                                        <button
-                                            onClick={handleDelete}
-                                            className="px-4 py-2.5 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-medium"
-                                        >
+                                        <button onClick={handleDelete} className="px-4 py-2.5 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-medium">
                                             Yes, delete
                                         </button>
                                         <button
@@ -616,14 +601,12 @@ export default function NewsCard({ news, search, OnNewsUpdate, OnNewsDelete,
                 </AnimatePresence>
             </motion.div>
 
-            {
-                isUploading && (
-                    <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
-                        <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
-                        <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">News Uploading ...</p>
-                    </div>
-                )
-            }
+            {isUploading && (
+                <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
+                    <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
+                    <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">{overlayMessage}</p>
+                </div>
+            )}
         </>
     );
 }

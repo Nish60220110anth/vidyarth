@@ -38,13 +38,6 @@ export default function Dashboard() {
                     "FYI: Private files open via signed URLs.",
                     "Tip: Toggle roles to preview role-based content.",
                 ]}
-                tipIntervalMs={3000}
-                initialProgress={5}
-                progressStep={2}
-                progressIntervalMs={80}
-                maxIdleProgress={99}
-                active
-                surpressReducedMotion
             />
         );
     }

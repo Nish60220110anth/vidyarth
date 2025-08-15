@@ -1,6 +1,5 @@
 import { ACCESS_PERMISSION } from "@prisma/client";
 import axios from "axios";
-import toast from "react-hot-toast";
 import { baseUrl } from "../config";
 import { SessionUser } from "../session";
 
@@ -11,62 +10,46 @@ interface FetchPermissionsArgs {
     profile_dropdown_items: Record<string, { perm: ACCESS_PERMISSION }>;
 }
 
-export const fetchPermissions = async (permission: ACCESS_PERMISSION = ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY) => {
-    try {
-        const res = await axios.get(`${baseUrl}/api/permissions`, {
-            headers: {
-                "Content-Type": "application/json",
-                "x-access-permission": permission,
-            },
-        });
-
-        if (!res.data.success) {
-            toast.error("Failed to fetch permissions");
-            return [];
-        }
-
-        return res.data.permissions || [];
-    }
-    catch (error: any) {
-        console.error("Failed to fetch permissions:", error.message || error);
-        toast.error("Failed to fetch permissions");
-        return [];
-    }
-}
-
-export const fetchPermissionsFromSession = (
-    { sections_permissions, profile_dropdown_items }: FetchPermissionsArgs, user: SessionUser | null
-): PermissionMap => {
-    const permissions = user?.permissions || [];
-    const perms: PermissionMap = {};
-    const extraPerms = [ACCESS_PERMISSION.ENABLE_NOTIFICATIONS];
-
-    const allPerms = [
-        ...Object.values(sections_permissions).map(({ perm }) => perm),
-        ...Object.values(profile_dropdown_items).map(({ perm }) => perm),
-        ...extraPerms,
-    ];
-
-    allPerms.forEach((perm) => {
-        perms[perm] = permissions.includes(perm);
-    });
-
-    return perms;
+type ApiResult<T> = {
+    success: boolean;
+    data: T | null;
+    error?: string;
 };
 
-export const getUserFromSession = async () => {
+export const fetchPermissionsFromSession = (
+    { sections_permissions, profile_dropdown_items }: FetchPermissionsArgs,
+    user: SessionUser | null
+): ApiResult<PermissionMap> => {
+    try {
+        const userPerms = user?.permissions || [];
+        const extraPerms = [ACCESS_PERMISSION.ENABLE_NOTIFICATIONS];
+
+        const allPerms: ACCESS_PERMISSION[] = [
+            ...Object.values(sections_permissions).map(({ perm }) => perm),
+            ...Object.values(profile_dropdown_items).map(({ perm }) => perm),
+            ...extraPerms,
+        ];
+
+        const perms: PermissionMap = {};
+        allPerms.forEach((perm) => {
+            perms[perm] = userPerms.includes(perm);
+        });
+
+        return { success: true, data: perms };
+    } catch (e: any) {
+        return { success: false, data: null, error: e?.message || "Failed to derive permissions from session" };
+    }
+};
+
+export const getUserFromSession = async (): Promise<ApiResult<SessionUser>> => {
     try {
         const res = await axios.get(`${baseUrl}/api/auth/user`);
-
-        if (!res.data.success) {
-            toast.error("Failed to fetch user session");
-            return null;
+        const { success, data, error } = res.data ?? {};
+        if (!success) {
+            return { success: false, data: null, error: error || "Failed to fetch user session" };
         }
-
-        return res.data;
-    } catch (err: any) {
-        console.log("Error fetching user from session:", err.message || err);
-        toast.error("Failed to fetch user session");
-        return null;
+        return { success: true, data: data as SessionUser, error: undefined };
+    } catch (e: any) {
+        return { success: false, data: null, error: e?.message || "Failed to fetch user session" };
     }
-}
+};

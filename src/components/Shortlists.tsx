@@ -1,5 +1,3 @@
-"use client";
-
 import {
     useDeferredValue,
     useEffect,
@@ -16,12 +14,12 @@ import {
     ArrowPathIcon,
     ArrowsUpDownIcon,
 } from "@heroicons/react/24/outline";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/router";
 
-/* ---------------------------------- Types ---------------------------------- */
+type ApiResponse<T> = { success: boolean; data?: T; error?: string };
 
 type Shortlist = {
     id: number;
@@ -32,17 +30,15 @@ type Shortlist = {
     created_at: string;
 };
 
-/* ----------------------------- Theming / helpers ---------------------------- */
-
-const SHORTLIST_TYPE_COLORS: Record<string, string> = {
+const TYPE_BADGES: Record<string, string> = {
     SL: "bg-green-900/40 text-green-200 ring-1 ring-inset ring-green-700/50",
+    ESL: "bg-emerald-900/30 text-emerald-200 ring-1 ring-inset ring-emerald-700/50",
     WL: "bg-yellow-900/30 text-yellow-200 ring-1 ring-inset ring-yellow-700/50",
     RJ: "bg-red-900/30 text-red-200 ring-1 ring-inset ring-red-700/50",
 };
-const fallbackTypeClass =
+const TYPE_FALLBACK =
     "bg-cyan-900/40 text-cyan-200 ring-1 ring-inset ring-cyan-700/50";
 
-/** Simple spinner circle */
 const Spinner: React.FC<{ size?: number; className?: string }> = ({
     size = 16,
     className = "",
@@ -53,84 +49,108 @@ const Spinner: React.FC<{ size?: number; className?: string }> = ({
     />
 );
 
-/* -------------------------------- Component -------------------------------- */
-
 export default function UserShortlistTable() {
-    const [shortlists, setShortlists] = useState<Shortlist[]>([]);
+    const router = useRouter();
+    const { basePath } = router;
+
+    const [rows, setRows] = useState<Shortlist[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const {basePath} = useRouter();
+    const [refreshing, setRefreshing] = useState(false);
 
-    // query + filters
     const [search, setSearch] = useState("");
-    const [typeFilter, setTypeFilter] = useState<"ANY" | "SL" | "WL" | "RJ">(
-        "ANY"
-    );
+    const [typeFilter, setTypeFilter] = useState<string>("ANY");
     const [roundFilter, setRoundFilter] = useState<string>("ANY");
-
-    // sorting
     const [companySort, setCompanySort] = useState<"asc" | "desc">("asc");
 
-    // smooth search
     const deferredSearch = useDeferredValue(search);
 
-    // unmount guard
     const mountedRef = useRef(true);
+    const inFlightRef = useRef<AbortController | null>(null);
+    const lastFetchedRef = useRef<number>(0);
+
     useEffect(() => {
         mountedRef.current = true;
         return () => {
             mountedRef.current = false;
+            inFlightRef.current?.abort();
         };
     }, []);
 
-    const fetchShortlists = useCallback(async () => {
-        try {
-            setIsRefreshing(true);
-            setLoading(true);
-            const res = await axios.get(`${basePath}/api/shortlists`, {
-                headers: {
-                    "x-access-permission": ACCESS_PERMISSION.ENABLE_MY_SECTION,
-                },
-            });
-            if (!mountedRef.current) return;
+    const unwrap = <T,>(res: AxiosResponse<ApiResponse<T>>): T => {
+        if (res?.data?.success) return res.data.data as T;
+        throw new Error(res?.data?.error || `HTTP ${res?.status}`);
+    };
+    const getErr = (e: any) =>
+        e?.response?.data?.error || e?.message || "Something went wrong";
 
-            if (!res.data?.success) {
-                toast.error(res.data?.error || "Failed to fetch shortlists");
-                setShortlists([]);
-                return;
-            }
-            setShortlists(Array.isArray(res.data.data) ? res.data.data : []);
-        } catch {
-            if (mountedRef.current) toast.error("Error fetching shortlists");
-        } finally {
-            if (mountedRef.current) {
+    const fetchShortlists = useCallback(
+        async (force = false) => {
+            const recent = Date.now() - lastFetchedRef.current < 60_000;
+            if (!force && recent && rows.length) return;
+
+            try {
+                setRefreshing(true);
+                if (!loading) setLoading(true);
+
+                inFlightRef.current?.abort();
+                const ac = new AbortController();
+                inFlightRef.current = ac;
+
+                const res = await axios.get<ApiResponse<Shortlist[]>>(
+                    `${basePath}/api/shortlists`,
+                    {
+                        signal: ac.signal,
+                        headers: {
+                            "x-access-permission": ACCESS_PERMISSION.ENABLE_MY_SECTION,
+                        },
+                    }
+                );
+                const data = unwrap<Shortlist[]>(res) || [];
+                if (!mountedRef.current) return;
+
+                setRows(Array.isArray(data) ? data : []);
+                lastFetchedRef.current = Date.now();
+            } catch (e) {
+                if (!mountedRef.current) return;
+                setRows([]);
+                toast.error(getErr(e));
+            } finally {
+                if (!mountedRef.current) return;
                 setLoading(false);
-                setIsRefreshing(false);
+                setRefreshing(false);
             }
-        }
-    }, []);
+        },
+        [basePath, rows.length, loading]
+    );
 
     useEffect(() => {
-        fetchShortlists();
+        fetchShortlists(false);
     }, [fetchShortlists]);
 
-    // Build the unique rounds list for the filter (based on data)
     const roundOptions = useMemo(() => {
         const set = new Set<string>();
-        for (const s of shortlists) {
-            if (s.round_details?.trim()) set.add(s.round_details.trim());
+        for (const s of rows) {
+            const r = s.round_details?.trim();
+            if (r) set.add(r);
         }
         return ["ANY", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
-    }, [shortlists]);
+    }, [rows]);
 
-    // Apply search + filters + sorting
-    const filteredAndSorted = useMemo(() => {
+    const typeOptions = useMemo(() => {
+        const set = new Set<string>();
+        for (const s of rows) {
+            const t = s.shortlist_type?.trim();
+            if (t) set.add(t);
+        }
+        return ["ANY", ...Array.from(set)];
+    }, [rows]);
+
+    const filtered = useMemo(() => {
         const q = deferredSearch.trim().toLowerCase();
-        let rows = shortlists;
+        let list = rows;
 
-        // search filter
         if (q) {
-            rows = rows.filter(
+            list = list.filter(
                 (s) =>
                     s.company.company_name.toLowerCase().includes(q) ||
                     s.role.toLowerCase().includes(q) ||
@@ -138,36 +158,26 @@ export default function UserShortlistTable() {
                     s.round_details.toLowerCase().includes(q)
             );
         }
-
-        // shortlist type filter
         if (typeFilter !== "ANY") {
-            rows = rows.filter((s) => s.shortlist_type === typeFilter);
+            list = list.filter((s) => s.shortlist_type === typeFilter);
         }
-
-        // round filter
         if (roundFilter !== "ANY") {
-            rows = rows.filter((s) => s.round_details === roundFilter);
+            list = list.filter((s) => s.round_details === roundFilter);
         }
 
-        // sort by company name
-        rows = [...rows].sort((a, b) => {
+        return [...list].sort((a, b) => {
             const A = a.company.company_name ?? "";
             const B = b.company.company_name ?? "";
             const cmp = A.localeCompare(B);
             return companySort === "asc" ? cmp : -cmp;
         });
-
-        return rows;
-    }, [shortlists, deferredSearch, typeFilter, roundFilter, companySort]);
+    }, [rows, deferredSearch, typeFilter, roundFilter, companySort]);
 
     const toggleCompanySort = () =>
         setCompanySort((p) => (p === "asc" ? "desc" : "asc"));
 
-    /* --------------------------------- Render --------------------------------- */
-
     return (
         <div className="p-6 h-full w-full flex flex-col bg-gradient-to-b from-[#081118] to-[#0a141d] text-cyan-50 font-[Urbanist]">
-            {/* Header */}
             <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -179,22 +189,21 @@ export default function UserShortlistTable() {
 
                 <div className="flex flex-wrap gap-2">
                     <button
-                        onClick={fetchShortlists}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-cyan-900/40 text-cyan-200 bg-[#0b1721] hover:bg-[#0d1f2b] hover:border-cyan-800 transition shadow-sm hover:shadow-md"
+                        onClick={async () => {
+                            await fetchShortlists(true);
+                            toast.success("Refreshed");
+                        }}
+                        disabled={refreshing}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-cyan-900/40 text-cyan-200 bg-[#0b1721] hover:bg-[#0d1f2b] hover:border-cyan-800 transition shadow-sm hover:shadow-md disabled:opacity-60"
                         title="Refresh shortlists"
                         aria-label="Refresh shortlists"
                     >
-                        {isRefreshing ? (
-                            <Spinner size={18} />
-                        ) : (
-                            <ArrowPathIcon className="h-5 w-5" />
-                        )}
-                        <span className="hidden sm:inline">Refresh</span>
+                        {refreshing ? <Spinner size={18} /> : <ArrowPathIcon className="h-5 w-5" />}
+                        <span className="hidden sm:inline">{refreshing ? "Refreshing…" : "Refresh"}</span>
                     </button>
                 </div>
             </motion.div>
 
-            {/* Controls: search + filters + sort */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
                 <input
                     type="text"
@@ -208,12 +217,14 @@ export default function UserShortlistTable() {
                 <select
                     className="px-3 py-2 rounded-lg bg-[#0b1721] border border-cyan-900/40 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-600/70"
                     value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value as any)}
+                    onChange={(e) => setTypeFilter(e.target.value)}
                     aria-label="Filter by shortlist type"
                 >
-                    <option value="ANY">Any</option>
-                    <option value="SL">SL</option>
-                    <option value="ESL">ESL</option>
+                    {typeOptions.map((t) => (
+                        <option key={t} value={t}>
+                            {t === "ANY" ? "Type: Any" : t}
+                        </option>
+                    ))}
                 </select>
 
                 <select
@@ -232,7 +243,8 @@ export default function UserShortlistTable() {
                 <button
                     onClick={toggleCompanySort}
                     className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#0b1721] border border-cyan-900/40 text-cyan-100 hover:bg-[#0d1f2b] hover:border-cyan-800 transition"
-                    aria-label={`Sort company name ${companySort === "asc" ? "descending" : "ascending"}`}
+                    aria-label={`Sort company name ${companySort === "asc" ? "descending" : "ascending"
+                        }`}
                 >
                     <ArrowsUpDownIcon className="w-5 h-5" />
                     <span className="hidden sm:inline">
@@ -241,7 +253,6 @@ export default function UserShortlistTable() {
                 </button>
             </div>
 
-            {/* Loading */}
             {loading ? (
                 <div className="space-y-4">
                     <div className="hidden md:block rounded-lg border border-cyan-900/40 bg-[#0b1721] p-4">
@@ -261,10 +272,7 @@ export default function UserShortlistTable() {
 
                     <div className="md:hidden space-y-3">
                         {[...Array(4)].map((_, i) => (
-                            <div
-                                key={i}
-                                className="bg-[#0b1721] border border-cyan-900/40 rounded-lg p-4"
-                            >
+                            <div key={i} className="bg-[#0b1721] border border-cyan-900/40 rounded-lg p-4">
                                 <div className="h-5 w-2/3 bg-cyan-900/30 rounded animate-pulse mb-2" />
                                 <div className="h-4 w-1/2 bg-cyan-900/30 rounded animate-pulse mb-2" />
                                 <div className="h-4 w-3/4 bg-cyan-900/30 rounded animate-pulse" />
@@ -272,55 +280,50 @@ export default function UserShortlistTable() {
                         ))}
                     </div>
                 </div>
-            ) : filteredAndSorted.length === 0 ? (
+            ) : filtered.length === 0 ? (
                 <div className="text-center text-cyan-300/80 mt-10 bg-[#0b1721] border border-cyan-900/40 rounded-xl p-8 shadow-[0_0_30px_rgba(0,255,255,0.06)]">
                     No shortlists found.
                 </div>
             ) : (
                 <>
-                    {/* Desktop Table */}
                     <div className="hidden md:block overflow-x-auto rounded-lg flex-1 overflow-auto border border-cyan-900/40 bg-[#0b1721] shadow-[0_0_30px_rgba(0,255,255,0.06)]">
                         <table className="min-w-full text-sm text-left text-cyan-100">
                             <thead className="text-xs uppercase bg-[#0d1f2b] text-cyan-300/90">
                                 <tr>
-                                            <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
+                                    <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
                                         <button
                                             onClick={toggleCompanySort}
                                             className="flex items-center gap-2 hover:text-cyan-200"
-                                            aria-label={`Sort company name ${companySort === "asc" ? "descending" : "ascending"}`}
+                                            aria-label={`Sort company name ${companySort === "asc" ? "descending" : "ascending"
+                                                }`}
                                         >
                                             <BriefcaseIcon className="h-4 w-4" />
                                             Company ({companySort === "asc" ? "A→Z" : "Z→A"})
                                         </button>
                                     </th>
-                                            <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
+                                    <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
                                         Role
                                     </th>
-                                            <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
+                                    <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
                                         Round Details
                                     </th>
-                                            <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
+                                    <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
                                         Shortlist Type
                                     </th>
                                 </tr>
                             </thead>
 
                             <tbody className="divide-y divide-cyan-900/30">
-                                {filteredAndSorted.map((s) => (
-                                    <tr
-                                        key={s.id}
-                                        className="hover:bg-[#0d1f2b] transition-colors"
-                                    >
+                                {filtered.map((s) => (
+                                    <tr key={s.id} className="hover:bg-[#0d1f2b] transition-colors">
                                         <td className="px-6 py-3 font-semibold text-cyan-100">
                                             {s.company.company_name}
                                         </td>
                                         <td className="px-6 py-3 text-cyan-100/90">{s.role}</td>
-                                        <td className="px-6 py-3 text-cyan-100/80">
-                                            {s.round_details}
-                                        </td>
+                                        <td className="px-6 py-3 text-cyan-100/80">{s.round_details}</td>
                                         <td className="px-6 py-3">
                                             <span
-                                                className={`text-xs px-2 py-1 rounded-full font-semibold ${SHORTLIST_TYPE_COLORS[s.shortlist_type] ?? fallbackTypeClass
+                                                className={`text-xs px-2 py-1 rounded-full font-semibold ${TYPE_BADGES[s.shortlist_type] ?? TYPE_FALLBACK
                                                     }`}
                                             >
                                                 {s.shortlist_type}
@@ -332,9 +335,8 @@ export default function UserShortlistTable() {
                         </table>
                     </div>
 
-                    {/* Mobile Cards */}
                     <div className="md:hidden space-y-4 md:flex-1 md:overflow-auto">
-                        {filteredAndSorted.map((s) => (
+                        {filtered.map((s) => (
                             <motion.div
                                 key={s.id}
                                 initial={{ opacity: 0, y: 10 }}
@@ -347,7 +349,7 @@ export default function UserShortlistTable() {
                                         {s.company.company_name}
                                     </h3>
                                     <span
-                                        className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${SHORTLIST_TYPE_COLORS[s.shortlist_type] ?? fallbackTypeClass
+                                        className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${TYPE_BADGES[s.shortlist_type] ?? TYPE_FALLBACK
                                             }`}
                                     >
                                         {s.shortlist_type}
