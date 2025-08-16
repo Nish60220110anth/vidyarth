@@ -22,6 +22,21 @@ async function getCompanies (company_id?: number, initialFilter: any = {}) {
     });
 }
 
+async function getAllCompanies() {
+    return prisma.company.findMany({
+        include: {
+            domains: {
+                select: { domain: true },
+            },
+        },
+        orderBy: [
+            { company_full: "asc" },
+            { company_name: "asc" },
+            { created_at: "desc" },
+        ],
+    });
+}
+
 async function updateCompanyById(id: number, data: any) {
     return prisma.company.update({
         where: { id },
@@ -31,5 +46,6 @@ async function updateCompanyById(id: number, data: any) {
 
 export {
     getCompanies,
-    updateCompanyById
+    updateCompanyById,
+    getAllCompanies
 };

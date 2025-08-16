@@ -19,7 +19,7 @@ const errText = (err: any, fallback: string) =>
 
 const fetchCompanyListWithPermission = async (perm: ACCESS_PERMISSION) => {
     try {
-        const res = await api.get("/api/company", {
+        const res = await api.get("/api/company/all", {
             params: { t: Date.now() },
             headers: authHeader(perm),
         });

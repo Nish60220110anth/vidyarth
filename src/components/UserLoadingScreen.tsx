@@ -98,44 +98,45 @@ export default function UserLoadingScreen({
             </div>
 
             <div className="relative w-full max-w-lg mx-4">
-                {/* Smooth 3s spinner */}
+                {/* Spinner (no DOM branching; motion toggled via props/classes) */}
                 <div className="flex flex-col items-center mb-7">
                     <div className="relative">
-                        {prefersReducedMotion ? (
-                            <div
-                                className="rounded-full border-4 border-cyan-400/70"
-                                style={{ width: 72, height: 72 }}
-                                aria-label="Loading"
-                            />
-                        ) : (
+                        <motion.div
+                            className="relative rounded-full border-4 border-cyan-400/70 border-t-transparent motion-reduce:border-t-cyan-400/70"
+                            style={{ width: 72, height: 72, willChange: "transform" }}
+                            initial={{ rotate: 0 }}
+                            animate={{ rotate: prefersReducedMotion ? 0 : 360 }}
+                            transition={
+                                prefersReducedMotion
+                                    ? { duration: 0 }
+                                    : { duration: 3, ease: [0.22, 1.0, 0.36, 1.0], repeat: Infinity }
+                            }
+                            aria-label="Loading"
+                        >
+                            {/* Subtle sheen (always present; animation disabled when reduced) */}
                             <motion.div
-                                className="relative rounded-full border-4 border-cyan-400/70 border-t-transparent"
-                                style={{ width: 72, height: 72, willChange: "transform" }}
-                                initial={{ rotate: 0 }}
-                                animate={{ rotate: 360 }}
-                                transition={{
-                                    duration: 3,
-                                    ease: [0.22, 1.0, 0.36, 1.0], 
+                                className="absolute inset-0 rounded-full"
+                                style={{
+                                    background:
+                                        "conic-gradient(from 0deg, rgba(255,255,255,0.22) 0deg, transparent 60deg 360deg)",
+                                    mask: "radial-gradient(farthest-side, transparent 62%, black 63%)",
+                                    WebkitMask:
+                                        "radial-gradient(farthest-side, transparent 62%, black 63%)",
                                 }}
-                                aria-label="Loading"
-                            >
-                                {/* subtle sheen that sweeps once in 3s */}
-                                <motion.div
-                                    className="absolute inset-0 rounded-full"
-                                    style={{
-                                        background:
-                                            "conic-gradient(from 0deg, rgba(255,255,255,0.22) 0deg, transparent 60deg 360deg)",
-                                        mask: "radial-gradient(farthest-side, transparent 62%, black 63%)",
-                                        WebkitMask:
-                                            "radial-gradient(farthest-side, transparent 62%, black 63%)",
-                                    }}
-                                    initial={{ rotate: 0, opacity: 0.7 }}
-                                    animate={{ rotate: 360, opacity: 0 }}
-                                    transition={{ duration: 5, ease: "easeInOut" }}
-                                    aria-hidden
-                                />
-                            </motion.div>
-                        )}
+                                initial={{ rotate: 0, opacity: 0.7 }}
+                                animate={{
+                                    rotate: prefersReducedMotion ? 0 : 360,
+                                    opacity: prefersReducedMotion ? 0.7 : 0,
+                                }}
+                                transition={
+                                    prefersReducedMotion
+                                        ? { duration: 0 }
+                                        : { duration: 5, ease: "easeInOut", repeat: Infinity }
+                                }
+                                aria-hidden
+                            />
+                        </motion.div>
+
                         <div
                             className="absolute inset-0 rounded-full blur-md opacity-40"
                             style={{ boxShadow: "0 0 50px rgba(34,211,238,0.35)" }}
@@ -163,23 +164,28 @@ export default function UserLoadingScreen({
                         />
                     </div>
 
-                    {!prefersReducedMotion && (
+                    {/* Shimmer bar: same DOM always; animation toggled via props */}
+                    <div
+                        className="relative -mt-2 h-2.5 w-full pointer-events-none overflow-hidden rounded-full"
+                        aria-hidden
+                    >
                         <motion.div
-                            className="relative -mt-2 h-2.5 w-full pointer-events-none overflow-hidden rounded-full"
-                            aria-hidden
-                        >
-                            <motion.div
-                                className="absolute top-0 h-full w-1/3 bg-white/10 blur-sm"
-                                initial={{ x: "-30%" }}
-                                animate={{ x: "130%" }}
-                                transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
-                            />
-                        </motion.div>
-                    )}
+                            className="absolute top-0 h-full w-1/3 bg-white/10 blur-sm"
+                            initial={{ x: "-30%" }}
+                            animate={{ x: prefersReducedMotion ? "-30%" : "130%" }}
+                            transition={
+                                prefersReducedMotion
+                                    ? { duration: 0 }
+                                    : { repeat: Infinity, duration: 1.6, ease: "easeInOut" }
+                            }
+                        />
+                    </div>
 
                     <div className="mt-2 flex items-center justify-between text-[13px] md:text-sm text-cyan-300/75">
                         <span>Initializing modules…</span>
-                        <span>{Math.min(100, Math.max(0, Math.round(effectiveProgress)))}%</span>
+                        <span>
+                            {Math.min(100, Math.max(0, Math.round(effectiveProgress)))}%
+                        </span>
                     </div>
                 </div>
 
