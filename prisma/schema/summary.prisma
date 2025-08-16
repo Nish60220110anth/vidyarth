@@ -2,7 +2,7 @@ model summary {
   id Int @id @default(autoincrement())
 
   companyId Int     @unique
-  company   company @relation("SummaryCompany", fields: [companyId], references: [id])
+  company   company @relation("SummaryCompany", fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   summary String @db.MediumText
 

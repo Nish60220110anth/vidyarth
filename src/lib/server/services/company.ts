@@ -22,8 +22,9 @@ async function getCompanies (company_id?: number, initialFilter: any = {}) {
     });
 }
 
-async function getAllCompanies() {
+async function getAllCompanies(initialFilter: any) {
     return prisma.company.findMany({
+        where: initialFilter,
         include: {
             domains: {
                 select: { domain: true },

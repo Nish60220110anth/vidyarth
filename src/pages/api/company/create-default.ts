@@ -1,6 +1,6 @@
 // pages/api/company/create-default.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "../../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { ACCESS_PERMISSION } from "@prisma/client";
 
@@ -25,6 +25,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             });
             return res.status(200).json(company);
         } catch (err: any) {
+            console.error("Error creating company:", err);
             return res.status(500).json({ error: "Failed to create company" , success: false});
         }
     }

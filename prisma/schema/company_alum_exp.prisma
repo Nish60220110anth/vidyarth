@@ -2,10 +2,10 @@ model company_alum_exp {
   id Int @id @default(autoincrement())
 
   user_id Int
-  user    user @relation(fields: [user_id], references: [id])
+  user    user @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   company_id Int
-  company    company @relation(fields: [company_id], references: [id])
+  company    company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   content String @db.Text
 

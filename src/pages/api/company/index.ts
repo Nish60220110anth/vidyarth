@@ -113,7 +113,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         const company = await getCompanies(id);
 
-        if (!company || company.length === 0) {
+        if (company.length === 0) {
             return res.status(404).json({ error: "Company not found", success: false });
         }
         await prisma.company.delete({

@@ -1,12 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { ACCESS_PERMISSION, NOTIFICATION_SOURCE_INITIATOR, NOTIFICATION_SUBTYPE, NOTIFICATION_TYPE } from "@prisma/client";
+import { ACCESS_PERMISSION } from "@prisma/client";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
-import { prisma } from "../../../lib/prisma";
 import { apiHelpers } from "@/lib/server/responseHelpers";
-import { createNotification } from "@/lib/server/notificationSink";
-import { generateSecureURL } from "@/utils/shared/secureUrlApi";
-import { baseUrl } from "@/lib/config";
-import { getAllCompanies, getCompanies, updateCompanyById } from "@/lib/server/services/company";
+import { getAllCompanies } from "@/lib/server/services/company";
 const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
     get: {
         permissions: [
@@ -40,7 +36,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     if (req.method === "GET") {
 
-        const companies = await getAllCompanies();
+        const initialFilter = (req as any).filter || {};
+        const companies = await getAllCompanies(initialFilter);
 
         if (!companies) {
             apiHelpers.notFound(res, "No companies found");

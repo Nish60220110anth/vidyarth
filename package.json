@@ -34,7 +34,8 @@
     "env:print:prod": "dotenv -e .env.production -- node -e \"console.log('NODE_ENV=', process.env.NODE_ENV); console.log('DATABASE_URL=', process.env.DATABASE_URL || 'missing')\"",
     "// ───────── Postinstall ─────────": "",
     "postinstall": "npm run db:gen:prod",
-    "analyze": "cross-env ANALYZE=true npm run build:prod"
+    "analyze": "cross-env ANALYZE=true npm run build:prod",
+    "prisma:generate":"cross-env NODE_ENV=production npx prisma generate && npx prisma db push"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",

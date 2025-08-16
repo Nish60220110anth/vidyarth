@@ -2,13 +2,13 @@ model userSession {
   id Int @id @default(autoincrement())
 
   userId Int
-  user   user @relation("UserSessions", fields: [userId], references: [id])
+  user   user @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   isCvHr Boolean
 
   companyName String?
   companyId   Int
-  company     company @relation("CompanySessions", fields: [companyId], references: [id])
+  company     company @relation("CompanySessions", fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   jdLinks         String
   compendiumLinks String

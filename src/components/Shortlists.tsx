@@ -65,14 +65,12 @@ export default function UserShortlistTable() {
     const deferredSearch = useDeferredValue(search);
 
     const mountedRef = useRef(true);
-    const inFlightRef = useRef<AbortController | null>(null);
     const lastFetchedRef = useRef<number>(0);
 
     useEffect(() => {
         mountedRef.current = true;
         return () => {
             mountedRef.current = false;
-            inFlightRef.current?.abort();
         };
     }, []);
 
@@ -84,24 +82,23 @@ export default function UserShortlistTable() {
         e?.response?.data?.error || e?.message || "Something went wrong";
 
     const fetchShortlists = useCallback(
-        async (force = false) => {
+        async (force = false, isRefresh = false) => {
             const recent = Date.now() - lastFetchedRef.current < 60_000;
             if (!force && recent && rows.length) return;
 
             try {
-                setRefreshing(true);
-                if (!loading) setLoading(true);
-
-                inFlightRef.current?.abort();
-                const ac = new AbortController();
-                inFlightRef.current = ac;
+                if (isRefresh) {
+                    setRefreshing(true);
+                } else {
+                    setLoading(true);
+                }
 
                 const res = await axios.get<ApiResponse<Shortlist[]>>(
                     `${basePath}/api/shortlists`,
                     {
-                        signal: ac.signal,
                         headers: {
-                            "x-access-permission": ACCESS_PERMISSION.ENABLE_MY_SECTION,
+                            "x-access-permission":
+                                ACCESS_PERMISSION.ENABLE_MY_SECTION,
                         },
                     }
                 );
@@ -112,19 +109,22 @@ export default function UserShortlistTable() {
                 lastFetchedRef.current = Date.now();
             } catch (e) {
                 if (!mountedRef.current) return;
-                setRows([]);
+                if (!isRefresh) setRows([]);
                 toast.error(getErr(e));
             } finally {
                 if (!mountedRef.current) return;
-                setLoading(false);
-                setRefreshing(false);
+                if (isRefresh) {
+                    setRefreshing(false);
+                } else {
+                    setLoading(false);
+                }
             }
         },
-        [basePath, rows.length, loading]
+        [basePath, rows.length]
     );
 
     useEffect(() => {
-        fetchShortlists(false);
+        fetchShortlists(false, false);
     }, [fetchShortlists]);
 
     const roundOptions = useMemo(() => {
@@ -190,7 +190,7 @@ export default function UserShortlistTable() {
                 <div className="flex flex-wrap gap-2">
                     <button
                         onClick={async () => {
-                            await fetchShortlists(true);
+                            await fetchShortlists(true, true);
                             toast.success("Refreshed");
                         }}
                         disabled={refreshing}
@@ -198,8 +198,14 @@ export default function UserShortlistTable() {
                         title="Refresh shortlists"
                         aria-label="Refresh shortlists"
                     >
-                        {refreshing ? <Spinner size={18} /> : <ArrowPathIcon className="h-5 w-5" />}
-                        <span className="hidden sm:inline">{refreshing ? "Refreshing…" : "Refresh"}</span>
+                        {refreshing ? (
+                            <Spinner size={18} />
+                        ) : (
+                            <ArrowPathIcon className="h-5 w-5" />
+                        )}
+                        <span className="hidden sm:inline">
+                            {refreshing ? "Refreshing…" : "Refresh"}
+                        </span>
                     </button>
                 </div>
             </motion.div>
@@ -272,7 +278,10 @@ export default function UserShortlistTable() {
 
                     <div className="md:hidden space-y-3">
                         {[...Array(4)].map((_, i) => (
-                            <div key={i} className="bg-[#0b1721] border border-cyan-900/40 rounded-lg p-4">
+                            <div
+                                key={i}
+                                className="bg-[#0b1721] border border-cyan-900/40 rounded-lg p-4"
+                            >
                                 <div className="h-5 w-2/3 bg-cyan-900/30 rounded animate-pulse mb-2" />
                                 <div className="h-4 w-1/2 bg-cyan-900/30 rounded animate-pulse mb-2" />
                                 <div className="h-4 w-3/4 bg-cyan-900/30 rounded animate-pulse" />
@@ -290,24 +299,42 @@ export default function UserShortlistTable() {
                         <table className="min-w-full text-sm text-left text-cyan-100">
                             <thead className="text-xs uppercase bg-[#0d1f2b] text-cyan-300/90">
                                 <tr>
-                                    <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]"
+                                    >
                                         <button
                                             onClick={toggleCompanySort}
                                             className="flex items-center gap-2 hover:text-cyan-200"
-                                            aria-label={`Sort company name ${companySort === "asc" ? "descending" : "ascending"
+                                            aria-label={`Sort company name ${companySort === "asc"
+                                                    ? "descending"
+                                                    : "ascending"
                                                 }`}
                                         >
                                             <BriefcaseIcon className="h-4 w-4" />
-                                            Company ({companySort === "asc" ? "A→Z" : "Z→A"})
+                                            Company (
+                                            {companySort === "asc"
+                                                ? "A→Z"
+                                                : "Z→A"}
+                                            )
                                         </button>
                                     </th>
-                                    <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]"
+                                    >
                                         Role
                                     </th>
-                                    <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]"
+                                    >
                                         Round Details
                                     </th>
-                                    <th scope="col" className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]">
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 sticky top-0 z-10 bg-[#0d1f2b]"
+                                    >
                                         Shortlist Type
                                     </th>
                                 </tr>
@@ -315,15 +342,24 @@ export default function UserShortlistTable() {
 
                             <tbody className="divide-y divide-cyan-900/30">
                                 {filtered.map((s) => (
-                                    <tr key={s.id} className="hover:bg-[#0d1f2b] transition-colors">
+                                    <tr
+                                        key={s.id}
+                                        className="hover:bg-[#0d1f2b] transition-colors"
+                                    >
                                         <td className="px-6 py-3 font-semibold text-cyan-100">
                                             {s.company.company_name}
                                         </td>
-                                        <td className="px-6 py-3 text-cyan-100/90">{s.role}</td>
-                                        <td className="px-6 py-3 text-cyan-100/80">{s.round_details}</td>
+                                        <td className="px-6 py-3 text-cyan-100/90">
+                                            {s.role}
+                                        </td>
+                                        <td className="px-6 py-3 text-cyan-100/80">
+                                            {s.round_details}
+                                        </td>
                                         <td className="px-6 py-3">
                                             <span
-                                                className={`text-xs px-2 py-1 rounded-full font-semibold ${TYPE_BADGES[s.shortlist_type] ?? TYPE_FALLBACK
+                                                className={`text-xs px-2 py-1 rounded-full font-semibold ${TYPE_BADGES[
+                                                    s.shortlist_type
+                                                    ] ?? TYPE_FALLBACK
                                                     }`}
                                             >
                                                 {s.shortlist_type}
@@ -349,7 +385,8 @@ export default function UserShortlistTable() {
                                         {s.company.company_name}
                                     </h3>
                                     <span
-                                        className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${TYPE_BADGES[s.shortlist_type] ?? TYPE_FALLBACK
+                                        className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${TYPE_BADGES[s.shortlist_type] ??
+                                            TYPE_FALLBACK
                                             }`}
                                     >
                                         {s.shortlist_type}
