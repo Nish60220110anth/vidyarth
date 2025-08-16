@@ -6,6 +6,7 @@ import CompanySearchDropdown, { Company } from "./CompanySearchDropDown";
 import { AnimatePresence, motion } from "framer-motion";
 import PortalWrapper from "./PortableWrapper";
 import { fetchCVForUserID } from "@/lib/api/studentCV";
+import { useRouter } from "next/router";
 
 type Props = {
     name: string;
@@ -24,6 +25,7 @@ export default function AiMockSession({ id, name }: Props) {
     const [loading, setLoading] = useState(true);
 
     const [sessionId, setSessionId] = useState<number | undefined>();
+    const {basePath} = useRouter();
 
     const handleCreateSession = async () => {
         const data = {
@@ -47,7 +49,7 @@ export default function AiMockSession({ id, name }: Props) {
     const fetchCVs = async () => {
         setLoading(true);
         try {
-            const res = await fetchCVForUserID(id);
+            const res = await fetchCVForUserID(basePath, id);
             setCvList(res);
         } catch (err: any) {
             toast.error(err.message || 'Failed to fetch CVs');

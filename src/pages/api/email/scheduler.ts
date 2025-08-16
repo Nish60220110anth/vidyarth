@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             const personalizedBody = renderTemplate(email_content.content, {
                 name: toTitleCase(user.name),
-                pcom_id: user.pcomid || "N/A",
+                pcom_id: user.pcomid?.toString() || "0",
             });
 
             const emailPayload = {

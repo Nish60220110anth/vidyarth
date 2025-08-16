@@ -31,7 +31,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 const folderPath = path.join(CV_DIRECTORY, folder);
                 const files = fs.readdirSync(folderPath);
 
-                const pcomid = folder;
+                const pcomid = parseInt(folder, 10);
 
                 const user = await prisma.user.findFirst({
                     where: { pcomid, role: USER_ROLE.STUDENT },
@@ -55,7 +55,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                         data: {
                             userId: user.id,
                             domain: null,
-                            cv_path: path.join(cv_relative_path, pcomid, file),
+                            cv_path: path.join(cv_relative_path, pcomid.toString(), file),
                             cv_filename: file,
                             version,
                             is_primary: isPrimary,

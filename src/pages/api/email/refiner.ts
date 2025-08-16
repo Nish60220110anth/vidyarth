@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             let to: string[] = ["placement_systems@iiml.ac.in"];
             let cc: string[] = []; // 
             let bcc: {
-                pcomid: string,
+                pcomid: number,
                 name: string,
                 emailid: string
             }[] = []; // intended user 
@@ -58,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
                     bcc = students?.shortlisted_users.map((u) => {
                         return {
-                            pcomid: u.pcomid || "0",
+                            pcomid: u.pcomid || 0,
                             name: u.name,
                             emailid: u.email_id,
                             id: u.id
@@ -72,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     });
                     bcc = students.map(u => {
                         return {
-                            pcomid: u.pcomid || "0",
+                            pcomid: u.pcomid || 0,
                             name: u.name,
                             emailid: u.email_id,
                             id: u.id
@@ -86,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 });
                 bcc = users.map(u => {
                     return {
-                        pcomid: u.pcomid || "0",
+                        pcomid: u.pcomid || 0,
                         name: u.name,
                         emailid: u.email_id,
                         id: u.id

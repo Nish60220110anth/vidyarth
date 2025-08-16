@@ -70,9 +70,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         try {
 
-            const user = await getUserByEmail(session.email);
+            const user = await getUserByEmail(session.user.email);
 
-            if (session.role === USER_ROLE.STUDENT) {
+            if (session.user.role === USER_ROLE.STUDENT) {
                 const cv_user_id = await getStudentIDByCVId(ncvid);
 
                 if (cv_user_id !== user.id) {

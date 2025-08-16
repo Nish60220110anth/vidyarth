@@ -132,7 +132,7 @@ export default async function handler(
             // Find the active, verified user by their PCOM ID
             const student = await prisma.user.findFirst({
                 where: {
-                    pcomid: String(pcom_id),
+                    pcomid: pcom_id,
                     is_active: true,
                     is_verified: true,
                 },

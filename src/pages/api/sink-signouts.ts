@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             try {
                 const user = await prisma.user.findFirst({
                     where: {
-                        pcomid: String(pcom_id),
+                        pcomid: pcom_id,
                         is_active: true,
                         is_verified: true,
                         role: USER_ROLE.STUDENT

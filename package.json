@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "dotenv -e .env.development -- next dev",
     "build:dev": "dotenv -e .env.development -- next build",
-    "build:prod": "dotenv -e .env.production -- next build",
+    "build:prod": "cross-env NODE_ENV=production dotenv -e .env.production -- next build",
     "start:dev": "dotenv -e .env.development -- next start",
     "start:prod": "dotenv -e .env.production -- next start",
     "prod": "npm run build:prod && npm run start:prod",
