@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 
 const predefinedTemplates: Record<string, string> = {
-    approval: "Dear {{name}},\n\nYour account has been approved. You may now access the portal.\n\nRegards,\nTeam Vidyarth",
-    rejection: "Dear {{name}},\n\nWe regret to inform you that your request has been denied. For further details, contact the administrator.\n\nRegards,\nTeam Vidyarth",
+    approval: "Dear {{name}},\n\nYour account has been approved. You may now access the portal.\n\nRegards,\nTeam Charon",
+    rejection: "Dear {{name}},\n\nWe regret to inform you that your request has been denied. For further details, contact the administrator.\n\nRegards,\nTeam Charon",
     custom: "", 
 };
   

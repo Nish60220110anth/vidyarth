@@ -28,7 +28,7 @@ type PermissionMap = Record<string, MethodConfig>;
 //     port: 6379,                 // default Redis port
 //     password: "nishanth@9344905119",               // add password if your Redis is secured
 //     db: 0,                      // Redis DB index (0–15)
-//     name: "vidyarth-backend",   // client name
+//     name: "charon-backend",   // client name
 //     lazyConnect: false,         // immediately connect
 //     connectTimeout: 10000,      // ms before connection fails
 //     maxRetriesPerRequest: 2,    // max retry attempts

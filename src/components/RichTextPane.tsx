@@ -47,7 +47,7 @@ function Placeholder(placeholder: { placeholder: string }) {
 const editorConfig = {
 
     theme: lexicalTheme,
-    namespace: "vidyarth",
+    namespace: "charon",
     onError(error: unknown) {
         throw error;
     },

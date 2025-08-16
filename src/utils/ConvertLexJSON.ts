@@ -1,12 +1,11 @@
 import { $generateHtmlFromNodes } from "@lexical/html";
-import { createEditor, LexicalEditor } from "lexical";
+import { createEditor } from "lexical";
 
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
-import { TRANSFORMERS } from "@lexical/markdown";
 import { lexicalTheme } from "@/theme/lexcialTheme";
 import { customLexicalTree } from "./CustomLexicalTree";
 
@@ -14,7 +13,7 @@ import { customLexicalTree } from "./CustomLexicalTree";
 const editorConfig = {
 
     theme: lexicalTheme,
-    namespace: "vidyarth",
+    namespace: "charon",
     editorState: customLexicalTree,
     onError(error: unknown) {
         throw error;

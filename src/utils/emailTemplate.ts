@@ -4,7 +4,7 @@ type TemplateTypes = NOTIFICATION_TYPE;
 
 const subjectTemplates: Record<TemplateTypes, string> = {
   SHORTLIST: `{{company_full}} - {{role}} Shortlist Published!`,
-  COMPANY: `{{company_full}} Has Been Added in Vidyarth`,
+  COMPANY: `{{company_full}} Has Been Added in Charon`,
   COMPANY_CONTENT: `{{company_full}} Content Has Been Updated`,
   ROUND_PREP: `CV Preparation Section Is Updated`,
   DOMAIN_PREP: `{{domain}} Preparation Section Is Updated`,
@@ -13,7 +13,7 @@ const subjectTemplates: Record<TemplateTypes, string> = {
 
 const briefTemplate: Record<TemplateTypes, string> = {
   SHORTLIST: `You have been shortlisted for {{company_full}} - {{role}}. Please review the links provided and prepare accordingly.`,
-  COMPANY: `{{company_full}} has been added to the Vidyarth. Review company details and start preparing.`,
+  COMPANY: `{{company_full}} has been added to the Charon. Review company details and start preparing.`,
   COMPANY_CONTENT: `New content has been added to the {{company_full}} section. Check it out and stay updated.`,
   ROUND_PREP: `The Round preparation section has been updated. Please review the new resources.`,
   DOMAIN_PREP: `The preparation materials for the {{domain}} domain have been updated. Please review them at the earliest.`,
@@ -23,7 +23,7 @@ const briefTemplate: Record<TemplateTypes, string> = {
 // Core content bodies (inserted into wrapper)
 const contentBodies: Record<TemplateTypes, string> = {
   SHORTLIST: `You have been shortlisted for <strong>{{company_full}}</strong> for the role of <strong>{{role}}</strong>. This is an important opportunity, and you are expected to treat it with utmost seriousness and urgency.<br><br>Refer to the following links to proceed with your preparation and review all necessary details without delay.`,
-  COMPANY: `Please be informed that <strong>{{company_full}}</strong> has now been added to the Vidyarth portal. All students are expected to thoroughly review the company details and familiarize themselves with the available material.`,
+  COMPANY: `Please be informed that <strong>{{company_full}}</strong> has now been added to the Charon portal. All students are expected to thoroughly review the company details and familiarize themselves with the available material.`,
   COMPANY_CONTENT: `The <strong>{{company_full}}</strong> section has been updated with new content on <strong>{{updated_at}}</strong>. You are expected to stay current with all relevant company information and materials.`,
   ROUND_PREP: `The Round preparation section has been updated with new resources as of <strong>{{updated_at}}</strong>. All students are expected to review the updated content and prepare their CVs accordingly.`,
   DOMAIN_PREP: `The <strong>{{domain}}</strong> domain preparation section has been updated with new resources as of <strong>{{updated_at}}</strong>. All students associated with this domain are expected to review the updated content without delay.`,

@@ -232,7 +232,7 @@ export default function Sidebar({ email, role, onLogout, name, id }: SidebarProp
     return (
         <>
             <Head>
-                <title>{toTitleCase(activeKey?.toLocaleLowerCase().replaceAll("_", " ") || "Vidyarth")}</title>
+                <title>{toTitleCase(activeKey?.toLocaleLowerCase().replaceAll("_", " ") || "Charon")}</title>
             </Head>
 
             <div className="flex h-screen">

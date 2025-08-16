@@ -1,7 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { getIronSession, IronSessionData } from "iron-session";
-import { sessionOptions } from "@/lib/session";
-import { prisma } from "../../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
 import { ACCESS_PERMISSION, USER_ROLE } from "@prisma/client";
 import z from "zod";

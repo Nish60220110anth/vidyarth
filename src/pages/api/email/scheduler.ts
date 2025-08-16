@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
 
             const emailPayload = {
-                admin: "Vidyarth",
+                admin: "Charon",
                 to: [user.email_id],
                 cc: email_content.cc.map(cc => cc.email_id),
                 bcc: email_content.bcc.map(bcc => bcc.email_id),

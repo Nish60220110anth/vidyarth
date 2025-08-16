@@ -7,9 +7,9 @@ export default function ForgotPassword() {
     return (
         <>
             <Head>
-                <title>Forgot Password - Vidyarth</title>
-                <meta name="description" content="Recover your Vidyarth portal password. Contact Team Synapse for reset instructions." />
-                <meta property="og:title" content="Forgot Password - Vidyarth Portal" />
+                <title>Forgot Password - Charon</title>
+                <meta name="description" content="Recover your Charon portal password. Contact Team Synapse for reset instructions." />
+                <meta property="og:title" content="Forgot Password - Charon Portal" />
                 <meta property="og:description" content="Please check your original email or contact Team Synapse to reset your credentials." />
             </Head>
 

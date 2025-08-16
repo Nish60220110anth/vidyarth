@@ -181,7 +181,7 @@ export default function LoginPage({
     return (
         <>
             <Head>
-                <title>Login • Vidyarth</title>
+                <title>Login • Charon</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <meta name="theme-color" content="#0a141d" />
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -208,7 +208,7 @@ export default function LoginPage({
 
                 <div className="w-full max-w-md p-[1px] rounded-2xl bg-gradient-to-b from-cyan-600/40 to-cyan-800/20 shadow-[0_0_32px_rgba(0,255,255,0.07)] z-10">
                     <div className="rounded-2xl bg-[#0b1014]/90 border border-cyan-900/60 p-8">
-                        <h1 className="text-4xl font-extrabold text-center text-cyan-300 mb-2 tracking-wide">Welcome to Vidyarth</h1>
+                        <h1 className="text-4xl font-extrabold text-center text-cyan-300 mb-2 tracking-wide">Welcome to Charon</h1>
                         <p className="text-center text-cyan-200/80 text-sm mb-8">Sign in to continue to your dashboard</p>
 
                         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
@@ -321,7 +321,7 @@ export default function LoginPage({
                 </div>
 
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-cyan-500 text-xs">
-                    <p>© {new Date().getFullYear()} Vidyarth. All rights reserved.</p>
+                    <p>© {new Date().getFullYear()} Charon. All rights reserved.</p>
                 </div>
             </div>
         </>

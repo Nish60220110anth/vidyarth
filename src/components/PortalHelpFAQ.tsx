@@ -114,7 +114,7 @@ export default function PortalHelpFAQ({ role, name, email }: PortalHelpFAQProps)
         <div className="w-full mx-auto px-6 py-12 font-[Urbanist] bg-gradient-to-b from-[#0d1b24] to-[#0a141d] min-h-screen text-white">
             <h1 className="text-3xl font-bold text-cyan-400 mb-4">Welcome, {toTitleCase(name)} 🎓</h1>
             <p className="text-base md:text-lg text-gray-300 mb-8">
-                Vidyarth is a centralized platform designed to support students through every stage of the placement process. Key features include:
+                Charon is a centralized platform designed to support students through every stage of the placement process. Key features include:
             </p>
             <ul className="list-disc pl-6 text-gray-300 space-y-2 mb-8">
                 <li>

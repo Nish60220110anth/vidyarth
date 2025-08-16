@@ -3,7 +3,7 @@ require('dotenv').config();
 module.exports = {
     apps: [
         {
-            name: 'vidyarth',
+            name: 'charon',
             script: './node_modules/next/dist/bin/next',
             args: 'start',
             env: {

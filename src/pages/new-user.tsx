@@ -7,7 +7,7 @@ export default function NewUser() {
     return (
         <>
             <Head>
-                <title>New User – Vidyarth</title>
+                <title>New User – Charon</title>
                 <link
                     href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700&display=swap"
                     rel="stylesheet"
@@ -40,7 +40,7 @@ export default function NewUser() {
 
                         <p className="text-base sm:text-lg text-cyan-200 leading-relaxed">
                             Please contact <span className="text-cyan-400 font-semibold">Team Synapse</span> to add your entry
-                            to the Vidyarth portal.
+                            to the Charon portal.
                         </p>
 
                         <p className="text-sm text-gray-400 pt-2 border-t border-gray-700">

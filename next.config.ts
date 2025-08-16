@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   reactStrictMode: true,
-  basePath: '/vidyarth',
-  assetPrefix: '/vidyarth',
+  basePath: '/charon',
+  assetPrefix: '/charon',
   trailingSlash: true,
   images: {
     remotePatterns: [

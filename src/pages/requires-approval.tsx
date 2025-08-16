@@ -9,7 +9,7 @@ export default function PendingApproval() {
     return (
         <>
             <Head>
-                <title>Approval Required - Vidyarth</title>
+                <title>Approval Required - Charon</title>
             </Head>
 
             <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 text-white">
@@ -30,7 +30,7 @@ export default function PendingApproval() {
                 </div>
 
                 <div className="absolute bottom-4 text-xs text-gray-500">
-                    © 2023 Vidyarth. All rights reserved.
+                    © 2023 Charon. All rights reserved.
                 </div>
             </div>
         </>

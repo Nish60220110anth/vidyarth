@@ -8,10 +8,20 @@ type ApiResult<T> = {
     error: string | null;
 };
 
+export const DISABLED = false;
+
 export const fetchSummaryByCid = async (
     cid: number
 ): Promise<ApiResult<string>> => {
     try {
+        if (DISABLED) {
+            return {
+                success: false,
+                data: null,
+                error: "Summary API is currently disabled.",
+            };
+        }
+
         const res = await axios.get(`${baseUrl}/api/summary`, {
             params: { companyId: cid },
             headers: {
@@ -47,6 +57,14 @@ export const updateSummaryByCid = async (
     content: string
 ): Promise<ApiResult<string>> => {
     try {
+        if (DISABLED) {
+            return {
+                success: false,
+                data: null,
+                error: "Summary API is currently disabled.",
+            };
+        }
+
         const res = await axios.put(
             `${baseUrl}/api/summary`,
             { companyId: cid, content },

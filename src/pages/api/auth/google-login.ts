@@ -34,8 +34,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             apiHelpers.unauthorized(res, 'Account inactive');
             return;
         }
-    }
+    } else {
+        const newUser = await prisma.user.create({
+            data: {
+                email_id: email,
+                name,
+                is_active: true,
+                is_verified: false,
+                password: "",
+                role: "STUDENT",
+            },
+        });
 
-    apiHelpers.notFound(res, 'User not found');
-    return;
+        if (newUser) {
+            apiHelpers.success(res, { user: newUser });
+            return;
+        } else {
+            apiHelpers.error(res, 'Failed to create user');
+            return;
+        }
+    }
 }

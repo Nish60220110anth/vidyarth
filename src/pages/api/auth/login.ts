@@ -25,8 +25,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         });
 
         if (!user) {
-            apiHelpers.unauthorized(res, 'Invalid email or password');
-            return;
+
+            const newUser = await prisma.user.create({
+                data: {
+                    email_id: email,
+                    password: await bcrypt.hash(password, 10),
+                    is_active: false,
+                    is_verified: false,
+                    role: 'STUDENT',
+                    name: email.split('@')[0],
+                },
+            });
+
+            if (newUser) {
+                apiHelpers.unauthorized(res, 'Invalid email or password, but account has been created. Wait for approval.');
+                return;
+            } else {
+                apiHelpers.error(res, 'Failed to create account');
+                return;
+            }
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -57,7 +74,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         };
         await session.save();
 
-        apiHelpers.success(res, {user: session.user });
+        apiHelpers.success(res, { user: session.user });
         return;
 
     } catch (error) {
