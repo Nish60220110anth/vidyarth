@@ -1,22 +1,12 @@
 // pages/_app.tsx
 import '@/styles/globals.css';
 import "@/styles/styles.css";
-import "@/styles/ImageNode.css";
-import "@/styles/Modal.css";
-import "@/styles/Button.css";
-import "@/styles/Dialog.css";
-import "@/styles/Input.css";
-import "@/styles/Select.css";
-import "@/styles/Checkbox.css";
-import "@/styles/Placeholder.css";
 import "@/styles/ContentEditable.css";
-import "@/styles/ui.css";
 
 import type { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { useRouter } from 'next/router';
 import { AnimatePresence, motion } from 'framer-motion';
 import Head from 'next/head';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -27,7 +17,6 @@ const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster)
 
 export default function App({ Component, pageProps }: AppProps) {
   const [mounted, setMounted] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -64,7 +53,6 @@ export default function App({ Component, pageProps }: AppProps) {
 
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={router.route}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
