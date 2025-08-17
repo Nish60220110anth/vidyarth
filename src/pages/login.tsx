@@ -24,7 +24,7 @@ export default function LoginPage({
     userAgent?: string;
     language?: string;
 }) {
-    const { status, refresh } = useAuth();
+    const { status, refresh, user } = useAuth();
     const router = useRouter();
 
     const [email, setEmail] = useState('');
@@ -73,7 +73,7 @@ export default function LoginPage({
 
     useEffect(() => {
         if (status === 'authenticated') {
-            router.replace(`${baseUrl}/dashboard`);
+            router.replace(`${baseUrl}/dashboard/`);
         }
     }, [status, router]);
 
@@ -108,9 +108,9 @@ export default function LoginPage({
             await refresh();
             toast.success(`Welcome, ${email}${data.role ? ` (${data.role})` : ''}`);
             if (String(data.role || '').toLowerCase() === 'admin') {
-                goTo('/admin');
+                goTo('/admin/');
             } else {
-                goTo('/dashboard');
+                goTo('/dashboard/');
             }
         } catch {
             toast.error('Network error. Please try again later.');
@@ -153,9 +153,9 @@ export default function LoginPage({
                 await refresh();
                 toast.success(`Welcome, ${user.name || user.email}`);
                 if (String(user.role || '').toLowerCase() === 'admin') {
-                    goTo('/admin');
+                    goTo('/admin/');
                 } else {
-                    goTo('/dashboard');
+                    goTo('/dashboard/');
                 }
                 return;
             }

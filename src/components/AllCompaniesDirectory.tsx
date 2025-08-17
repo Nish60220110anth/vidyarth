@@ -398,7 +398,7 @@ export default function AllCompaniesDirectory({
                                                     <div className="flex items-center justify-center h-12 w-12 rounded-full bg-slate-100">
                                                         {company.logo_url ? (
                                                             <img
-                                                                src={`${basePath}/${company.logo_url}`}
+                                                                src={`${company.logo_url}`}
                                                                 alt={company.company_name}
                                                                 className="h-8 w-8 object-contain"
                                                             />
@@ -481,7 +481,7 @@ export default function AllCompaniesDirectory({
                                                 <div className="w-10 h-10 flex justify-center items-center bg-slate-100 rounded-full mr-4 shrink-0">
                                                     {company.logo_url ? (
                                                         <img
-                                                            src={`${basePath}/${company.logo_url}`}
+                                                            src={`${company.logo_url}`}
                                                             alt={company.company_name}
                                                             className="h-6 w-6 object-contain"
                                                         />

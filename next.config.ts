@@ -12,8 +12,12 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   images: {
     remotePatterns: [
-      { protocol: 'http', hostname: 'localhost', port: '3000', pathname: '/**' }
-    ]
+      { protocol: 'http', hostname: 'localhost', port: '3000', pathname: '/**' },
+      { protocol: 'https', hostname: 'firebasestorage.googleapis.com', pathname: '/v0/b/**' },
+      { protocol: 'https', hostname: 'storage.googleapis.com', pathname: '/vidyarth-systems.firebasestorage.app/**' }
+    ],
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   modularizeImports: {
     '@heroicons/react/24/outline': { transform: '@heroicons/react/24/outline/{{member}}' },

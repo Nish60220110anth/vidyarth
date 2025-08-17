@@ -33,18 +33,23 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+    try {
+        if (req.method === "GET") {
 
-    if (req.method === "GET") {
+            const initialFilter = (req as any).filter || {};
+            const companies = await getAllCompanies(initialFilter);
 
-        const initialFilter = (req as any).filter || {};
-        const companies = await getAllCompanies(initialFilter);
+            if (!companies) {
+                apiHelpers.notFound(res, "No companies found");
+                return;
+            }
 
-        if (!companies) {
-            apiHelpers.notFound(res, "No companies found");
+            apiHelpers.success(res, { data: companies })
             return;
         }
-
-        apiHelpers.success(res, { data: companies })
+    } catch (error: any) {
+        console.error("Error fetching companies:", error);
+        apiHelpers.error(res, `${error.message}`);
         return;
     }
 }

@@ -19,13 +19,12 @@ const errText = (err: any, fallback: string) =>
 
 const fetchCompanyListWithPermission = async (perm: ACCESS_PERMISSION) => {
     try {
-        const res = await api.get("/api/company/all", {
+        const res = await api.get(`/api/company/all`, {
             params: { t: Date.now() },
             headers: authHeader(perm),
         });
 
         if (!res.data?.success) {
-            toast.error(res.data?.error || "Failed to fetch company list");
             return {
                 success: false,
                 error: res.data?.error || "Failed to fetch company list",
@@ -37,43 +36,52 @@ const fetchCompanyListWithPermission = async (perm: ACCESS_PERMISSION) => {
             data: res.data.data ?? [],
         };
     } catch (err: any) {
-        toast.error(errText(err, "Failed to fetch company list. Please try again later."));
         return {
             success: false,
-            error: errText(err, "Failed to fetch company list. Please try again later."),
+            error: errText(err, "Failed to fetch company list"),
         };
     }
 };
 
 const fetchCompanyInfo = async (companyId: number, perm: ACCESS_PERMISSION) => {
     try {
-        const res = await api.get("/api/company", {
+        const res = await api.get(`/api/company`, {
             params: { cid: companyId },
             headers: authHeader(perm),
         });
 
         if (!res.data?.success) {
-            toast.error(res.data?.error || "Failed to fetch company info");
-            return null;
+            return {
+                success: false,
+                error: res.data?.error || "Failed to fetch company info",
+            };
         }
-
-        return (res.data.data ?? [null])[0];
+        return {
+            success: true,
+            data: res.data.data[0] ?? {},
+        };
     } catch (err: any) {
-        toast.error(errText(err, "Failed to fetch company info. Please try again later."));
-        return null;
+
+        return {
+            success: false,
+            error: errText(err, "Failed to fetch company info. Please try again later."),
+        };
     }
 };
 
 const fetchJDByCompanyID = async (companyId: number) => {
     try {
-        const res = await api.get("/api/jd", {
+        const res = await api.get(`/api/jd`, {
             params: { cid: companyId },
             headers: authHeader(ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY),
         });
 
         if (!res.data?.success) {
             toast.error(res.data?.error || "Error fetching JDs");
-            return [];
+            return {
+                success: false,
+                error: res.data?.error || "Error fetching JDs",
+            };
         }
 
         const activeCycle = res.data.active;
@@ -90,23 +98,29 @@ const fetchJDByCompanyID = async (companyId: number) => {
             jd_pdf_name: jd?.pdf_name,
         }));
 
-        return transformed;
+        return { success: true, data: transformed };
     } catch (err: any) {
         toast.error(errText(err, "Error fetching JDs"));
-        return [];
+        return {
+            success: false,
+            error: errText(err, "Error fetching JDs"),
+        };
     }
 };
 
 const fetchVideosByCompanyID = async (companyId: number) => {
     try {
-        const res = await api.get("/api/video", {
+        const res = await api.get(`/api/video`, {
             params: { cid: companyId },
             headers: authHeader(ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY),
         });
 
         if (!res.data?.success) {
             toast.error(res.data?.error || "Error fetching Videos");
-            return [];
+            return {
+                success: false,
+                error: res.data?.error || "Error fetching Videos",
+            };
         }
 
         const rows = Array.isArray(res.data.data) ? res.data.data : [];
@@ -119,10 +133,10 @@ const fetchVideosByCompanyID = async (companyId: number) => {
             updated_at: new Date(video?.updated_at),
         }));
 
-        return transformed;
+        return { success: true, data: transformed };
     } catch (err: any) {
         toast.error(errText(err, "Error fetching Videos"));
-        return [];
+        return { success: false, error: errText(err, "Error fetching Videos") };
     }
 };
 
@@ -135,7 +149,7 @@ const fetchNewsByCompanyID = async (companyId: number) => {
 
         if (!res.data?.success) {
             toast.error(res.data?.error || "Failed to load news");
-            return [];
+            return { success: false, error: res.data?.error || "Failed to load news" };
         }
 
         const rows = Array.isArray(res.data.data) ? res.data.data : [];
@@ -151,10 +165,10 @@ const fetchNewsByCompanyID = async (companyId: number) => {
             subdomain_tag: news?.subdomain_tag,
         }));
 
-        return transformed;
+        return { success: true, data: transformed };
     } catch (err: any) {
         toast.error(errText(err, "Failed to load news"));
-        return [];
+        return { success: false, error: errText(err, "Failed to load news") };
     }
 };
 

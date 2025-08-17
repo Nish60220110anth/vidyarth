@@ -113,8 +113,29 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         if (is_default) {
 
+            let company = await prisma.company.findFirst({
+                where: {
+                    OR: [{
+                        company_full: { contains: "default-company" }
+                    }]
+                },
+                select: { id: true },
+            });
+
+            if (!company) {
+                company = await prisma.company.create({
+                    data: {
+                        company_full: "default-company",
+                        company_name: "Default Company",
+                        is_legacy: false,
+                        is_featured: false,
+                        logo_url: "https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/company-logo%2F0.png?alt=media&token=07e200b6-715f-4d7e-9596-0cf444d0fd41"
+                    },
+                });
+            }
+
             const defaultJD = await prisma.company_jd.findFirst({
-                where: { company_id: 0 },
+                where: { company_id: company.id },
                 include: {
                     company: true,
                     placement_cycle: true,

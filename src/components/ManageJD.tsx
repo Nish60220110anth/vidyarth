@@ -585,7 +585,11 @@ export default function ManageJDList() {
                                         "x-access-permission": ACCESS_PERMISSION.MANAGE_COMPANY_JD
                                     }
                                 });
-                                toast.success("added new JD")
+
+                                if(!res.data.success) {
+                                    toast.error(res.data.error || "couldn't add new JD");
+                                    return;
+                                }
 
                                 fetchJDs();
                             } catch (err: any) {
@@ -676,7 +680,7 @@ export default function ManageJDList() {
                                         {editCompany ? (
                                             <>
                                                 {editCompany.logo_url ? (
-                                                    <Image src={`${basePath}/${editCompany.logo_url}`} alt="logo" width={24} height={24} className="rounded" />
+                                                    <Image src={`${editCompany.logo_url}`} alt="logo" width={24} height={24} className="rounded" />
                                                 ) : (
                                                     <div className="w-6 h-6 bg-gray-200 rounded" />
                                                 )}
@@ -684,7 +688,7 @@ export default function ManageJDList() {
                                             </>
                                         ) : jd.company_logo && jd.company_full ? (
                                             <>
-                                                <Image src={`${basePath}/${jd.company_logo}`} alt="logo" width={24} height={24} className="rounded" />
+                                                <Image src={`${jd.company_logo}`} alt="logo" width={24} height={24} className="rounded" />
                                                 <span className="font-medium">{jd.company_full}</span>
                                             </>
                                         ) : (
@@ -726,7 +730,7 @@ export default function ManageJDList() {
                                 <>
                                     <div className="col-span-1 flex justify-center items-center">
                                         {jd.company_logo ? (
-                                            <Image src={`${basePath}/${jd.company_logo}`} alt="logo" width={40} height={40} className="rounded" />
+                                            <Image src={`${jd.company_logo}`} alt="logo" width={40} height={40} className="rounded" />
                                         ) : (
                                             <div className="w-10 h-10 bg-gray-200 rounded" />
                                         )}

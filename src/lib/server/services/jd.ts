@@ -20,9 +20,17 @@ async function getJDByID(jdId: string) {
 }
 
 async function createDefaultJD(cycleid: number) {
+
+    let company_id = await prisma.company.findFirstOrThrow({
+        where: { OR:[{
+            company_full: { contains: "default-company" }
+        }] },
+        select: { id: true },
+    });
+
     const defaultJD = await prisma.company_jd.create({
         data: {
-            company_id: 0,
+            company_id: company_id?.id,
             placement_cycle_id: cycleid,
             role: "default role",
             pdf_path: "",

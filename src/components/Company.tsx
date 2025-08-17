@@ -127,7 +127,6 @@ export const PANE_CONFIG: PaneDef[] = [
 
 export default function CompanyPage() {
     const router = useRouter();
-    const basePath = router.basePath || "";
     const [companyId, setCompanyId] = useState<number>(0);
 
     const [company, setCompany] = useState<Company>();
@@ -221,10 +220,10 @@ export default function CompanyPage() {
 
             if (!mountedRef.current) return;
 
-            if (c.status === "fulfilled") setCompany(c.value as any);
-            if (j.status === "fulfilled") setAllJDS(j.value as any);
-            if (v.status === "fulfilled") setAllVideos(v.value as any);
-            if (n.status === "fulfilled") setAllNews(n.value as any);
+            if (c.status === "fulfilled") setCompany(c.value.data as any);
+            if (j.status === "fulfilled") setAllJDS(j.value.data as any);
+            if (v.status === "fulfilled") setAllVideos(v.value.data as any);
+            if (n.status === "fulfilled") setAllNews(n.value.data as any);
         } finally {
             if (mountedRef.current) setRefreshing(false);
         }
@@ -255,13 +254,6 @@ export default function CompanyPage() {
         jds: (allJds || []).filter((j) => j.is_current).length || 0,
         news: (allNews || []).length || 0,
         videos: (allVideos || []).length || 0,
-    };
-
-    const toAppPath = (p?: string) => {
-        const file = p && p.trim().length ? p : "company-logo/0.png";
-        const clean = file.startsWith("/") ? file.slice(1) : file;
-        const bp = basePath.replace(/\/$/, "");
-        return `${bp}/${clean}`;
     };
 
     const handleDownloadJDs = async () => {
@@ -345,9 +337,9 @@ export default function CompanyPage() {
                             transition={{ duration: 0.3, delay: 0.1 }}
                             className="relative"
                         >
-                            <div className="absolute inset-0 rounded-md ring-2 ring-cyan-300/50 animate-pulse" />
+                            <div className="absolute inset-0" />
                             <Image
-                                src={toAppPath(company?.logo_url)}
+                                src={company?.logo_url || ""}
                                 alt="Logo"
                                 width={64}
                                 height={64}

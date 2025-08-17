@@ -1,27 +1,55 @@
 // pages/api/company/fetch-multiple.ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "../../../lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { MethodConfig, withPermissionCheck } from "@/lib/server/withPermissionCheck";
+import { ACCESS_PERMISSION } from "@prisma/client";
+import z from "zod";
+import { apiHelpers } from "@/lib/server/responseHelpers";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method not allowed" });
+const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
+    post: {
+        permissions: [
+            ACCESS_PERMISSION.MANAGE_COMPANY_LIST,
+        ],
+        filters: {
+            [ACCESS_PERMISSION.MANAGE_COMPANY_LIST]: {
+                priority: 1,
+                filter: {},
+            }
+        },
+    }
+};
+
+const PostQuerySchema = z.object({
+    ids: z.array(z.number()).min(1),
+});
+
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+
+    const result = PostQuerySchema.safeParse(req.body);
+
+    if (!result.success) {
+        apiHelpers.badRequest(res, `Invalid request ${result.error.issues}`);
+        return;
     }
 
-    const { ids } = req.body;
-
-    if (!Array.isArray(ids)) {
-        return res.status(400).json({ error: "Invalid request" });
-    }
-
+    const { ids } = result.data;
     try {
         const companies = await prisma.company.findMany({
             where: { id: { in: ids } },
             include: { domains: true },
         });
 
-        res.status(200).json({ companies });
-    } catch (error) {
+        apiHelpers.success(res, {
+            data: companies
+        });
+        return;
+    } catch (error: any) {
         console.error("Fetch multiple error:", error);
-        res.status(500).json({ error: "Failed to fetch companies" });
+        apiHelpers.error(res, `${error.message}`);
+        return;
+
     }
 }
+
+export default withPermissionCheck(METHOD_PERMISSIONS)(handler);
