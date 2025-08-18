@@ -206,7 +206,7 @@ export default function CompanySearchDropdownPortal({
                                 >
                                     {company.logo_url ? (
                                         <img
-                                            src={`${basePath}/${company.logo_url}`}
+                                            src={`${company.logo_url}`}
                                             alt={company.company_name}
                                             className="h-6 w-6 object-contain"
                                         />

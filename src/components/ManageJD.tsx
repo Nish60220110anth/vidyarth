@@ -1,5 +1,5 @@
 // components/ManageJDList.tsx
-import { JSX, useCallback, useEffect, useRef, useState } from "react";
+import { JSX, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
 
@@ -37,7 +37,6 @@ import PortalWrapper from "./PortableWrapper";
 import { deleteJDById, fetchAllJDs } from "@/lib/api/jd";
 import { fetchAllCycles } from "@/lib/api/cycle";
 
-
 export interface JDEntryAll {
     id: string;
     role: string;
@@ -73,7 +72,6 @@ export default function ManageJDList() {
 
     const [jdList, setJDList] = useState<JDEntryAll[]>([]);
 
-    // Editing state
     const [editJDId, setEditJDId] = useState<string | null>(null);
     const [editedJD, setEditedJD] = useState<
         Partial<JDEntryAll> & {
@@ -84,28 +82,23 @@ export default function ManageJDList() {
     >({ isNewPDFUploaded: false, pdf_file: null });
     const [editCompany, setEditCompany] = useState<Company | undefined>(undefined);
 
-    // Filters
     const [selectedCompany, setSelectedCompany] = useState<string>("");
     const [selectedRole, setSelectedRole] = useState<string>("");
     const [selectedDomain, setSelectedDomain] = useState<string>("");
     const [selectedCycle, setSelectedCycle] = useState<number>(-1);
     const [selectedStatus, setSelectedStatus] = useState<string>("");
 
-    // Sorting
     const [sortKey, setSortKey] = useState<SortKey>("company_full");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-    // UI: overlays/menus
     const [showCompanyOverlay, setShowCompanyOverlay] = useState<boolean>(false);
     const [showJDOverlay, setShowJDOverlay] = useState<boolean>(false);
     const [domainMenuOpenId, setDomainMenuOpenId] = useState<string | null>(null);
 
-    // UI: load/progress
     const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
     const [isDownloading, setIsDownloading] = useState<boolean>(false);
     const [showLoadingScreen, setShowLoadingScreen] = useState<boolean>(false);
 
-    // Aux state
     const [availableDomains, setAvailableDomains] = useState<string[]>([]);
     const [showDeleteFor, setShowDeleteFor] = useState<string | null>(null);
 
@@ -117,7 +110,7 @@ export default function ManageJDList() {
         setJDList(res);
         setTimeout(() => {
             setIsRefreshing(false);
-        }, 1000)
+        }, 1000);
     };
 
     const refreshData = useCallback(async () => {
@@ -158,10 +151,10 @@ export default function ManageJDList() {
 
         let label = "";
 
-        if (companyName.trim() == "" || role.trim() == "") {
-            label = "JD"
+        if (companyName.trim() === "" || role.trim() === "") {
+            label = "JD";
         } else {
-            label = `${companyName}(${role})`
+            label = `${companyName}(${role})`;
         }
 
         const res = await deleteJDById(id, label);
@@ -201,14 +194,13 @@ export default function ManageJDList() {
             });
         });
 
-        // Style header row
         sheet.getRow(1).eachCell((cell) => {
             cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
             cell.alignment = { vertical: "middle", horizontal: "center" };
             cell.fill = {
                 type: "pattern",
                 pattern: "solid",
-                fgColor: { argb: "FF1E293B" }, // Slate-800
+                fgColor: { argb: "FF1E293B" },
             };
             cell.border = {
                 top: { style: "thin" },
@@ -218,7 +210,6 @@ export default function ManageJDList() {
             };
         });
 
-        // Center align body rows
         sheet.eachRow((row, rowIndex) => {
             if (rowIndex !== 1) {
                 row.eachCell((cell) => {
@@ -227,14 +218,11 @@ export default function ManageJDList() {
             }
         });
 
-        // Save
         const buffer = await workbook.xlsx.writeBuffer();
         saveAs(new Blob([buffer]), "JD_List.xlsx");
 
         setTimeout(() => setIsDownloading(false), 1000);
     };
-
-
 
     const handleSave = async () => {
         setShowLoadingScreen(true);
@@ -257,14 +245,14 @@ export default function ManageJDList() {
         formData.append("company_id", company_id);
         formData.append("placement_cycle_id", placement_cycle_id);
         formData.append("domains", JSON.stringify(domainList));
-        formData.append("keep_existing_pdf", editedJD.isNewPDFUploaded ? "false" : "true")
+        formData.append("keep_existing_pdf", editedJD.isNewPDFUploaded ? "false" : "true");
 
         const pdf_file = editedJD.pdf_file;
         const pdf_name = editedJD.pdf_name;
 
         if (pdf_file instanceof File && pdf_name) {
             formData.append("pdf", pdf_file);
-            formData.append("pdf_name", pdf_name)
+            formData.append("pdf_name", pdf_name);
         }
 
         try {
@@ -285,10 +273,10 @@ export default function ManageJDList() {
             setDomainMenuOpenId(null);
 
             fetchJDs();
-        } catch (err) {
+        } catch {
             toast.error("Failed to update JD");
         } finally {
-            setShowLoadingScreen(false)
+            setShowLoadingScreen(false);
         }
     };
 
@@ -308,7 +296,7 @@ export default function ManageJDList() {
         setDomainMenuOpenId(null);
     };
 
-    const getFilteredJDs = () => {
+    const filteredJD = useMemo(() => {
         const filtered = jdList.filter((jd) => {
             const matchesCompany = selectedCompany === "" || jd.company_full.toLowerCase().includes(selectedCompany.toLowerCase()) || jd.company_name.toLowerCase().includes(selectedCompany.toLowerCase());
             const matchesRole = selectedRole === "" || jd.role.toLowerCase().includes(selectedRole.toLowerCase());
@@ -323,7 +311,7 @@ export default function ManageJDList() {
             return matchesCompany && matchesRole && matchesDomain && matchesCycle && matchesStatus;
         });
 
-        return filtered.sort((a, b) => {
+        return filtered.sort((a: any, b: any) => {
             const valA = a[sortKey];
             const valB = b[sortKey];
 
@@ -331,54 +319,8 @@ export default function ManageJDList() {
             if (valA > valB) return sortOrder === "asc" ? 1 : -1;
             return 0;
         });
-    };
-
-
-    useEffect(() => {
-        const handleShortcutCopyPaste = async (e: KeyboardEvent) => {
-            const active = document.activeElement as HTMLInputElement | HTMLTextAreaElement | null;
-
-            if (!active || (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) return;
-
-            if (e.ctrlKey && e.shiftKey && e.code === "KeyC") {
-                e.preventDefault();
-                const selectedText = active.value.substring(active.selectionStart || 0, active.selectionEnd || 0);
-                await navigator.clipboard.writeText(selectedText);
-            }
-
-            if (e.ctrlKey && e.shiftKey && e.code === "KeyV") {
-                e.preventDefault();
-                const pasteText = await navigator.clipboard.readText();
-                const start = active.selectionStart || 0;
-                const end = active.selectionEnd || 0;
-                const before = active.value.substring(0, start);
-                const after = active.value.substring(end);
-                const newValue = before + pasteText + after;
-
-                const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-                nativeSetter?.call(active, newValue);
-                active.dispatchEvent(new Event("input", { bubbles: true }));
-                active.setSelectionRange(before.length + pasteText.length, before.length + pasteText.length);
-            }
-
-            if (e.key === "Escape") {
-                setDomainMenuOpenId(null);
-                setShowJDOverlay(false);
-                setShowCompanyOverlay(false);
-                document.activeElement instanceof HTMLElement && document.activeElement.blur();
-            }
-
-            if (e.key === "Enter" && editJDId !== null) {
-                e.preventDefault();
-                // if(showOverlay) return;
-                // handleSave();
-            }
-        };
-
-        document.addEventListener("keydown", handleShortcutCopyPaste);
-        return () => document.removeEventListener("keydown", handleShortcutCopyPaste);
-    }, [editJDId, handleSave, domainMenuOpenId]);
-
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [jdList, selectedCompany, selectedRole, selectedDomain, selectedCycle, selectedStatus, sortKey, sortOrder]);
 
     const ActionButton = ({ icon, label, onClick, color }: { icon: JSX.Element; label: string; onClick: () => void; color: string }) => (
         <button
@@ -403,7 +345,7 @@ export default function ManageJDList() {
             ) : (
                 part
             )
-        );
+        ) as any;
     }
 
     const toggleSort = (key: SortKey) => {
@@ -435,19 +377,16 @@ export default function ManageJDList() {
             const fetchedDomains: string[] = res.data.domains || [];
 
             return fetchedDomains;
-        } catch (error) {
+        } catch {
             toast.error("Failed to load domains");
             return [];
         }
     };
 
-
-    let filteredJD = getFilteredJDs();
-
     return (
-        <div className="p-6 md:p-8 bg-gray-100 h-full -z-10">
-            <div className="sticky top-0 pb-4 z-20">
-                <div className="text-sm text-gray-600 flex gap-2 mb-2">
+        <div className="p-4 sm:p-6 md:p-8 bg-gray-100 min-h-full">
+            <div className="sticky top-0 pb-4 z-20 bg-gray-100/95 backdrop-blur supports-[backdrop-filter]:bg-gray-100/80">
+                <div className="text-xs sm:text-sm text-gray-600 flex gap-2 mb-2 flex-wrap">
                     <span onClick={() => router.push("/")} className="cursor-pointer hover:text-cyan-600">Dashboard</span>
                     <span>/</span>
                     <span className="text-gray-900 font-semibold">Manage Job Descriptions</span>
@@ -456,35 +395,33 @@ export default function ManageJDList() {
 
             <motion.h1
                 layoutScroll
-                className="text-2xl md:text-3xl font-bold text-gray-900"
+                className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
-            > Manage Job Descriptions
+            >
+                Manage Job Descriptions
             </motion.h1>
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
                 <div className="flex flex-wrap items-center gap-2 flex-1">
-
-                    {/* Filter: DOMAIN*/}
                     <select
                         value={selectedDomain}
                         onChange={(e) => setSelectedDomain(e.target.value)}
-                        className="px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        className="w-full sm:w-auto px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
                     >
                         <option value="">All Domains</option>
-                        {Object.values(ALL_DOMAINS).map((domain, _i) => (
+                        {Object.values(ALL_DOMAINS).map((domain) => (
                             <option key={domain}>{domain}</option>
                         ))}
                     </select>
 
-                    {/* DOMAIN: Cycle */}
                     <select
                         value={selectedCycle}
                         onChange={(e) => {
-                            setSelectedCycle(Number(e.target.value))
+                            setSelectedCycle(Number(e.target.value));
                         }}
-                        className="px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        className="w-full sm:w-auto px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
                     >
                         <option value={-1}>All Cycles</option>
                         {placementCycles.map((cycle) => (
@@ -492,33 +429,30 @@ export default function ManageJDList() {
                         ))}
                     </select>
 
-                    {/* DOMAIN: Company Name */}
                     <motion.input
                         type="text"
                         placeholder="Company"
                         value={selectedCompany}
                         onChange={(e) => setSelectedCompany(e.target.value)}
-                        whileFocus={{ scale: 1.05 }}
+                        whileFocus={{ scale: 1.02 }}
                         transition={{ type: "spring", stiffness: 300 }}
                         className="px-4 py-2 border border-gray-300 rounded-md text-sm text-black 
                         bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400
-                         focus:border-cyan-400 shadow-sm focus:shadow-lg transition duration-75 w-full sm:w-64"
+                        focus:border-cyan-400 shadow-sm focus:shadow-lg transition duration-75 w-full sm:w-64"
                     />
 
-                    {/* DOMAIN: Role */}
                     <motion.input
                         type="text"
                         placeholder="Role"
                         value={selectedRole}
                         onChange={(e) => setSelectedRole(e.target.value)}
-                        whileFocus={{ scale: 1.05 }}
+                        whileFocus={{ scale: 1.02 }}
                         transition={{ type: "spring", stiffness: 300 }}
                         className="px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 
                         bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 
                         focus:border-cyan-400 focus:shadow-lg transition duration-75 w-full sm:w-auto"
                     />
 
-                    {/* DOMAIN: Status */}
                     <select
                         value={selectedStatus}
                         onChange={(e) => setSelectedStatus(e.target.value)}
@@ -531,13 +465,10 @@ export default function ManageJDList() {
                     </select>
 
                     <button
-                        onClick={async (e) => {
-                            await fetchJDs();
-                        }}
+                        onClick={fetchJDs}
                         className="p-2 rounded-md border border-gray-300 text-gray-600 hover:text-cyan-600 hover:border-cyan-500 transition shadow-sm hover:shadow-md"
                         title="Refresh JD List"
                     >
-
                         <motion.div
                             animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
                             transition={{
@@ -549,9 +480,7 @@ export default function ManageJDList() {
                         >
                             <ArrowPathIcon className="h-5 w-5" />
                         </motion.div>
-
                     </button>
-
                 </div>
 
                 <div className="flex items-center gap-2 ml-auto">
@@ -586,14 +515,14 @@ export default function ManageJDList() {
                                     }
                                 });
 
-                                if(!res.data.success) {
+                                if (!res.data.success) {
                                     toast.error(res.data.error || "couldn't add new JD");
                                     return;
                                 }
 
                                 fetchJDs();
                             } catch (err: any) {
-                                toast.error(err.data?.error || "couldn't add new JD")
+                                toast.error(err?.data?.error || "couldn't add new JD");
                             }
                         }}
                         className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-md text-sm font-medium shadow transition"
@@ -604,17 +533,15 @@ export default function ManageJDList() {
             </div>
 
             {filteredJD.length > 0 && (
-                <p className="text-sm text-gray-600 mt-2 ml-1">
+                <p className="text-xs sm:text-sm text-gray-600 mt-2 ml-1">
                     Showing {filteredJD.length} JD{filteredJD.length > 1 ? "s" : ""}
                 </p>
             )}
 
-            <div className="md:max-h-[65vh] overflow-y-auto pr-1">
+            <div className="max-h-none md:max-h-[65vh] overflow-y-auto pr-1">
                 <div className="hidden md:grid sticky top-0 z-20 bg-gray-100 grid-cols-16 gap-3.5 font-semibold text-gray-700 text-sm uppercase tracking-wide
             mb-2 text-center mt-2">
-
                     <div className="col-span-1 ml-5">Logo</div>
-
                     <div
                         className="col-span-2 cursor-pointer flex justify-center items-center gap-1"
                         onClick={() => toggleSort("company_full")}
@@ -622,7 +549,6 @@ export default function ManageJDList() {
                         Company
                         {sortKey === "company_full" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
                     </div>
-
                     <div
                         className="col-span-3 cursor-pointer flex justify-center items-center gap-1"
                         onClick={() => toggleSort("role")}
@@ -630,10 +556,8 @@ export default function ManageJDList() {
                         Role
                         {sortKey === "role" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
                     </div>
-
                     <div className="col-span-2">Domain</div>
                     <div className="col-span-2">JD</div>
-
                     <div
                         className="col-span-2 cursor-pointer flex justify-center items-center gap-1"
                         onClick={() => toggleSort("placement_cycle_type")}
@@ -641,7 +565,6 @@ export default function ManageJDList() {
                         Cycle
                         {sortKey === "placement_cycle_type" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
                     </div>
-
                     <div
                         className="col-span-1 cursor-pointer flex justify-center items-center gap-1"
                         onClick={() => toggleSort("active")}
@@ -649,7 +572,6 @@ export default function ManageJDList() {
                         Status
                         {sortKey === "active" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
                     </div>
-
                     <div className="col-span-3">Actions</div>
                 </div>
 
@@ -660,20 +582,22 @@ export default function ManageJDList() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="grid grid-cols-16 gap-3.5 items-center bg-white shadow-sm rounded-md px-6 py-4 mb-3"
+                            className="grid grid-cols-1 md:grid-cols-16 gap-3.5 items-start md:items-center bg-white shadow-sm rounded-md px-4 sm:px-6 py-4 mb-3"
                         >
+                            {/* Company cell */}
                             {editJDId === jd.id ? (
-                                <div className="col-span-3 text-center">
+                                <div className="md:col-span-3">
+                                    <div className="md:hidden text-[11px] text-gray-500 mb-1">Company</div>
                                     <button
                                         onClick={() => {
-                                            setShowCompanyOverlay(true)
+                                            setShowCompanyOverlay(true);
                                             setDomainMenuOpenId(null);
                                             setShowJDOverlay(false);
 
                                             setEditedJD({
                                                 ...jd,
                                                 domains: [],
-                                            })
+                                            });
                                         }}
                                         className="flex items-center justify-center gap-2 w-full px-3 py-2 border border-cyan-400 text-cyan-700 bg-white rounded-md text-sm hover:bg-cyan-50 transition"
                                     >
@@ -728,22 +652,24 @@ export default function ManageJDList() {
                                 </div>
                             ) : (
                                 <>
-                                    <div className="col-span-1 flex justify-center items-center">
+                                    <div className="md:col-span-1 flex md:justify-center items-center">
+                                        <div className="md:hidden text-[11px] text-gray-500 mb-1 w-full">Logo</div>
                                         {jd.company_logo ? (
                                             <Image src={`${jd.company_logo}`} alt="logo" width={40} height={40} className="rounded" />
                                         ) : (
                                             <div className="w-10 h-10 bg-gray-200 rounded" />
                                         )}
                                     </div>
-                                    <div className="col-span-2 text-sm text-gray-900 text-left">
-                                        {jd.company_full || <span className="text-gray-400">N/A</span>}
+                                    <div className="md:col-span-2 text-sm text-gray-900">
+                                        <div className="md:hidden text-[11px] text-gray-500 mb-1">Company</div>
+                                        <div className="truncate">{jd.company_full || <span className="text-gray-400">N/A</span>}</div>
                                     </div>
                                 </>
                             )}
 
-
-                            {/* JD Role */}
-                            <div className="col-span-3 text-sm text-gray-800 text-left">
+                            {/* Role */}
+                            <div className="md:col-span-3 text-sm text-gray-800">
+                                <div className="md:hidden text-[11px] text-gray-500 mb-1">Role</div>
                                 {editJDId === jd.id ? (
                                     <input
                                         value={editedJD.role || ""}
@@ -751,108 +677,110 @@ export default function ManageJDList() {
                                         className="w-full px-2 py-1 border rounded text-sm"
                                     />
                                 ) : (
-                                    <>{highlightMatch(jd.role, selectedRole)}</>
+                                    <div className="truncate">{highlightMatch(jd.role, selectedRole)}</div>
                                 )}
                             </div>
 
                             {/* Domain */}
-                            <div className="col-span-2 flex flex-wrap gap-1 relative group justify-center text-center">
-                                {(editJDId === jd.id ? editedJD.domains || [] : jd.domains)
-                                    .slice(0, 4)
-                                    .map((d, i) => {
-                                        const domain = typeof d === "string" ? d : d.domain;
-                                        const color = DOMAIN_COLORS[domain] || { bg: "bg-gray-100", text: "text-gray-800" };
+                            <div className="md:col-span-2">
+                                <div className="md:hidden text-[11px] text-gray-500 mb-1">Domain</div>
+                                <div className="flex flex-wrap gap-1 relative group justify-start md:justify-center">
+                                    {(editJDId === jd.id ? editedJD.domains || [] : jd.domains)
+                                        .slice(0, 4)
+                                        .map((d, i) => {
+                                            const domain = typeof d === "string" ? d : d.domain;
+                                            const color = DOMAIN_COLORS[domain] || { bg: "bg-gray-100", text: "text-gray-800" };
 
-                                        return (
-                                            <motion.div
-                                                key={i}
-                                                whileHover={{ scale: 1.05 }}
-                                                className={`inline-flex items-center gap-1 ${color.bg} ${color.text} text-xs px-2 py-0.5 rounded transition duration-200`}
-                                            >
-                                                <span>{domain}</span>
-                                                {editJDId === jd.id && (
-                                                    <button
-                                                        onClick={() =>
-                                                            setEditedJD((prev) => ({
-                                                                ...prev,
-                                                                domains: (prev.domains || []).filter((x) => x.domain !== domain),
-                                                            }))
-                                                        }
-                                                        className="hover:text-red-600"
-                                                    >
-                                                        <XMarkIcon className="w-3 h-3" />
-                                                    </button>
-                                                )}
-                                            </motion.div>
-                                        );
-                                    })}
+                                            return (
+                                                <motion.div
+                                                    key={i}
+                                                    whileHover={{ scale: 1.05 }}
+                                                    className={`inline-flex items-center gap-1 ${color.bg} ${color.text} text-xs px-2 py-0.5 rounded transition duration-200`}
+                                                >
+                                                    <span className="truncate max-w-[8rem]">{domain}</span>
+                                                    {editJDId === jd.id && (
+                                                        <button
+                                                            onClick={() =>
+                                                                setEditedJD((prev) => ({
+                                                                    ...prev,
+                                                                    domains: (prev.domains || []).filter((x) => x.domain !== domain),
+                                                                }))
+                                                            }
+                                                            className="hover:text-red-600"
+                                                        >
+                                                            <XMarkIcon className="w-3 h-3" />
+                                                        </button>
+                                                    )}
+                                                </motion.div>
+                                            );
+                                        })}
 
-                                {(editJDId === jd.id ? editedJD.domains?.length || 0 : jd.domains?.length || 0) > 4 && (
-                                    <span className="text-gray-500 text-xs font-semibold col-span-2 text-center mt-1">
-                                        +{(editJDId === jd.id ? editedJD.domains?.length || 0 : jd.domains?.length || 0) - 4} more
-                                    </span>
-                                )}
+                                    {(editJDId === jd.id ? editedJD.domains?.length || 0 : jd.domains?.length || 0) > 4 && (
+                                        <span className="text-gray-500 text-xs font-semibold mt-1">
+                                            +{(editJDId === jd.id ? editedJD.domains?.length || 0 : jd.domains?.length || 0) - 4} more
+                                        </span>
+                                    )}
 
-                                {editJDId === jd.id && (
-                                    <motion.button
-                                        whileHover={{ scale: 1.2 }}
-                                        className="ml-1 p-1 rounded hover:bg-gray-200 transition"
-                                        onClick={() => {
-                                            setDomainMenuOpenId(jd.id)
-                                            setShowCompanyOverlay(false)
-                                            setShowJDOverlay(false)
+                                    {editJDId === jd.id && (
+                                        <motion.button
+                                            whileHover={{ scale: 1.2 }}
+                                            className="ml-1 p-1 rounded hover:bg-gray-200 transition"
+                                            onClick={() => {
+                                                setDomainMenuOpenId(jd.id);
+                                                setShowCompanyOverlay(false);
+                                                setShowJDOverlay(false);
 
-                                            getDomainsForCompany(editCompany?.id ?? jd.company_id)
-                                                .then((domains) => setAvailableDomains(domains))
-                                                .catch(() => {
-                                                    toast.error("Failed to load domains");
-                                                    setAvailableDomains([]);
-                                                });
-                                        }}
-                                    >
-                                        <PlusIcon className="w-4 h-4 text-gray-600 hover:text-cyan-600" />
-                                    </motion.button>
-                                )}
+                                                getDomainsForCompany(editCompany?.id ?? jd.company_id)
+                                                    .then((domains) => setAvailableDomains(domains))
+                                                    .catch(() => {
+                                                        toast.error("Failed to load domains");
+                                                        setAvailableDomains([]);
+                                                    });
+                                            }}
+                                        >
+                                            <PlusIcon className="w-4 h-4 text-gray-600 hover:text-cyan-600" />
+                                        </motion.button>
+                                    )}
 
-
-
-                                {domainMenuOpenId === jd.id && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 5 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 5 }}
-                                        className="absolute top-6 left-0 z-10 bg-white shadow-md rounded border p-2 space-y-1"
-                                        style={{ top: "calc(100% + 0.5rem)" }}>
-                                        {availableDomains.filter(
-                                            (d) => !(editedJD.domains || []).some((x) => x.domain === d)
-                                        ).length === 0 ? (
-                                            <div className="text-sm text-gray-400 italic px-2 py-1 text-center select-none">
-                                                No available domains
-                                            </div>
-                                        ) : (
-                                            availableDomains
-                                                .filter((d) => !(editedJD.domains || []).some((x) => x.domain === d))
-                                                .map((domain) => (
-                                                    <div
-                                                        key={domain}
-                                                        onClick={() =>
-                                                            setEditedJD((prev) => ({
-                                                                ...prev,
-                                                                domains: [...(prev.domains || []), { id: 0, domain }],
-                                                            }))
-                                                        }
-                                                        className="cursor-pointer text-sm text-gray-700 hover:text-cyan-700"
-                                                    >
-                                                        {domain}
-                                                    </div>
-                                                ))
-                                        )}
-                                    </motion.div>
-                                )}
+                                    {domainMenuOpenId === jd.id && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 5 }}
+                                            className="absolute z-10 bg-white shadow-md rounded border p-2 space-y-1 mt-2"
+                                        >
+                                            {availableDomains.filter(
+                                                (d) => !(editedJD.domains || []).some((x) => x.domain === d)
+                                            ).length === 0 ? (
+                                                <div className="text-sm text-gray-400 italic px-2 py-1 text-center select-none">
+                                                    No available domains
+                                                </div>
+                                            ) : (
+                                                availableDomains
+                                                    .filter((d) => !(editedJD.domains || []).some((x) => x.domain === d))
+                                                    .map((domain) => (
+                                                        <div
+                                                            key={domain}
+                                                            onClick={() =>
+                                                                setEditedJD((prev) => ({
+                                                                    ...prev,
+                                                                    domains: [...(prev.domains || []), { id: 0, domain }],
+                                                                }))
+                                                            }
+                                                            className="cursor-pointer text-sm text-gray-700 hover:text-cyan-700"
+                                                        >
+                                                            {domain}
+                                                        </div>
+                                                    ))
+                                            )}
+                                        </motion.div>
+                                    )}
+                                </div>
                             </div>
 
-                            {/* JD Upload/Docx */}
-                            <div className="col-span-2 text-sm text-center relative">
+                            {/* JD Upload/Doc */}
+                            <div className="md:col-span-2 text-sm relative">
+                                <div className="md:hidden text-[11px] text-gray-500 mb-1">JD</div>
                                 {editJDId === jd.id ? (
                                     <>
                                         <button
@@ -867,14 +795,12 @@ export default function ManageJDList() {
                                             <span className="text-xs">Upload JD</span>
                                         </button>
 
-                                        {/* Filename (already present or newly selected) */}
                                         {(editedJD.pdf_name || jd.pdf_name) && (
                                             <p className="mt-1 text-xs text-gray-600 truncate">
                                                 {editedJD.pdf_name || jd.pdf_name}
                                             </p>
                                         )}
 
-                                        {/* Upload Overlay */}
                                         <AnimatePresence>
                                             {showJDOverlay && (
                                                 <PortalWrapper>
@@ -959,15 +885,17 @@ export default function ManageJDList() {
                                             </Tooltip.Root>
                                         </Tooltip.Provider>
                                     ) : (
-                                        <div className="text-gray-400 flex flex-col items-center gap-1">
+                                        <div className="text-gray-400 flex flex-col items-start md:items-center gap-1">
                                             <DocumentIcon className="w-5 h-5 text-gray-300" />
                                             <span className="text-xs">No JD attached</span>
                                         </div>
-                                    ))}
+                                    )
+                                )}
                             </div>
 
                             {/* Cycle */}
-                            <div className="col-span-2 text-sm text-center text-gray-800">
+                            <div className="md:col-span-2 text-sm text-gray-800">
+                                <div className="md:hidden text-[11px] text-gray-500 mb-1">Cycle</div>
                                 {editJDId === jd.id ? (
                                     <select
                                         value={editedJD.placement_cycle_id || ""}
@@ -976,7 +904,7 @@ export default function ManageJDList() {
                                                 ...editedJD,
                                                 placement_cycle_id: parseInt(e.target.value),
                                                 placement_cycle_type: placementCycles.find(c => c.id === parseInt(e.target.value))?.type || ""
-                                            })
+                                            });
                                         }}
                                         className="w-full px-2 py-1 border rounded text-sm text-gray-800 bg-white"
                                     >
@@ -1005,9 +933,9 @@ export default function ManageJDList() {
                                 )}
                             </div>
 
-
-                            {/* Active/InActive */}
-                            <div className="col-span-1 text-sm text-center text-gray-800">
+                            {/* Status */}
+                            <div className="md:col-span-1 text-sm text-gray-800">
+                                <div className="md:hidden text-[11px] text-gray-500 mb-1">Status</div>
                                 {editJDId === jd.id ? (
                                     <select
                                         value={editedJD.active ? "Active" : "Inactive"}
@@ -1027,7 +955,7 @@ export default function ManageJDList() {
                             </div>
 
                             {/* Actions */}
-                            <div className="col-span-3 flex gap-2 flex-wrap justify-center">
+                            <div className="md:col-span-3 flex gap-2 flex-wrap justify-start md:justify-center">
                                 {editJDId === jd.id ? (
                                     <>
                                         <ActionButton
@@ -1070,12 +998,15 @@ export default function ManageJDList() {
                                     onCancel={() => setShowDeleteFor(null)}
                                 />
                             )}
-
                         </motion.div>
                     ))}
-
-
                 </AnimatePresence>
+
+                {filteredJD.length === 0 && (
+                    <div className="flex items-center justify-center py-16 md:py-24">
+                        <div className="text-gray-500 text-center text-base">No JDs available.</div>
+                    </div>
+                )}
             </div>
 
             {showLoadingScreen && (
@@ -1097,9 +1028,7 @@ export default function ManageJDList() {
                         This may take a few seconds
                     </p>
                 </div>
-
             )}
-
         </div>
     );
 }

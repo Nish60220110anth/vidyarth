@@ -15,7 +15,7 @@ model video {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  company company @relation(fields: [company_id], references: [id])
+  company company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model youTubeembedsettings {

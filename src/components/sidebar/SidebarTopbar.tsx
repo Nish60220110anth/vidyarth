@@ -116,25 +116,48 @@ export default function SidebarTopBar({
     );
 
     return (
-        <motion.div className="sticky top-0 z-30 bg-[#0c0f11] text-cyan-100 w-full border-b border-cyan-900 backdrop-blur-md px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-            <div className="w-full sm:w-auto flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-1">
-                <h2 className="text-lg text-white font-semibold hidden md:block">Search Companies</h2>
-                <CompanySearchBar
-                    onSelect={async (company) => {
-                        await onRouteTo(router, "company", company.id);
-                    }}
-                    showHint={false}
-                    placeholder="Search for companies"
-                    inputExpand
-                    permission={ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY}
-                />
+        <motion.div
+            className="
+        sticky top-0 z-30 bg-[#0c0f11] text-cyan-100 w-full
+        border-b border-cyan-900 backdrop-blur-md
+        px-3 sm:px-6 py-2
+        flex items-center gap-2 sm:gap-4
+        flex-nowrap overflow-x-auto
+      "
+        >
+            {/* Left: label + search — keep in one row, allow shrink */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <h2 className="text-base sm:text-lg text-white font-semibold hidden md:block">
+                    Search Companies
+                </h2>
+
+                {/* Neutralize CompanySearchBar's built-in top margin so it stays single-line */}
+                <div className="-mt-4 sm:mt-0 flex-1 min-w-0">
+                    <CompanySearchBar
+                        onSelect={async (company) => {
+                            await onRouteTo(router, "company", company.id);
+                        }}
+                        showHint={false}
+                        placeholder="Search for companies"
+                        inputExpand
+                        permission={ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY}
+                    />
+                </div>
             </div>
 
-            <div className="h-6 w-px bg-cyan-900 mx-4 hidden sm:block" />
+            {/* Divider (keep only on >= sm to save space) */}
+            <div className="h-6 w-px bg-cyan-900 mx-2 sm:mx-4 hidden sm:block" />
 
-            <div className="relative w-full sm:w-auto ml-auto flex flex-wrap items-center justify-end gap-2 sm:gap-3" ref={profileMenuRef}>
+            {/* Right: icons group — never wrap */}
+            <div
+                className="
+          relative ml-auto flex items-center justify-end gap-2 sm:gap-3
+          flex-shrink-0 whitespace-nowrap
+        "
+                ref={profileMenuRef}
+            >
                 {canSeeAnnouncements && (
-                    <div className="relative" ref={announcementIconRef}>
+                    <div className="relative flex-shrink-0" ref={announcementIconRef}>
                         <div
                             onClick={onToggleAnnouncements}
                             className="p-2 rounded-full hover:bg-cyan-900/20 transition cursor-pointer"
@@ -163,8 +186,8 @@ export default function SidebarTopBar({
                                             }}
                                             disabled={refreshingAnns || loadingAnns}
                                             className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition ${refreshingAnns
-                                                ? "border-cyan-700 text-cyan-300 bg-[#0d1f2b]"
-                                                : "border-cyan-800 text-cyan-200 hover:bg-[#0f2130]"
+                                                    ? "border-cyan-700 text-cyan-300 bg-[#0d1f2b]"
+                                                    : "border-cyan-800 text-cyan-200 hover:bg-[#0f2130]"
                                                 } disabled:opacity-50`}
                                         >
                                             <ArrowPathIcon className={`w-4 h-4 ${refreshingAnns ? "animate-spin" : ""}`} />
@@ -188,7 +211,10 @@ export default function SidebarTopBar({
                                                     <p className="font-semibold text-sm text-cyan-100">{a.title}</p>
                                                     {a.brief && <p className="text-sm text-cyan-300 mt-1">{a.brief}</p>}
                                                     <p className="text-xs text-cyan-600 mt-2">
-                                                        {new Date(a.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+                                                        {new Date(a.created_at).toLocaleString("en-IN", {
+                                                            dateStyle: "medium",
+                                                            timeStyle: "short",
+                                                        })}
                                                     </p>
                                                     {a.is_link && a.where_to_look && (
                                                         <div className="absolute bottom-3 right-4">
@@ -250,11 +276,13 @@ export default function SidebarTopBar({
                                                 setActiveComponent(item.component());
                                             }}
                                             className={`group flex items-center justify-start gap-3 px-4 py-2.5 text-sm font-medium rounded-md cursor-pointer transition-all ${isSelected
-                                                ? "bg-gradient-to-r from-cyan-800/30 to-cyan-900/40 text-cyan-200"
-                                                : "bg-transparent text-cyan-100 hover:bg-[#15232b] hover:text-cyan-200"
+                                                    ? "bg-gradient-to-r from-cyan-800/30 to-cyan-900/40 text-cyan-200"
+                                                    : "bg-transparent text-cyan-100 hover:bg-[#15232b] hover:text-cyan-200"
                                                 }`}
                                         >
-                                            {item.icon(`h-5 w-5 ${isSelected ? "text-cyan-300" : "text-cyan-400 group-hover:text-cyan-300"}`)}
+                                            {item.icon(
+                                                `h-5 w-5 ${isSelected ? "text-cyan-300" : "text-cyan-400 group-hover:text-cyan-300"}`
+                                            )}
                                             <span className="truncate">{item.label}</span>
                                         </div>
                                     );

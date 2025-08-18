@@ -1,5 +1,5 @@
 // components/ManageVideoList.tsx
-import { useState, useEffect, JSX } from "react";
+import { useState, useEffect, JSX, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -48,10 +48,11 @@ export const YouTubeEmbedFieldDescriptions: Record<string, string> = {
     origin: "Origin domain for JS API"
 };
 
-
 export default function ManageVideoList() {
+    const router = useRouter();
+    const { basePath } = router;
+
     const [videoList, setVideoList] = useState<VideoEntry[]>([]);
-    const {basePath} = useRouter();
 
     const [editId, setEditId] = useState<number | null>(null);
     const [editedVideo, setEditedVideo] = useState<Partial<VideoEntry> & { image_file?: File; isNewImageUploaded?: boolean }>({
@@ -68,7 +69,6 @@ export default function ManageVideoList() {
     const [selectedVideoSource, setSelectedVideoSource] = useState("all");
     const [selectedCompany, setSelectedCompany] = useState("");
     const [selectedTitle, setSelectedTitle] = useState("");
-
 
     const [showLoadingScreen, setShowLoadingScreen] = useState<Boolean>(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -94,9 +94,6 @@ export default function ManageVideoList() {
         origin: "",
     });
 
-
-    const router = useRouter();
-
     const _fetchVideos = async () => {
         setIsRefreshing(true);
         const res = await fetchVideos();
@@ -119,11 +116,7 @@ export default function ManageVideoList() {
 
     const handleDelete = async (id: number) => {
         const res = await deleteVideoById(id);
-
-        if (res) {
-            setVideoList(videoList.filter((m) => m.id !== id));
-        }
-
+        if (res) setVideoList(videoList.filter((m) => m.id !== id));
         setShowDeleteFor(null);
         setEditId(null);
         setEditedVideo({});
@@ -152,14 +145,14 @@ export default function ManageVideoList() {
         formData.append("title", title);
         formData.append("embed_id", embed_id);
         formData.append("is_featured", is_featured);
-        formData.append("keep_existing_image", editedVideo.isNewImageUploaded ? "false" : "true")
+        formData.append("keep_existing_image", editedVideo.isNewImageUploaded ? "false" : "true");
 
         const image_file = editedVideo.image_file;
         const image_name = editedVideo.thumbnail_image_name;
 
         if (image_file instanceof File && image_name) {
             formData.append("image", image_file);
-            formData.append("image_name", image_name)
+            formData.append("image_name", image_name);
         }
 
         const res = await updateVideoById(formData);
@@ -176,7 +169,6 @@ export default function ManageVideoList() {
                         thumbnail_url: res.thumbnail_url,
                         thumbnail_image_name: res.thumbnail_image_name,
                         is_featured: res.is_featured,
-
                         company_id: res.company.id,
                         company_full: res.company.company_full,
                         company_logo: res.company.logo_url || "",
@@ -184,8 +176,7 @@ export default function ManageVideoList() {
                 } else {
                     return video;
                 }
-            }))
-
+            }));
             setEditId(null);
             setEditCompany(undefined);
             setEditedVideo({});
@@ -217,33 +208,35 @@ export default function ManageVideoList() {
 
     useEffect(() => {
         _fetchVideos();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const filteredList = videoList.filter((video) => {
-        return (
-            (selectedCompany === "" || video.company_full.toLowerCase().includes(selectedCompany.toLowerCase())) &&
-            (selectedTitle === "" || video.title.toLowerCase().includes(selectedTitle.toLowerCase())) &&
-            (selectedVideoSource === "all" || video.stream_source === selectedVideoSource) &&
-            (selectedVideoType === "all" || video.video_type === selectedVideoType)
-        );
-    });
-
-    if (sortKey) {
-        filteredList.sort((a, b) => {
-            const valA = a[sortKey];
-            const valB = b[sortKey];
-            if (valA < valB) return sortOrder === "asc" ? -1 : 1;
-            if (valA > valB) return sortOrder === "asc" ? 1 : -1;
-            return 0;
+    const filteredList = useMemo(() => {
+        const list = videoList.filter((video) => {
+            return (
+                (selectedCompany === "" || video.company_full.toLowerCase().includes(selectedCompany.toLowerCase())) &&
+                (selectedTitle === "" || video.title.toLowerCase().includes(selectedTitle.toLowerCase())) &&
+                (selectedVideoSource === "all" || video.stream_source === selectedVideoSource) &&
+                (selectedVideoType === "all" || video.video_type === selectedVideoType)
+            );
         });
-    }
+
+        if (sortKey) {
+            list.sort((a, b) => {
+                const valA = a[sortKey];
+                const valB = b[sortKey];
+                if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+                if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+                return 0;
+            });
+        }
+        return list;
+    }, [videoList, selectedCompany, selectedTitle, selectedVideoSource, selectedVideoType, sortKey, sortOrder]);
 
     function highlightMatch(text: string, query: string) {
         if (!query) return text;
-
         const regex = new RegExp(`(${query})`, "ig");
         const parts = text.split(regex);
-
         return parts.map((part, index) =>
             regex.test(part) ? (
                 <span key={index} className="bg-yellow-200 text-black font-semibold">
@@ -252,7 +245,7 @@ export default function ManageVideoList() {
             ) : (
                 part
             )
-        );
+        ) as any;
     }
 
     useEffect(() => {
@@ -262,35 +255,40 @@ export default function ManageVideoList() {
                 handleSave();
             }
         };
-
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [editId, editedVideo]);
+    }, [editId, editedVideo]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
-        <div className="p-6 md:p-8 bg-gray-100 h-full -z-10">
-            <div className="sticky top-0 pb-4 z-20">
-                <div className="text-sm text-gray-600 flex gap-2 mb-2">
+        <div className="p-4 sm:p-6 md:p-8 bg-gray-100 h-full -z-10">
+            <div className="sticky top-0 pb-4 z-20 bg-gray-100/95 backdrop-blur supports-[backdrop-filter]:bg-gray-100/80">
+                <div className="text-xs sm:text-sm text-gray-600 flex flex-wrap gap-2 mb-2">
                     <span onClick={() => router.push("/")} className="cursor-pointer hover:text-cyan-600">Dashboard</span>
                     <span>/</span>
                     <span className="text-gray-900 font-semibold">Manage Videos</span>
                 </div>
             </div>
 
-            <motion.h1 layoutScroll className="text-2xl md:text-3xl font-bold text-gray-900" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            <motion.h1
+                layoutScroll
+                className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+            >
                 Manage Videos
             </motion.h1>
 
-            <div className="mt-4 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-
+            {/* Controls */}
+            <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                     <select
                         value={selectedVideoType}
                         onChange={(e) => setSelectedVideoType(e.target.value)}
-                        className="px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        className="w-full sm:w-auto px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
                     >
                         <option value="all">All Types</option>
-                        {Object.values(VIDEO_REQ).map((video_type, _i) => (
+                        {Object.values(VIDEO_REQ).map((video_type) => (
                             <option key={video_type}>{video_type}</option>
                         ))}
                     </select>
@@ -300,9 +298,9 @@ export default function ManageVideoList() {
                         placeholder="Company"
                         value={selectedCompany}
                         onChange={(e) => setSelectedCompany(e.target.value)}
-                        whileFocus={{ scale: 1.05 }}
+                        whileFocus={{ scale: 1.02 }}
                         transition={{ type: "spring", stiffness: 300 }}
-                        className="px-4 py-2 border border-gray-300 rounded-md text-sm text-black bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 shadow-sm focus:shadow-lg transition duration-75 w-64"
+                        className="w-full sm:w-64 px-4 py-2 border border-gray-300 rounded-md text-sm text-black bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 shadow-sm focus:shadow-lg transition duration-75"
                     />
 
                     <motion.input
@@ -310,55 +308,44 @@ export default function ManageVideoList() {
                         placeholder="Title"
                         value={selectedTitle}
                         onChange={(e) => setSelectedTitle(e.target.value)}
-                        whileFocus={{ scale: 1.05 }}
+                        whileFocus={{ scale: 1.02 }}
                         transition={{ type: "spring", stiffness: 300 }}
-                        className="px-4 py-2 border border-gray-300 rounded-md text-sm text-black bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 shadow-sm focus:shadow-lg transition duration-75 w-64"
+                        className="w-full sm:w-64 px-4 py-2 border border-gray-300 rounded-md text-sm text-black bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 shadow-sm focus:shadow-lg transition duration-75"
                     />
-
 
                     <select
                         value={selectedVideoSource}
                         onChange={(e) => setSelectedVideoSource(e.target.value)}
-                        className="px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        className="w-full sm:w-auto px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
                     >
                         <option value="all">All Sources</option>
-                        {Object.values(VIDEO_STREAM_SOURCE).map((video_source, _i) => (
+                        {Object.values(VIDEO_STREAM_SOURCE).map((video_source) => (
                             <option key={video_source}>{video_source}</option>
                         ))}
                     </select>
 
-
                     <button
-                        onClick={() => {
-                            _fetchVideos();
-                        }}
+                        onClick={() => _fetchVideos()}
                         className="p-2 rounded-md border border-gray-300 text-gray-600 hover:text-cyan-600 hover:border-cyan-500 transition shadow-sm hover:shadow-md"
                         title="Refresh"
                     >
-                        <motion.div animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }} transition={{ repeat: isRefreshing ? Infinity : 0, repeatType: "loop", ease: "linear", duration: 1 }}>
+                        <motion.div
+                            animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
+                            transition={{ repeat: isRefreshing ? Infinity : 0, repeatType: "loop", ease: "linear", duration: 1 }}
+                        >
                             <ArrowPathIcon className="h-5 w-5" />
                         </motion.div>
                     </button>
-
-
                 </div>
 
-                <div className="flex items-center gap-2 ml-auto">
-
-                    {/* 
-                    <button
-                        onClick={() => setShowEmbedSettingsOverlay(true)}
-                        className="bg-white text-cyan-700 border border-cyan-400 hover:bg-cyan-50 px-4 py-2 rounded-md text-sm font-medium shadow transition"
-                    >
+                <div className="flex items-center gap-2 md:ml-auto">
+                    {/* <button onClick={() => setShowEmbedSettingsOverlay(true)} className="bg-white text-cyan-700 border border-cyan-400 hover:bg-cyan-50 px-4 py-2 rounded-md text-sm font-medium shadow transition">
                         ⚙️ Set Embed Settings
                     </button> */}
-
-
                     <button
                         onClick={async () => {
                             const res = await createDefaultVideo();
                             if (!res) return;
-
                             const item = {
                                 id: res.id,
                                 embed_id: res.embed_id,
@@ -372,7 +359,6 @@ export default function ManageVideoList() {
                                 company_full: res.company.company_full,
                                 company_logo: res.company.logo_url || "",
                             };
-
                             setVideoList(prev => [...prev, item]);
                         }}
                         className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-md text-sm font-medium shadow transition"
@@ -383,70 +369,59 @@ export default function ManageVideoList() {
             </div>
 
             {filteredList.length > 0 && (
-                <p className="text-sm text-gray-600 mt-2 ml-1">
+                <p className="text-xs sm:text-sm text-gray-600 mt-2 ml-1">
                     Showing {filteredList.length} Video{filteredList.length > 1 ? "s" : ""}
                 </p>
             )}
 
-            <div className="md:max-h-[65vh] overflow-y-auto pr-1">
+            <div className="max-h-none md:max-h-[65vh] overflow-y-auto pr-1">
+                {/* Header row (desktop only) */}
                 <div className="hidden md:grid sticky top-0 z-20 grid-cols-16 gap-3.5 bg-gray-100 font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2 text-center mt-4">
                     <div className="col-span-1 ml-5">Logo</div>
-
-                    <div
-                        className="col-span-2 cursor-pointer flex justify-center items-center gap-1"
-                        onClick={() => toggleSort("company_full")}
-                    >
+                    <div className="col-span-2 cursor-pointer flex justify-center items-center gap-1" onClick={() => toggleSort("company_full")}>
                         Company
                         {sortKey === "company_full" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
                     </div>
-
-                    <div
-                        className="col-span-1 cursor-pointer flex justify-center items-center gap-1"
-                        onClick={() => toggleSort("video_type")}
-                    >
+                    <div className="col-span-1 cursor-pointer flex justify-center items-center gap-1" onClick={() => toggleSort("video_type")}>
                         Type
                         {sortKey === "video_type" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
                     </div>
-
-                    <div className="col-span-1 cursor-pointer flex justify-center items-center gap-1"
-                        onClick={() => toggleSort("stream_source")}>
+                    <div className="col-span-1 cursor-pointer flex justify-center items-center gap-1" onClick={() => toggleSort("stream_source")}>
                         Source
                         {sortKey === "stream_source" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
                     </div>
-
                     <div className="col-span-2">Embed ID</div>
-
-                    <div className="col-span-4 cursor-pointer flex justify-center items-center gap-1"
-                        onClick={() => toggleSort("title")}
-                    >
+                    <div className="col-span-4 cursor-pointer flex justify-center items-center gap-1" onClick={() => toggleSort("title")}>
                         Title
                         {sortKey === "title" && (sortOrder === "asc" ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />)}
                     </div>
-
                     <div className="col-span-1">Thumbnail</div>
                     <div className="col-span-1">Status</div>
                     <div className="col-span-3">Actions</div>
-
                 </div>
 
+                {/* Rows */}
                 <AnimatePresence>
                     {filteredList.map((video) => (
-                        <motion.div key={video.id} className="grid grid-cols-16 gap-3.5 items-center bg-white shadow-sm rounded-md px-6 py-3 mb-3"
+                        <motion.div
+                            key={video.id}
+                            className="grid grid-cols-1 md:grid-cols-16 gap-3.5 items-start md:items-center bg-white shadow-sm rounded-md px-4 sm:px-6 py-3 mb-3"
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}>
-
-                            {/* Company */}
+                            exit={{ opacity: 0, y: -10 }}
+                        >
+                            {/* Company cell */}
                             {editId === video.id ? (
-                                <div className="col-span-3 text-center">
+                                <div className="md:col-span-3">
+                                    <div className="md:hidden text-[11px] text-gray-500 mb-1">Company</div>
                                     <button
                                         onClick={() => {
-                                            setShowCompanyOverlay(true)
+                                            setShowCompanyOverlay(true);
                                             setEditedVideo({
                                                 ...video,
                                                 thumbnail_image_name: "",
                                                 video_type: "COMPANY"
-                                            })
+                                            });
                                         }}
                                         className="flex items-center justify-center gap-2 w-full px-3 py-2 border border-cyan-400 text-cyan-700 bg-white rounded-md text-sm hover:bg-cyan-50 transition"
                                     >
@@ -501,71 +476,64 @@ export default function ManageVideoList() {
                                 </div>
                             ) : (
                                 <>
-                                    <div className="col-span-1 flex justify-center items-center">
+                                    <div className="md:col-span-1 flex md:justify-center items-center">
+                                        <div className="md:hidden text-[11px] text-gray-500 mb-1 w-full">Logo</div>
                                         {video.company_logo ? (
                                             <Image src={`${video.company_logo}`} alt="logo" width={40} height={40} className="rounded" />
                                         ) : (
                                             <div className="w-10 h-10 bg-gray-200 rounded" />
                                         )}
                                     </div>
-                                    <div className="col-span-2 text-sm text-gray-900 text-left">
-                                        {video.company_full || <span className="text-gray-400">N/A</span>}
+                                    <div className="md:col-span-2 text-sm text-gray-900">
+                                        <div className="md:hidden text-[11px] text-gray-500 mb-1">Company</div>
+                                        <div className="truncate">{video.company_full || <span className="text-gray-400">N/A</span>}</div>
                                     </div>
                                 </>
                             )}
 
-                            {/* Type (COMPANY/GENERIC) */}
-                            <div className="col-span-1 text-sm text-center text-gray-800">
+                            {/* Type */}
+                            <div className="md:col-span-1 text-sm text-gray-800">
+                                <div className="md:hidden text-[11px] text-gray-500 mb-1">Type</div>
                                 {editId === video.id ? (
                                     <select
                                         value={editedVideo.video_type}
-                                        onChange={(e) =>
-                                            setEditedVideo({ ...editedVideo, video_type: e.target.value })
-                                        }
+                                        onChange={(e) => setEditedVideo({ ...editedVideo, video_type: e.target.value })}
                                         className="w-full px-2 py-1 border rounded text-sm"
                                     >
-                                        {
-                                            Object.keys(VIDEO_REQ).map((type) => (
-                                                <option key={type} value={type}>
-                                                    {type}
-                                                </option>
-                                            ))
-                                        }
+                                        {Object.keys(VIDEO_REQ).map((type) => (
+                                            <option key={type} value={type}>
+                                                {type}
+                                            </option>
+                                        ))}
                                     </select>
                                 ) : (
-                                    <span className={`font-normal`}>
-                                        {video.video_type}
-                                    </span>
+                                    <span className="font-normal">{video.video_type}</span>
                                 )}
                             </div>
 
-                            {/* SOURCE */}
-                            <div className="col-span-1 text-sm text-center text-gray-800">
+                            {/* Source */}
+                            <div className="md:col-span-1 text-sm text-gray-800">
+                                <div className="md:hidden text-[11px] text-gray-500 mb-1">Source</div>
                                 {editId === video.id ? (
                                     <select
                                         value={editedVideo.stream_source}
-                                        onChange={(e) =>
-                                            setEditedVideo({ ...editedVideo, stream_source: e.target.value })
-                                        }
+                                        onChange={(e) => setEditedVideo({ ...editedVideo, stream_source: e.target.value })}
                                         className="w-full px-2 py-1 border rounded text-sm"
                                     >
-                                        {
-                                            Object.keys(VIDEO_STREAM_SOURCE).map((type) => (
-                                                <option key={type} value={type}>
-                                                    {type}
-                                                </option>
-                                            ))
-                                        }
+                                        {Object.keys(VIDEO_STREAM_SOURCE).map((type) => (
+                                            <option key={type} value={type}>
+                                                {type}
+                                            </option>
+                                        ))}
                                     </select>
                                 ) : (
-                                    <span className={`font-normal`}>
-                                        {video.stream_source}
-                                    </span>
+                                    <span className="font-normal">{video.stream_source}</span>
                                 )}
                             </div>
 
                             {/* Embed ID */}
-                            <div className="col-span-2 text-sm text-gray-800 text-left">
+                            <div className="md:col-span-2 text-sm text-gray-800">
+                                <div className="md:hidden text-[11px] text-gray-500 mb-1">Embed ID</div>
                                 {editId === video.id ? (
                                     <input
                                         value={editedVideo.embed_id || ""}
@@ -573,13 +541,13 @@ export default function ManageVideoList() {
                                         className="w-full px-2 py-1 border rounded text-sm"
                                     />
                                 ) : (
-                                    <>{video.embed_id}</>
+                                    <div className="truncate">{video.embed_id}</div>
                                 )}
                             </div>
 
-
                             {/* Title */}
-                            <div className="col-span-4 text-sm text-gray-800 text-left font-semibold uppercase">
+                            <div className="md:col-span-4 text-sm text-gray-800 font-semibold uppercase">
+                                <div className="md:hidden text-[11px] text-gray-500 mb-1">Title</div>
                                 {editId === video.id ? (
                                     <input
                                         value={editedVideo.title || ""}
@@ -587,18 +555,18 @@ export default function ManageVideoList() {
                                         className="w-full px-2 py-1 border rounded text-sm"
                                     />
                                 ) : (
-                                    <>{highlightMatch(video.title, selectedTitle)}</>
+                                    <div className="truncate">{highlightMatch(video.title, selectedTitle)}</div>
                                 )}
                             </div>
 
                             {/* Image Upload */}
-                            <div className="col-span-1 text-xs text-center relative">
+                            <div className="md:col-span-1 text-xs">
+                                <div className="md:hidden text-[11px] text-gray-500 mb-1">Thumbnail</div>
                                 {editId === video.id ? (
                                     <>
                                         <button
                                             onClick={() => {
                                                 setShowCompanyOverlay(false);
-
                                                 const input = document.createElement("input");
                                                 input.type = "file";
                                                 input.accept = ".png,.jpg,.jpeg,.svg";
@@ -622,57 +590,53 @@ export default function ManageVideoList() {
                                             <PlusIcon className="w-4 h-4" />
                                             <span className="text-xs">Upload Image</span>
                                         </button>
-
-                                        {/* Filename (already present or newly selected) */}
                                         {(editedVideo.thumbnail_image_name || video.thumbnail_image_name) && (
                                             <p className="mt-1 text-xs text-gray-600 truncate">
                                                 {editedVideo.thumbnail_image_name || video.thumbnail_image_name}
                                             </p>
                                         )}
                                     </>
+                                ) : video.thumbnail_url ? (
+                                    <Tooltip.Provider delayDuration={150}>
+                                        <Tooltip.Root>
+                                            <Tooltip.Trigger asChild>
+                                                <a
+                                                    href={video.thumbnail_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-medium px-3 py-1.5 rounded shadow-sm transition"
+                                                >
+                                                    <DocumentIcon className="w-5 h-5" />
+                                                    <span>Preview</span>
+                                                </a>
+                                            </Tooltip.Trigger>
+                                            <Tooltip.Portal>
+                                                <Tooltip.Content
+                                                    side="top"
+                                                    sideOffset={6}
+                                                    className="rounded-md bg-gray-900 text-white px-3 py-1 text-xs shadow-md z-50"
+                                                >
+                                                    {video.thumbnail_image_name}
+                                                    <Tooltip.Arrow className="fill-gray-900" />
+                                                </Tooltip.Content>
+                                            </Tooltip.Portal>
+                                        </Tooltip.Root>
+                                    </Tooltip.Provider>
                                 ) : (
-                                    video.thumbnail_url ? (
-                                        <Tooltip.Provider delayDuration={150}>
-                                            <Tooltip.Root>
-                                                <Tooltip.Trigger asChild>
-                                                    <a
-                                                        href={video.thumbnail_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-medium px-3 py-1.5 rounded shadow-sm transition"
-                                                    >
-                                                        <DocumentIcon className="w-5 h-5" />
-                                                        <span>Preview</span>
-                                                    </a>
-                                                </Tooltip.Trigger>
-                                                <Tooltip.Portal>
-                                                    <Tooltip.Content
-                                                        side="top"
-                                                        sideOffset={6}
-                                                        className="rounded-md bg-gray-900 text-white px-3 py-1 text-xs shadow-md z-50"
-                                                    >
-                                                        {video.thumbnail_image_name}
-                                                        <Tooltip.Arrow className="fill-gray-900" />
-                                                    </Tooltip.Content>
-                                                </Tooltip.Portal>
-                                            </Tooltip.Root>
-                                        </Tooltip.Provider>
-                                    ) : (
-                                        <div className="text-gray-400 flex flex-col items-center gap-1">
-                                            <DocumentIcon className="w-5 h-5 text-gray-300" />
-                                            <span className="text-xs">No Image attached</span>
-                                        </div>
-                                    ))}
+                                    <div className="text-gray-400 flex flex-col items-start md:items-center gap-1">
+                                        <DocumentIcon className="w-5 h-5 text-gray-300" />
+                                        <span className="text-xs">No Image attached</span>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Active/InActive */}
-                            <div className="col-span-1 text-sm text-center text-gray-800 content-center">
+                            {/* Status */}
+                            <div className="md:col-span-1 text-sm text-gray-800">
+                                <div className="md:hidden text-[11px] text-gray-500 mb-1">Status</div>
                                 {editId === video.id ? (
                                     <select
                                         value={editedVideo.is_featured ? "Active" : "Inactive"}
-                                        onChange={(e) =>
-                                            setEditedVideo({ ...editedVideo, is_featured: e.target.value === "Active" })
-                                        }
+                                        onChange={(e) => setEditedVideo({ ...editedVideo, is_featured: e.target.value === "Active" })}
                                         className="w-full px-2 py-1 border rounded text-sm"
                                     >
                                         <option value="Active">Active</option>
@@ -685,9 +649,8 @@ export default function ManageVideoList() {
                                 )}
                             </div>
 
-
                             {/* Actions */}
-                            <div className="col-span-3 flex gap-2 flex-wrap justify-center">
+                            <div className="md:col-span-3 flex gap-2 flex-wrap justify-start md:justify-center">
                                 {editId === video.id ? (
                                     <>
                                         <ActionButton
@@ -730,18 +693,26 @@ export default function ManageVideoList() {
                                     onCancel={() => setShowDeleteFor(null)}
                                 />
                             )}
-
                         </motion.div>
                     ))}
                 </AnimatePresence>
 
+                {/* Empty state (centered) */}
+                {filteredList.length === 0 && (
+                    <div className="flex items-center justify-center py-16 md:py-24">
+                        <div className="text-gray-500 text-center text-base">No videos available.</div>
+                    </div>
+                )}
+
+                {/* Loading overlay */}
                 {showLoadingScreen && (
-                    <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
+                    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
                         <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
                         <p className="text-cyan-200 text-lg font-medium animate-pulse">Uploading Video Entry...</p>
                     </div>
                 )}
 
+                {/* (Optional) Embed Settings Modal */}
                 {showEmbedSettingsOverlay && (
                     <PortalWrapper>
                         <div
@@ -814,10 +785,8 @@ export default function ManageVideoList() {
                                         Save Settings
                                     </button>
                                 </div>
-
                             </motion.div>
                         </div>
-
                     </PortalWrapper>
                 )}
             </div>

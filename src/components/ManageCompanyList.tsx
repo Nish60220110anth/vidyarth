@@ -265,6 +265,8 @@ export default function ManageCompanyList() {
             setEditedLogoFile(null);
             setEditedDomains([]);
 
+            previewUrlRef.current = null;
+
         } catch (err: any) {
             toast.error(`Failed to save changes: ${err.message}`);
         }
@@ -542,14 +544,8 @@ export default function ManageCompanyList() {
         });
     }, [companies, sortKey, sortOrder]);
 
-    const logoSrc = (logo?: string, updatedAt?: string) => {
-        if (!logo) return "";
-        const v = updatedAt ? `?v=${encodeURIComponent(updatedAt)}` : "";
-        return `${logo}${v}`;
-    };
-
     return (
-        <div className="px-3 sm:px-4 py-5 md:px-10 md:py-10 bg-gray-100 min-h-screen">
+        <div className="px-3 sm:px-4 py-5 md:px-10 md:py-10 bg-gray-100 min-h-full">
             <div className="sticky top-0 bg-gray-100 pb-4 z-20">
                 <div className="text-xs sm:text-sm text-gray-600 flex flex-wrap items-center gap-2 mb-2">
                     <span onClick={() => location.assign(`${basePath || ""}/`)} className="cursor-pointer hover:text-cyan-600">
@@ -743,7 +739,7 @@ export default function ManageCompanyList() {
                                             />
                                         ) : company.logo_url ? (
                                             <Image
-                                                src={logoSrc(company.logo_url, company.updated_at)}
+                                                src={company.logo_url}
                                                 alt="Logo"
                                                 width={40}
                                                 height={40}

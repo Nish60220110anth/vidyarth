@@ -35,7 +35,8 @@
     "// ───────── Postinstall ─────────": "",
     "postinstall": "npm run db:gen:prod",
     "analyze": "cross-env ANALYZE=true npm run build:prod",
-    "prisma:generate":"cross-env NODE_ENV=production npx prisma generate && npx prisma db push"
+    "prisma:generate": "cross-env NODE_ENV=production dotenv -e .env.production -- prisma generate && cross-env NODE_ENV=production dotenv -e .env.production -- prisma db push",
+    "prisma:generate:dev": "cross-env NODE_ENV=development dotenv -e .env.development -- prisma generate && cross-env NODE_ENV=development dotenv -e .env.development -- prisma db push"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",

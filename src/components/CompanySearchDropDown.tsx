@@ -62,12 +62,11 @@ export default function CompanySearchBar({
             try {
                 setLoading(true);
                 const res = await fetchCompanyListWithPermission(permission);
-                if(res.success && active) {
+                if (res.success && active) {
                     if (active) setAllCompanies(res.data ?? []);
                 }
-            } catch (e) {
+            } catch {
                 if (active) setAllCompanies([]);
-                // optionally: show a toast
             } finally {
                 if (active) setLoading(false);
             }
@@ -133,12 +132,11 @@ export default function CompanySearchBar({
     // Derived: showDropdown
     const showDropdown = isFocused && (deferredSearch.trim() !== "" || recentSelections.length > 0);
 
-    // Click outside to close
+    // Click outside to close index highlight (keep field state sane)
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             const target = e.target as Node;
             if (dropdownRef.current && !dropdownRef.current.contains(target)) {
-                // Close only if click is outside the input+dropdown wrapper
                 setFocusedIndex(-1);
                 if (wasManuallyCleared.current && inputRef.current?.value === "") {
                     wasManuallyCleared.current = false;
@@ -270,7 +268,7 @@ export default function CompanySearchBar({
 
     return (
         <div
-            className="w-full mt-4 flex justify-center font-[Urbanist]"
+            className="w-full mt-4 px-3 sm:px-0 flex justify-center font-[Urbanist]"
             ref={dropdownRef}
             role="combobox"
             aria-haspopup="listbox"
@@ -280,13 +278,17 @@ export default function CompanySearchBar({
         >
             <motion.div
                 ref={inputWrapperRef}
-                className={`relative ${isResetting ? "animate-pulse-reset" : ""}`}
+                className={`relative ${isResetting ? "animate-pulse-reset" : ""} w-full`}
+                // Mobile-first responsive width; animates between compact/expanded but never exceeds viewport
+                style={{
+                    width: inputExpand && isFocused ? "min(32rem, 92vw)" : "min(20rem, 92vw)",
+                }}
                 initial={false}
-                animate={{ width: inputExpand && isFocused ? "32rem" : "20rem" }}
+                animate={{ opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
             >
                 <MagnifyingGlassIcon
-                    className="h-5 w-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                    className="h-5 w-5 text-gray-500 absolute left-3 inset-y-0 my-auto pointer-events-none"
                     aria-hidden="true"
                 />
 
@@ -310,6 +312,7 @@ export default function CompanySearchBar({
                         setFocusedIndex(-1);
                     }}
                     onKeyDown={handleKeyDown}
+                    aria-busy={loading}
                     className={`w-full pl-10 pr-10 py-2 text-sm border border-gray-300 rounded-md 
             focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 
             bg-white text-gray-800 placeholder-gray-400 font-medium shadow-sm 
@@ -320,9 +323,9 @@ export default function CompanySearchBar({
                 />
 
                 {loading ? (
+                    // Loading ring: perfectly centered vertically on all sizes
                     <div
-                        className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 border-2 
-                       border-cyan-400 border-t-transparent rounded-full animate-spin"
+                        className="absolute right-3 inset-y-0 my-auto h-4 w-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"
                         aria-label="Loading"
                     />
                 ) : (
@@ -332,14 +335,14 @@ export default function CompanySearchBar({
                                 isClearingRef.current = true;
                             }}
                             onClick={clearSearch}
-                            className="h-5 w-5 text-gray-400 hover:text-gray-600 absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                            className="h-5 w-5 text-gray-400 hover:text-gray-600 absolute right-3 inset-y-0 my-auto cursor-pointer"
                             aria-label="Clear search"
                         />
                     )
                 )}
 
                 {showHint && (
-                    <div className="mt-1 text-xs italic pl-1">
+                    <div className="mt-1 text-[11px] sm:text-xs italic pl-1">
                         {loading ? (
                             <span className="text-cyan-500">Fetching companies...</span>
                         ) : deferredSearch.length === 0 ? (

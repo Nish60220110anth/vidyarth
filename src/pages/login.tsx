@@ -24,7 +24,7 @@ export default function LoginPage({
     userAgent?: string;
     language?: string;
 }) {
-    const { status, refresh, user } = useAuth();
+    const { status, refresh, user: authUser } = useAuth();
     const router = useRouter();
 
     const [email, setEmail] = useState('');
@@ -35,6 +35,7 @@ export default function LoginPage({
     const [isOnline, setIsOnline] = useState(true);
 
     const passwordInputRef = useRef<HTMLInputElement | null>(null);
+    const hasRedirectedRef = useRef(false);
 
     const isValidEmail = (val: string) => /\S+@\S+\.\S+/.test(val);
     const goTo = (path: string) => router.push(`${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`);
@@ -45,6 +46,44 @@ export default function LoginPage({
             data = await res.json();
         } catch { }
         return { res, data } as const;
+    };
+
+    const requestNotifAndSound = async () => {
+        try {
+            if (typeof window === 'undefined') return;
+
+            // Request Notification permission if supported and not yet decided
+            if ('Notification' in window && Notification.permission === 'default') {
+                await Notification.requestPermission();
+            }
+
+            // Warm up/unlock Web Audio context so short sounds can play on mobile
+            const Ctx: any = (window as any).AudioContext || (window as any).webkitAudioContext;
+            if (Ctx) {
+                const ctx: AudioContext = (window as any).__notifCtx || new Ctx();
+                (window as any).__notifCtx = ctx;
+                if (ctx.state === 'suspended') {
+                    await ctx.resume();
+                }
+
+                try {
+                    const o = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    o.type = 'sine';
+                    o.frequency.setValueAtTime(880, ctx.currentTime);
+                    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+                    g.gain.exponentialRampToValueAtTime(0.05, ctx.currentTime + 0.01);
+                    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+                    o.connect(g).connect(ctx.destination);
+                    o.start();
+                    o.stop(ctx.currentTime + 0.16);
+                } catch {
+
+                }
+            }
+        } catch {
+
+        }
     };
 
     useEffect(() => {
@@ -72,8 +111,11 @@ export default function LoginPage({
     }, []);
 
     useEffect(() => {
-        if (status === 'authenticated') {
-            router.replace(`${baseUrl}/dashboard/`);
+        if (status === 'authenticated' && !hasRedirectedRef.current) {
+            if (router.asPath !== '/dashboard/') {
+                hasRedirectedRef.current = true;
+                router.replace(`${baseUrl}/dashboard/`);
+            }
         }
     }, [status, router]);
 
@@ -105,8 +147,14 @@ export default function LoginPage({
                 toast.error(data?.error || 'Login failed. Try again.');
                 return;
             }
+
             await refresh();
+            // 🔔 request notification & sound permission right after a successful login
+            await requestNotifAndSound();
+
             toast.success(`Welcome, ${email}${data.role ? ` (${data.role})` : ''}`);
+
+            hasRedirectedRef.current = true;
             if (String(data.role || '').toLowerCase() === 'admin') {
                 goTo('/admin/');
             } else {
@@ -147,12 +195,15 @@ export default function LoginPage({
             });
 
             googleLogout();
-            const user = data.user;
+            const apiUser = data?.user;
 
-            if(data.success) {
+            if (data?.success && apiUser) {
                 await refresh();
-                toast.success(`Welcome, ${user.name || user.email}`);
-                if (String(user.role || '').toLowerCase() === 'admin') {
+                await requestNotifAndSound();
+
+                toast.success(`Welcome, ${apiUser.name || apiUser.email}`);
+                hasRedirectedRef.current = true;
+                if (String(apiUser.role || '').toLowerCase() === 'admin') {
                     goTo('/admin/');
                 } else {
                     goTo('/dashboard/');
@@ -160,7 +211,7 @@ export default function LoginPage({
                 return;
             }
 
-            if (user.is_active && !user.is_verified) {
+            if (apiUser?.is_active && !apiUser?.is_verified) {
                 toast.error('Your account is pending approval. Please wait for admin verification.');
                 goTo('/requires-approval');
                 return;
@@ -188,30 +239,30 @@ export default function LoginPage({
             </Head>
 
             <div
-                className={`fixed top-3 left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 rounded-full text-xs font-medium transition
+                className={`fixed top-3 left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium transition
         ${isOnline ? 'bg-emerald-900/40 text-emerald-200 border border-emerald-700/50' : 'bg-amber-900/40 text-amber-200 border border-amber-700/50'}`}
                 aria-live="polite"
             >
                 {isOnline ? 'Online' : 'Offline — some actions are disabled'}
             </div>
 
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#0b1520] via-[#0a141d] to-[#0b1520] text-cyan-100 relative overflow-hidden font-[Inter]">
-                <div className="pointer-events-none absolute -top-24 -left-20 h-72 w-72 rounded-full blur-3xl opacity-25 bg-cyan-700/20" />
-                <div className="pointer-events-none absolute -bottom-28 -right-24 h-80 w-80 rounded-full blur-3xl opacity-25 bg-cyan-500/20" />
+            <div className="min-h-screen flex items-center justify-center px-4 sm:px-0 bg-gradient-to-b from-[#0b1520] via-[#0a141d] to-[#0b1520] text-cyan-100 relative overflow-hidden font-[Inter]">
+                <div className="pointer-events-none absolute -top-24 -left-20 h-56 w-56 sm:h-72 sm:w-72 rounded-full blur-3xl opacity-25 bg-cyan-700/20" />
+                <div className="pointer-events-none absolute -bottom-28 -right-24 h-64 w-64 sm:h-80 sm:w-80 rounded-full blur-3xl opacity-25 bg-cyan-500/20" />
 
                 {isLoggingIn && (
                     <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
-                        <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
-                        <p className="text-cyan-200 text-lg font-medium animate-pulse">Logging you in…</p>
+                        <div className="h-12 w-12 sm:h-16 sm:w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
+                        <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse">Logging you in…</p>
                     </div>
                 )}
 
-                <div className="w-full max-w-md p-[1px] rounded-2xl bg-gradient-to-b from-cyan-600/40 to-cyan-800/20 shadow-[0_0_32px_rgba(0,255,255,0.07)] z-10">
-                    <div className="rounded-2xl bg-[#0b1014]/90 border border-cyan-900/60 p-8">
-                        <h1 className="text-4xl font-extrabold text-center text-cyan-300 mb-2 tracking-wide">Welcome to Charon</h1>
-                        <p className="text-center text-cyan-200/80 text-sm mb-8">Sign in to continue to your dashboard</p>
+                <div className="w-full max-w-md sm:max-w-md md:max-w-lg p-[1px] rounded-2xl bg-gradient-to-b from-cyan-600/40 to-cyan-800/20 shadow-[0_0_32px_rgba(0,255,255,0.07)] z-10">
+                    <div className="rounded-2xl bg-[#0b1014]/90 border border-cyan-900/60 p-5 sm:p-8">
+                        <h1 className="text-2xl sm:text-4xl font-extrabold text-center text-cyan-300 mb-2 sm:mb-3 tracking-wide">Welcome to Charon</h1>
+                        <p className="text-center text-cyan-200/80 text-sm sm:text-base mb-6 sm:mb-8">Sign in to continue to your dashboard</p>
 
-                        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5" noValidate>
                             <div>
                                 <label htmlFor="email" className="block text-sm font-medium text-cyan-200 mb-1">
                                     Email ID
@@ -226,7 +277,7 @@ export default function LoginPage({
                                         autoComplete="username"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#0f1318] text-cyan-100 placeholder-cyan-400/70 border border-cyan-800 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition"
+                                        className="w-full pl-10 pr-4 py-2 sm:py-2.5 rounded-xl bg-[#0f1318] text-cyan-100 placeholder-cyan-400/70 border border-cyan-800 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition"
                                         placeholder="you@iiml.ac.in"
                                         required
                                         aria-invalid={!email ? undefined : !isValidEmail(email) || undefined}
@@ -252,7 +303,7 @@ export default function LoginPage({
                                         autoComplete="current-password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full pl-10 pr-12 py-2 rounded-xl bg-[#0f1318] text-cyan-100 placeholder-cyan-400/70 border border-cyan-800 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition"
+                                        className="w-full pl-10 pr-12 py-2 sm:py-2.5 rounded-xl bg-[#0f1318] text-cyan-100 placeholder-cyan-400/70 border border-cyan-800 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition"
                                         placeholder="••••••••"
                                         required
                                     />
@@ -269,7 +320,7 @@ export default function LoginPage({
                                         ) : (
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9-542-7z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.478 0-8.268-2.943-9.542-7z" />
                                             </svg>
                                         )}
                                     </button>
@@ -279,7 +330,7 @@ export default function LoginPage({
                                     <button
                                         type="button"
                                         onClick={handleForgotPassword}
-                                        className="text-xs text-cyan-300 hover:text-cyan-100 hover:underline"
+                                        className="text-xs sm:text-sm text-cyan-300 hover:text-cyan-100 hover:underline"
                                     >
                                         Forgot Password?
                                     </button>
@@ -289,13 +340,13 @@ export default function LoginPage({
                             <button
                                 type="submit"
                                 disabled={isLoggingIn || !isOnline}
-                                className="w-full bg-cyan-400 disabled:bg-cyan-700/40 disabled:text-cyan-200/60 hover:bg-cyan-300 text-[#0a141d] font-semibold py-2 px-4 rounded-xl shadow-sm transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-0"
+                                className="w-full bg-cyan-400 disabled:bg-cyan-700/40 disabled:text-cyan-200/60 hover:bg-cyan-300 text-[#0a141d] font-semibold py-2.5 px-4 rounded-xl shadow-sm transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-0"
                             >
                                 {isLoggingIn ? 'Signing in…' : isOnline ? 'Login' : 'Offline'}
                             </button>
                         </form>
 
-                        <div className="mt-6 flex justify-between text-sm text-cyan-300">
+                        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-cyan-300">
                             <button onClick={handleNewUser} className="hover:underline hover:text-cyan-100 transition">
                                 New User?
                             </button>
@@ -312,7 +363,7 @@ export default function LoginPage({
                             {!isOnline && <p className="text-xs text-amber-300 mt-1">Reconnect to enable Google sign-in.</p>}
                         </div>
 
-                        <div className="mt-8 text-center text-sm text-gray-400 space-y-1">
+                        <div className="mt-8 text-center text-xs sm:text-sm text-gray-400 space-y-1 break-words">
                             <p>🌐 <strong>IP:</strong> {ip || 'Unknown'}</p>
                             <p>🧭 <strong>Browser:</strong> {userAgent || 'Unavailable'}</p>
                             <p>🈯 <strong>Language:</strong> {language || 'Unavailable'}</p>
@@ -320,7 +371,7 @@ export default function LoginPage({
                     </div>
                 </div>
 
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-cyan-500 text-xs">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-cyan-500 text-[11px] sm:text-xs text-center px-2">
                     <p>© {new Date().getFullYear()} Charon. All rights reserved.</p>
                 </div>
             </div>

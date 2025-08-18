@@ -50,13 +50,13 @@ model dishamentee {
   id Int @id @default(autoincrement())
 
   user_id Int  @unique
-  user    user @relation("dishaprofile", fields: [user_id], references: [id])
+  user    user @relation("dishaprofile", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   mentor_id Int?
-  mentor    user? @relation("dishamentor", fields: [mentor_id], references: [id])
+  mentor    user? @relation("dishamentor", fields: [mentor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   placement_cycle_id Int
-  placement_cycle    placement_cycle @relation(fields: [placement_cycle_id], references: [id])
+  placement_cycle    placement_cycle @relation(fields: [placement_cycle_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -65,9 +65,9 @@ model dishamentee {
 model shadowpair {
   id Int @id @default(autoincrement())
 
-  user1   user @relation("shadowuser1", fields: [user1Id], references: [id])
+  user1   user @relation("shadowuser1", fields: [user1Id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   user1Id Int  @unique
-  user2   user @relation("shadowuser2", fields: [user2Id], references: [id])
+  user2   user @relation("shadowuser2", fields: [user2Id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   user2Id Int  @unique
 }
 
