@@ -4,7 +4,7 @@ module.exports = {
     apps: [
         {
             name: 'charon',
-            cwd: 'C:\\Users\\PC\\Desktop\\Systems\\vidyarth',
+            cwd: 'C:\\Systems\\vidyarth\\vidyarth',
             interpreter: process.platform === 'win32' ? 'C:\\Program Files\\nodejs\\node.exe' : 'node',
             script: 'node_modules/next/dist/bin/next',
             args: 'start --port 3000',
@@ -19,8 +19,8 @@ module.exports = {
             max_memory_restart: '1G',
             time: true,
             merge_logs: true,
-            out_file: 'C:\\Users\\PC\\Desktop\\Systems\\vidyarth\\logs\\charon.out.log',
-            error_file: 'C:\\Users\\PC\\Desktop\\Systems\\vidyarth\\logs\\charon.err.log',
+            out_file: 'C:\\Systems\\vidyarth\\vidyarth\\logs\\charon.out.log',
+            error_file: 'C:\\Systems\\vidyarth\\vidyarth\\logs\\charon.err.log',
             log_date_format: 'YYYY-MM-DD HH:mm:ss',
             env: {
                 NODE_ENV: 'production',
