@@ -51,3 +51,4 @@ next-env.d.ts
 /logs/
 /certs/
 /docker/
+ecosystem.config.cjs
