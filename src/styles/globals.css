@@ -56,6 +56,22 @@ html {
   --foreground: #171717;
 } */
 
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: inherit;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: inherit;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .scrollbar-thin::-webkit-scrollbar {
   width: 4px;
 }

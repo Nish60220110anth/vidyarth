@@ -5,6 +5,7 @@
   "scripts": {
     "// ───────── Dev workflows ─────────": "",
     "dev": "cross-env NODE_ENV=development dotenv -e .env.development -- next dev -p 3000 -H localhost",
+    "dev:start":"next build && npm run start:dev",
     "env:print:dev": "dotenv -e .env.development -- node -e \"console.log('NODE_ENV=', process.env.NODE_ENV); console.log('DATABASE_URL=', process.env.DATABASE_URL || 'missing')\"",
     "// ───────── Prisma (no migrate; generate + push only) ─────────": "",
     "db:gen:dev": "cross-env NODE_ENV=development dotenv -e .env.development -- prisma generate",

@@ -1,53 +1,55 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-
-// External libs
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowPathIcon, Bars3Icon, Squares2X2Icon } from "@heroicons/react/24/solid";
-
-// App constants & types
+import { AnimatePresence, LayoutGroup, MotionConfig, motion } from "framer-motion";
+import type { Transition } from "framer-motion";
+import {
+    ArrowPathIcon,
+    Bars3Icon,
+    Squares2X2Icon,
+    ChevronDownIcon,
+    FunnelIcon,
+    AdjustmentsHorizontalIcon,
+    MagnifyingGlassIcon,
+} from "@heroicons/react/24/solid";
 import { ACCESS_PERMISSION } from "@prisma/client";
 import { ALL_DOMAINS } from "./ManageCompanyList";
-
-// Types
 import type { Company } from "./CompanySearchDropDown";
 import { fetchCompanyListWithPermission } from "@/lib/api/company";
-import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 
-function groupByFirstLetter(companies: Company[]): Record<string, Company[]> {
+function groupByFirstLetter(
+    companies: Company[],
+    cmp?: (a: Company, b: Company) => number
+): Record<string, Company[]> {
     const grouped: Record<string, Company[]> = {};
-
     companies.forEach((company) => {
-        const firstLetter = company.company_full[0]?.toUpperCase() || "#";
+        const firstLetter = company.company_full?.[0]?.toUpperCase() || "#";
         if (!grouped[firstLetter]) grouped[firstLetter] = [];
         grouped[firstLetter].push(company);
     });
-
-    return Object.keys(grouped)
-        .sort()
-        .reduce((acc, key) => {
-            acc[key] = grouped[key].sort((a, b) =>
-                a.company_full.localeCompare(b.company_full)
-            );
-            return acc;
-        }, {} as Record<string, Company[]>);
+    const letters = Object.keys(grouped).sort();
+    const out: Record<string, Company[]> = {};
+    for (const key of letters) out[key] = cmp ? [...grouped[key]].sort(cmp) : [...grouped[key]];
+    return out;
 }
 
 interface AllCompaniesDirectoryProps {
     onCompanySelected?: (company: Company) => void;
 }
 
-function SkeletonCard() {
+function SkeletonCard({ dense = false }: { dense?: boolean }) {
     return (
-        <div className="animate-pulse p-4 rounded-xl border border-gray-200 bg-white w-full">
-            <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-full bg-gray-200" />
-                <div className="flex-1 space-y-2">
-                    <div className="h-4 w-3/4 bg-gray-200 rounded" />
-                    <div className="h-3 w-1/2 bg-gray-200 rounded" />
+        <div
+            className={`animate-pulse rounded-xl border border-cyan-600/20 bg-[#0b1820] w-full transition-all ${dense ? "p-2" : "p-3"
+                }`}
+        >
+            <div className="flex items-start gap-2">
+                <div className={`rounded-full bg-cyan-800/20 ${dense ? "h-8 w-8" : "h-10 w-10"}`} />
+                <div className="flex-1 space-y-1.5">
+                    <div className={`bg-cyan-800/20 rounded ${dense ? "h-3 w-2/3" : "h-3.5 w-3/4"}`} />
+                    <div className={`bg-cyan-800/20 rounded ${dense ? "h-2.5 w-1/3" : "h-3 w-1/2"}`} />
                     <div className="flex gap-1">
-                        <div className="h-4 w-10 bg-gray-200 rounded-full" />
-                        <div className="h-4 w-10 bg-gray-200 rounded-full" />
+                        <div className={`bg-cyan-800/20 rounded-full ${dense ? "h-3 w-8" : "h-3.5 w-10"}`} />
+                        <div className={`bg-cyan-800/20 rounded-full ${dense ? "h-3 w-8" : "h-3.5 w-10"}`} />
                     </div>
                 </div>
             </div>
@@ -55,77 +57,121 @@ function SkeletonCard() {
     );
 }
 
-export default function AllCompaniesDirectory({
-    onCompanySelected,
-}: AllCompaniesDirectoryProps) {
-    // Data
+type SortKey = "NAME_ASC" | "NAME_DESC";
+const AZ_LETTERS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
+
+function useOutsideClose<T extends HTMLElement>(
+    ref: React.RefObject<T | null>,
+    onClose: () => void
+) {
+    useEffect(() => {
+        function handler(e: MouseEvent) {
+            if (!ref.current) return;
+            if (!ref.current.contains(e.target as Node)) onClose();
+        }
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [ref, onClose]);
+}
+
+function Dropdown({
+    trigger,
+    open,
+    onOpenChange,
+    children,
+    align = "left",
+}: {
+    trigger: React.ReactNode;
+    open: boolean;
+    onOpenChange: (v: boolean) => void;
+    children: React.ReactNode;
+    align?: "left" | "right";
+}) {
+    const ref = useRef<HTMLDivElement>(null);
+    useOutsideClose(ref, () => onOpenChange(false));
+    const easeOutCB = [0.2, 0.8, 0.2, 1] as const;
+
+    return (
+        <div className="relative z-30" ref={ref}>
+            <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => onOpenChange(!open)}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-cyan-700/50 bg-[#081219] text-cyan-100 hover:border-cyan-400/60 text-sm transition"
+            >
+                {trigger}
+                <ChevronDownIcon className="w-4 h-4 opacity-80" />
+            </motion.button>
+            <AnimatePresence initial={false}>
+                {open && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 8, scale: 1 }}
+                        exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                        transition={{ duration: 0.15, ease: easeOutCB }}
+                        className={`absolute z-[999] mt-1 min-w-[220px] rounded-xl border border-cyan-700/50 bg-[#0c1a22] shadow-lg ${align === "right" ? "right-0" : "left-0"
+                            }`}
+                    >
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-2">
+                            {children}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+export default function AllCompaniesDirectory({ onCompanySelected }: AllCompaniesDirectoryProps) {
     const [allCompanies, setAllCompanies] = useState<Company[]>([]);
-
-    // Grouping cache
-    const [groupedCompanies, setGroupedCompanies] = useState<
-        Record<string, Company[]>
-    >({});
-
-    // Filters & UI
+    const [groupedCompanies, setGroupedCompanies] = useState<Record<string, Company[]>>({});
     const [selectedDomain, setSelectedDomain] = useState<string>("ALL");
+    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [sortKey, setSortKey] = useState<SortKey>("NAME_ASC");
     const [activeLetter, setActiveLetter] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
-    // Pagination / Infinite Scroll
-    const [visibleCompanyCount, setVisibleCompanyCount] = useState(10);
+    const [visibleCompanyCount, setVisibleCompanyCount] = useState(12);
     const [loadingMore, setLoadingMore] = useState(false);
     const [suppressObserver, setSuppressObserver] = useState(false);
-    const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-    // Loading flags
+    const sentinelRef = useRef<HTMLDivElement>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const { basePath } = useRouter();
-
-    // total items after filtering/grouping (used to stop infinite scroll)
     const totalFiltered = useMemo(
-        () => Object.values(groupedCompanies).reduce((n, arr) => n + arr.length, 0),
+        () => Object.values(groupedCompanies).reduce((n, a) => n + a.length, 0),
         [groupedCompanies]
     );
+    const [openDomain, setOpenDomain] = useState(false);
+    const [openSort, setOpenSort] = useState(false);
+    const [compact, setCompact] = useState(true);
+    const [showLogos, setShowLogos] = useState(true);
+
+    const easeOutCB = [0.2, 0.8, 0.2, 1] as const;
+    const linearCB = [0, 0, 1, 1] as const;
+    const fade: Transition = { duration: 0.18, ease: easeOutCB };
+    const spring = { type: "spring", stiffness: 280, damping: 36, mass: 0.9 } as const;
 
     useEffect(() => {
         if (!sentinelRef.current) return;
-
         const el = sentinelRef.current;
         const observer = new IntersectionObserver(
             async ([entry]) => {
-                if (
-                    !entry.isIntersecting ||
-                    loadingMore ||
-                    visibleCompanyCount >= totalFiltered
-                )
-                    return;
-
+                if (!entry.isIntersecting || loadingMore || visibleCompanyCount >= totalFiltered) return;
                 setLoadingMore(true);
-                await new Promise((res) => setTimeout(res, 800));
-                setVisibleCompanyCount((prev) =>
-                    Math.min(prev + 40, totalFiltered)
-                );
+                await new Promise((res) => setTimeout(res, 200));
+                setVisibleCompanyCount((prev) => Math.min(prev + (compact ? 48 : 28), totalFiltered));
                 setLoadingMore(false);
             },
-            {
-                root: null,
-                rootMargin: "0px",
-                threshold: 1,
-            }
+            { root: null, rootMargin: "100px 0px", threshold: 0 }
         );
-
         observer.observe(el);
         return () => observer.disconnect();
-    }, [loadingMore, totalFiltered, visibleCompanyCount]);
+    }, [loadingMore, totalFiltered, visibleCompanyCount, compact]);
 
     const fetchData = async () => {
         setIsRefreshing(true);
         try {
-            const res = await fetchCompanyListWithPermission(
-                ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
-            );
+            const res = await fetchCompanyListWithPermission(ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY);
             if (!res?.success) {
                 toast.error(res?.error || "Failed to fetch company list.");
                 setAllCompanies([]);
@@ -145,9 +191,7 @@ export default function AllCompaniesDirectory({
         (async () => {
             setIsLoading(true);
             try {
-                const res = await fetchCompanyListWithPermission(
-                    ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
-                );
+                const res = await fetchCompanyListWithPermission(ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY);
                 if (cancelled) return;
                 if (!res?.success) {
                     toast.error(res?.error || "Failed to fetch company list.");
@@ -170,366 +214,684 @@ export default function AllCompaniesDirectory({
     }, []);
 
     useEffect(() => {
+        const el =
+            (document.getElementById("app-topbar") ||
+                (document.querySelector("[data-app-topbar]") as HTMLElement | null)) ?? null;
+        const h = el?.offsetHeight ?? 56;
+        document.documentElement.style.setProperty("--topbar-h", `${h}px`);
+    }, []);
+
+    useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
                 const visibleSections = entries
                     .filter((entry) => entry.isIntersecting)
-                    .sort(
-                        (a, b) => a.boundingClientRect.top - b.boundingClientRect.top
-                    );
-
-                if (visibleSections.length > 0 && !suppressObserver) {
-                    setActiveLetter(visibleSections[0].target.id);
-                }
+                    .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+                if (visibleSections.length > 0 && !suppressObserver) setActiveLetter(visibleSections[0].target.id);
             },
-            {
-                root: null,
-                rootMargin: "-45% 0px -50% 0px",
-                threshold: [0, 0.2, 0.8],
-            }
+            { root: null, rootMargin: "-40% 0px -50% 0px", threshold: [0, 0.1, 0.9] }
         );
-
         const timeout = setTimeout(() => {
             Object.keys(groupedCompanies).forEach((letter) => {
                 const el = document.getElementById(letter);
                 if (el) observer.observe(el);
             });
         }, 100);
-
         return () => {
             clearTimeout(timeout);
             observer.disconnect();
         };
     }, [groupedCompanies, suppressObserver]);
 
-    useEffect(() => {
-        const filtered =
+    const filteredAndSorted = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        let base =
             selectedDomain === "ALL"
                 ? allCompanies
                 : allCompanies.filter((company) =>
-                    company.domains.some((d) =>
-                        (typeof d === "string" ? d : d.domain) === selectedDomain
-                    )
+                    company.domains.some((d) => (typeof d === "string" ? d : d.domain) === selectedDomain)
                 );
+        if (q) {
+            base = base.filter((c) => {
+                const n1 = c.company_name?.toLowerCase() || "";
+                const n2 = c.company_full?.toLowerCase() || "";
+                return n1.includes(q) || n2.includes(q);
+            });
+        }
+        const sorted = [...base].sort((a, b) => {
+            const A = a.company_name || a.company_full || "";
+            const B = b.company_name || b.company_full || "";
+            return sortKey === "NAME_ASC" ? A.localeCompare(B) : B.localeCompare(A);
+        });
+        return sorted;
+    }, [allCompanies, selectedDomain, searchQuery, sortKey]);
 
-        const sorted = [...filtered].sort((a, b) =>
-            a.company_full.localeCompare(b.company_full)
-        );
-
-        setGroupedCompanies(groupByFirstLetter(sorted));
-        // reset pagination when filter changes
-        setVisibleCompanyCount(10);
-    }, [allCompanies, selectedDomain]);
+    useEffect(() => {
+        const cmp = (a: Company, b: Company) => {
+            const A = a.company_name || a.company_full || "";
+            const B = b.company_name || b.company_full || "";
+            return sortKey === "NAME_ASC" ? A.localeCompare(B) : B.localeCompare(A);
+        };
+        setGroupedCompanies(groupByFirstLetter(filteredAndSorted, cmp));
+        setVisibleCompanyCount(compact ? 18 : 12);
+    }, [filteredAndSorted, sortKey, compact]);
 
     const getDomainStyle = (domain: string) => {
         const styles: Record<string, string> = {
-            FINANCE:
-                "bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-black/5",
-            MARKETING:
-                "bg-rose-50    text-rose-700    border-rose-200    ring-1 ring-black/5",
-            CONSULTING:
-                "bg-sky-50     text-sky-700     border-sky-200     ring-1 ring-black/5",
-            PRODMAN:
-                "bg-violet-50  text-violet-700  border-violet-200  ring-1 ring-black/5",
-            OPERATIONS:
-                "bg-amber-50   text-amber-800   border-amber-200   ring-1 ring-black/5",
-            GENMAN:
-                "bg-teal-50    text-teal-700    border-teal-200    ring-1 ring-black/5",
+            FINANCE: "bg-[#05241b] text-emerald-300 border-emerald-700/30",
+            MARKETING: "bg-[#2b0a12] text-rose-300 border-rose-700/30",
+            CONSULTING: "bg-[#061b26] text-sky-300 border-sky-700/30",
+            PRODMAN: "bg-[#1c1236] text-violet-300 border-violet-700/30",
+            OPERATIONS: "bg-[#251a06] text-amber-300 border-amber-700/30",
+            GENMAN: "bg-[#072420] text-teal-300 border-teal-700/30",
         };
-
-        return styles[domain] || "bg-gray-100 text-gray-700 border-gray-300";
+        return styles[domain] || "bg-[#0b1820] text-cyan-200 border-cyan-900/30";
     };
 
     const activeLetters = Object.keys(groupedCompanies).sort();
 
+    const density = {
+        gridColsLogos: compact
+            ? "grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6"
+            : "grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
+        gridColsNoLogos: compact
+            ? "grid-cols-2 xs:grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8"
+            : "grid-cols-1 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7",
+        gridGap: compact ? (showLogos ? "gap-2" : "gap-1.5") : showLogos ? "gap-3" : "gap-2",
+        cardPad: compact ? (showLogos ? "p-2" : "p-1.5") : showLogos ? "p-3" : "p-2",
+        nameSize: compact ? "text-[12.5px]" : "text-sm",
+        subSize: compact ? "text-[11px]" : "text-xs",
+        logoBox: compact ? "h-9 w-9" : "h-11 w-11",
+        logoImg: compact ? "h-6 w-6" : "h-7 w-7",
+        chipText: compact ? "text-[0.58rem]" : "text-[0.65rem]",
+        chipsTop: compact ? "mt-1" : "mt-1.5",
+        maxChips: compact ? 1 : 2,
+        radius: "rounded-xl",
+    };
+
     return (
-        <>
-            <div className="flex md:flex-col gap-2 fixed bottom-0 md:top-1/2 md:right-4 left-0 right-0 justify-center md:justify-start md:left-auto transform md:-translate-y-1/2 bg-[#0a141d]/80 md:bg-transparent p-2 md:p-0 border-t md:border-0 z-50 overflow-x-auto no-scrollbar">
-                {activeLetters.map((letter) => (
-                    <a
-                        key={letter}
-                        href={`#${letter}`}
-                        onClick={() => {
-                            setSuppressObserver(true);
-                            setTimeout(() => setSuppressObserver(false), 600);
-                        }}
-                        className={`text-xs font-medium px-2 py-1 rounded-md transition-all ${activeLetter === letter
-                                ? "text-cyan-500 font-bold bg-cyan-50 md:bg-transparent"
-                                : "text-gray-300 hover:text-cyan-400"
-                            }`}
-                    >
-                        {letter}
-                    </a>
-                ))}
-            </div>
-
-            <div className="p-6 relative pb-8 min-h-full">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                    <div className="flex gap-2 flex-1 overflow-x-auto no-scrollbar">
-                        <button
-                            className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-full border whitespace-nowrap ${selectedDomain === "ALL"
-                                    ? "bg-cyan-100 text-cyan-800 border-cyan-400"
-                                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                                }`}
-                            onClick={() => setSelectedDomain("ALL")}
-                        >
-                            All
-                        </button>
-                        {ALL_DOMAINS.map((domain) => {
-                            const tagClass =
-                                getDomainStyle(domain) || getDomainStyle("Other");
-                            const active = selectedDomain === domain;
-                            return (
-                                <button
-                                    key={domain}
-                                    className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-full border whitespace-nowrap transition ${active
-                                            ? tagClass
-                                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                                        }`}
-                                    onClick={() => setSelectedDomain(domain)}
-                                >
-                                    {domain}
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    <div className="flex gap-1.5 sm:gap-2 mt-1 sm:mt-0 shrink-0">
-                        <motion.button
-                            whileTap={{ scale: 0.95 }}
-                            whileHover={{ backgroundColor: "#f1f5f9" }}
-                            onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-                            className={`group relative inline-flex items-center gap-2 px-4 py-2 text-sm rounded-full border font-medium shadow-sm transition-all duration-200
-                            ${viewMode === "grid"
-                                    ? "bg-white text-gray-700 hover:text-cyan-700"
-                                    : "bg-cyan-100 text-cyan-800 hover:bg-cyan-200"
-                                }`}
-                            title={
-                                viewMode === "grid"
-                                    ? "Switch to List View"
-                                    : "Switch to Grid View"
-                            }
-                        >
-                            <motion.span
-                                animate={{ rotate: viewMode === "grid" ? 0 : 360 }}
-                                transition={{ duration: 0.5 }}
-                                className="inline-flex items-center justify-center"
+        <MotionConfig transition={{ duration: 0.16, ease: easeOutCB }} reducedMotion="user">
+            {/* Mobile letter rail remains fixed at the bottom */}
+            <div className="sm:hidden fixed inset-x-2 bottom-[max(env(safe-area-inset-bottom),0.5rem)] z-50 pointer-events-none">
+                <div className="pointer-events-auto rounded-xl bg-[#081219]/95 border border-cyan-700/40 px-2 py-1.5 overflow-x-auto no-scrollbar backdrop-blur supports-[backdrop-filter]:backdrop-blur shadow-lg">
+                    <div className="flex gap-1">
+                        {activeLetters.map((letter) => (
+                            <motion.a
+                                key={letter}
+                                href={`#${letter}`}
+                                whileHover={{ y: -1 }}
+                                whileTap={{ scale: 0.98 }}
+                                className={`px-2 h-7 rounded-lg grid place-items-center text-[12px] font-semibold ${activeLetter === letter
+                                        ? "bg-gradient-to-br from-cyan-600/25 to-teal-500/20 text-cyan-100 ring-1 ring-cyan-400/30"
+                                        : "text-cyan-300/80 hover:text-cyan-100 hover:bg-white/5"
+                                    }`}
                             >
-                                {viewMode === "list" ? (
-                                    <Bars3Icon className="w-5 h-5" />
-                                ) : (
-                                    <Squares2X2Icon className="w-5 h-5" />
-                                )}
-                            </motion.span>
-                            {viewMode === "grid" ? "Grid" : "List"}
-                        </motion.button>
-
-                        <button
-                            onClick={fetchData}
-                            className={`p-2 sm:p-2.5 rounded-full border text-gray-600 border-slate-300
-              bg-white hover:bg-slate-50 hover:text-cyan-700 hover:border-cyan-400
-              transition shadow-sm hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300`}
-                            title="Refresh"
-                            aria-label="Refresh companies"
-                        >
-                            <motion.div
-                                initial={false}
-                                animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
-                                transition={{
-                                    repeat: isRefreshing ? Infinity : 0,
-                                    repeatType: "loop",
-                                    ease: "linear",
-                                    duration: 0.5,
-                                }}
-                            >
-                                <ArrowPathIcon className="h-4 w-4 sm:h-5 sm:w-5 text-inherit" />
-                            </motion.div>
-                        </button>
+                                {letter}
+                            </motion.a>
+                        ))}
                     </div>
                 </div>
+            </div>
 
-                {Object.keys(groupedCompanies).length === 0 && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="text-center text-gray-500 italic mt-10"
-                    >
-                        No companies found for this domain.
-                    </motion.div>
-                )}
+            <LayoutGroup>
+                <motion.div
+                    layout="position"
+                    className="p-1 sm:p-2 relative min-h-full bg-gradient-to-br from-[#050b10] via-[#07131a] to-[#041019] isolate"
+                >
+                    <div className="w-full max-w-[1200px] mx-auto relative">
+                        {/* Grid: content + sticky rail */}
+                        <div className="grid items-start sm:grid-cols-[minmax(0,1fr)_2.75rem] md:grid-cols-[minmax(0,1fr)_3rem] gap-2">
 
-                {Object.entries(groupedCompanies).map(([letter, companies]) =>
-                    viewMode === "grid" ? (
-                        <div key={letter} id={letter} className="mb-8 scroll-mt-24 min-h-[120px]">
-                            <h2 className="text-xl font-bold text-slate-600 mb-3 scroll-mt-24">
-                                {letter}
-                            </h2>
+                            {/* LEFT: content */}
+                            <div className="grid grid-rows-[auto_1fr] gap-3 min-h-[calc(100vh-var(--topbar-h,56px)-1.5rem)]">
 
+                                <motion.div
+                                    layout="position"
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={fade}
+                                    className="relative z-30 border border-cyan-700/40 rounded-xl p-3 sm:p-3.5 bg-[#081219]/85 backdrop-blur"
+                                >
+                                    <motion.div layout="position" className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                                        <motion.div
+                                            layout="position"
+                                            className="flex items-center gap-2 rounded-full border border-cyan-700/50 bg-[#0a1820] text-cyan-100 focus-within:ring-1 focus-within:ring-cyan-500/40 transition px-3 py-1.5"
+                                        >
+                                            <MagnifyingGlassIcon className="w-4 h-4 opacity-80" />
+                                            <input
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                placeholder="Search company..."
+                                                className="outline-none placeholder:text-cyan-400/70 bg-transparent text-cyan-100 transition-all w-56 sm:w-64 text-sm"
+                                            />
+                                        </motion.div>
+
+                                        <Dropdown
+                                            open={openDomain}
+                                            onOpenChange={setOpenDomain}
+                                            trigger={
+                                                <span className="inline-flex items-center gap-2 text-cyan-100">
+                                                    <FunnelIcon className="w-4 h-4" />
+                                                    <span className="text-sm">
+                                                        {selectedDomain === "ALL" ? "All Domains" : selectedDomain}
+                                                    </span>
+                                                </span>
+                                            }
+                                        >
+                                            <div className="space-y-1">
+                                                <motion.button
+                                                    whileHover={{ x: 2 }}
+                                                    onClick={() => {
+                                                        setSelectedDomain("ALL");
+                                                        setOpenDomain(false);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${selectedDomain === "ALL"
+                                                            ? "bg-cyan-900/30 text-cyan-100"
+                                                            : "hover:bg-cyan-900/20 text-cyan-100"
+                                                        }`}
+                                                >
+                                                    All
+                                                </motion.button>
+                                                <div className="max-h-56 overflow-y-auto pr-1">
+                                                    {ALL_DOMAINS.map((d) => (
+                                                        <motion.button
+                                                            whileHover={{ x: 2 }}
+                                                            key={d}
+                                                            onClick={() => {
+                                                                setSelectedDomain(d);
+                                                                setOpenDomain(false);
+                                                            }}
+                                                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${selectedDomain === d
+                                                                    ? "bg-cyan-900/30 text-cyan-100"
+                                                                    : "hover:bg-cyan-900/20 text-cyan-100"
+                                                                }`}
+                                                        >
+                                                            {d}
+                                                        </motion.button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </Dropdown>
+
+                                        <Dropdown
+                                            open={openSort}
+                                            onOpenChange={setOpenSort}
+                                            align="right"
+                                            trigger={
+                                                <span className="inline-flex items-center gap-2 text-cyan-100">
+                                                    <AdjustmentsHorizontalIcon className="w-4 h-4" />
+                                                    <span className="text-sm">
+                                                        {sortKey === "NAME_ASC" ? "Name A → Z" : "Name Z → A"}
+                                                    </span>
+                                                </span>
+                                            }
+                                        >
+                                            <div className="space-y-1">
+                                                <motion.button
+                                                    whileHover={{ x: 2 }}
+                                                    onClick={() => {
+                                                        setSortKey("NAME_ASC");
+                                                        setOpenSort(false);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${sortKey === "NAME_ASC"
+                                                            ? "bg-cyan-900/30 text-cyan-100"
+                                                            : "hover:bg-cyan-900/20 text-cyan-100"
+                                                        }`}
+                                                >
+                                                    Name A → Z
+                                                </motion.button>
+                                                <motion.button
+                                                    whileHover={{ x: 2 }}
+                                                    onClick={() => {
+                                                        setSortKey("NAME_DESC");
+                                                        setOpenSort(false);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${sortKey === "NAME_DESC"
+                                                            ? "bg-cyan-900/30 text-cyan-100"
+                                                            : "hover:bg-cyan-900/20 text-cyan-100"
+                                                        }`}
+                                                >
+                                                    Name Z → A
+                                                </motion.button>
+                                            </div>
+                                        </Dropdown>
+
+                                        <motion.button
+                                            layout="position"
+                                            transition={spring}
+                                            whileTap={{ scale: 0.98 }}
+                                            whileHover={{ scale: 1.01 }}
+                                            onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
+                                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm transition ${viewMode === "grid"
+                                                    ? "bg-[#0a1820] text-cyan-100 border-cyan-700/50 hover:border-cyan-400/60"
+                                                    : "bg-cyan-900/30 text-cyan-100 border-cyan-700/50 hover:border-cyan-400/60"
+                                                }`}
+                                        >
+                                            {viewMode === "list" ? (
+                                                <Bars3Icon className="w-4 h-4" />
+                                            ) : (
+                                                <Squares2X2Icon className="w-4 h-4" />
+                                            )}
+                                            {viewMode === "grid" ? "Grid" : "List"}
+                                        </motion.button>
+
+                                        <motion.button
+                                            layout="position"
+                                            onClick={() => setCompact((v) => !v)}
+                                            className={`px-3 py-1.5 rounded-full border text-sm transition ${compact
+                                                    ? "bg-cyan-900/40 border-cyan-700 text-cyan-100"
+                                                    : "bg-[#0a1820] border-cyan-800/50 text-cyan-200"
+                                                }`}
+                                            title="Toggle density"
+                                        >
+                                            {compact ? "Compact" : "Comfort"}
+                                        </motion.button>
+
+                                        <motion.button
+                                            layout="position"
+                                            onClick={() => setShowLogos((v) => !v)}
+                                            className={`px-3 py-1.5 rounded-full border text-sm transition ${showLogos
+                                                    ? "bg-cyan-900/40 border-cyan-700 text-cyan-100"
+                                                    : "bg-[#0a1820] border-cyan-800/50 text-cyan-200"
+                                                }`}
+                                            title="Toggle logos"
+                                        >
+                                            {showLogos ? "Logos On" : "Logos Off"}
+                                        </motion.button>
+
+                                        <motion.button
+                                            layout="position"
+                                            whileTap={{ rotate: -10, scale: 0.98 }}
+                                            whileHover={{ scale: 1.02 }}
+                                            onClick={fetchData}
+                                            className="ml-auto p-2 rounded-full border text-cyan-200 border-cyan-700/50 bg-[#0a1820] hover:border-cyan-400/60 transition"
+                                            title="Refresh"
+                                            aria-label="Refresh companies"
+                                        >
+                                            <motion.div
+                                                initial={false}
+                                                animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
+                                                transition={{
+                                                    repeat: isRefreshing ? Infinity : 0,
+                                                    repeatType: "loop",
+                                                    duration: 0.6,
+                                                    ease: linearCB,
+                                                }}
+                                            >
+                                                <ArrowPathIcon className="h-5 w-5" />
+                                            </motion.div>
+                                        </motion.button>
+                                    </motion.div>
+                                </motion.div>
+
+                                <div className="space-y-6 pb-28 sm:pb-0 relative z-0 min-h-0">
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={viewMode}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            transition={{ duration: 0.12, ease: easeOutCB }}
+                                        >
+                                            {Object.entries(groupedCompanies).map(([letter, companies]) =>
+                                                viewMode === "grid" ? (
+                                                    <section key={letter} id={letter} className="scroll-mt-24 relative z-0">
+                                                        <motion.div
+                                                            layout="position"
+                                                            className="flex items-center gap-2.5 mb-2.5 mt-2.5"
+                                                        >
+                                                            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-cyan-800/30 to-teal-700/20 text-cyan-100 border border-cyan-700/40 grid place-items-center font-semibold text-sm">
+                                                                {letter}
+                                                            </div>
+                                                            <div className="h-px flex-1 bg-gradient-to-r from-cyan-700/30 to-transparent" />
+                                                        </motion.div>
+
+                                                        {(() => {
+                                                            const gridCols = showLogos
+                                                                ? density.gridColsLogos
+                                                                : density.gridColsNoLogos;
+                                                            return (
+                                                                <motion.div
+                                                                    layout="position"
+                                                                    transition={spring}
+                                                                    className={`grid ${gridCols} ${density.gridGap}`}
+                                                                >
+                                                                    <AnimatePresence initial={false}>
+                                                                        {companies
+                                                                            .slice(0, visibleCompanyCount)
+                                                                            .map((company, idx) => {
+                                                                                const tone =
+                                                                                    idx % 3 === 0
+                                                                                        ? "from-[#0b1f29] to-[#0e2a33] border-cyan-500/30"
+                                                                                        : idx % 3 === 1
+                                                                                            ? "from-[#1a1b0a] to-[#232406] border-amber-500/30"
+                                                                                            : "from-[#10221b] to-[#133024] border-emerald-500/30";
+
+                                                                                return (
+                                                                                    <motion.div
+                                                                                        key={company.id}
+                                                                                        layout="position"
+                                                                                        initial={{ opacity: 0, y: 8 }}
+                                                                                        animate={{ opacity: 1, y: 0 }}
+                                                                                        exit={{ opacity: 0, y: -6 }}
+                                                                                        transition={{
+                                                                                            ...fade,
+                                                                                            delay: Math.min(idx, 8) * 0.012,
+                                                                                        }}
+                                                                                    >
+                                                                                        <motion.button
+                                                                                            layout="position"
+                                                                                            transition={spring}
+                                                                                            whileHover={{ y: -2, scale: 1.002 }}
+                                                                                            whileTap={{ scale: 0.99 }}
+                                                                                            onClick={() =>
+                                                                                                onCompanySelected?.(company)
+                                                                                            }
+                                                                                            className={`group w-full text-left ${density.cardPad} ${density.radius} border bg-gradient-to-br ${tone}`}
+                                                                                        >
+                                                                                            <div
+                                                                                                className={`flex items-start ${showLogos
+                                                                                                        ? "gap-3"
+                                                                                                        : "gap-2"
+                                                                                                    }`}
+                                                                                            >
+                                                                                                {showLogos && (
+                                                                                                    <div
+                                                                                                        className={`${density.logoBox} rounded-lg grid place-items-center ring-1 ring-white/5 bg-[#ffffff]`}
+                                                                                                    >
+                                                                                                        {company.logo_url ? (
+                                                                                                            <img
+                                                                                                                src={`${company.logo_url}`}
+                                                                                                                alt={
+                                                                                                                    company.company_name
+                                                                                                                }
+                                                                                                                className={`${density.logoImg} object-contain transition-transform duration-200 group-hover:scale-105`}
+                                                                                                            />
+                                                                                                        ) : null}
+                                                                                                    </div>
+                                                                                                )}
+
+                                                                                                <div className="flex-1 min-w-0">
+                                                                                                    <div
+                                                                                                        className={`${density.nameSize} font-semibold text-cyan-50 whitespace-normal break-words line-clamp-2 leading-snug`}
+                                                                                                    >
+                                                                                                        {
+                                                                                                            company.company_name
+                                                                                                        }
+                                                                                                    </div>
+                                                                                                    <div
+                                                                                                        className={`${density.subSize} text-cyan-300/80 whitespace-normal break-words line-clamp-1`}
+                                                                                                    >
+                                                                                                        {
+                                                                                                            company.company_full
+                                                                                                        }
+                                                                                                    </div>
+                                                                                                    <div
+                                                                                                        className={`flex flex-wrap gap-1 ${density.chipsTop}`}
+                                                                                                    >
+                                                                                                        {company.domains
+                                                                                                            .slice(
+                                                                                                                0,
+                                                                                                                density.maxChips
+                                                                                                            )
+                                                                                                            .map(
+                                                                                                                ({
+                                                                                                                    domain,
+                                                                                                                }) => (
+                                                                                                                    <span
+                                                                                                                        key={
+                                                                                                                            domain
+                                                                                                                        }
+                                                                                                                        className={`px-1.5 py-0.5 ${density.chipText} rounded-full border font-medium ${getDomainStyle(
+                                                                                                                            domain
+                                                                                                                        )}`}
+                                                                                                                    >
+                                                                                                                        {
+                                                                                                                            domain
+                                                                                                                        }
+                                                                                                                    </span>
+                                                                                                                )
+                                                                                                            )}
+                                                                                                        {company.domains
+                                                                                                            .length >
+                                                                                                            density.maxChips && (
+                                                                                                                <span
+                                                                                                                    className={`px-2 py-0.5 ${density.chipText} rounded-full border font-medium bg-[#0a2030] text-cyan-200 border-cyan-900/40`}
+                                                                                                                >
+                                                                                                                    +
+                                                                                                                    {company
+                                                                                                                        .domains
+                                                                                                                        .length -
+                                                                                                                        density.maxChips}{" "}
+                                                                                                                    more
+                                                                                                                </span>
+                                                                                                            )}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </motion.button>
+                                                                                    </motion.div>
+                                                                                );
+                                                                            })}
+                                                                    </AnimatePresence>
+
+                                                                    {loadingMore &&
+                                                                        visibleCompanyCount < totalFiltered &&
+                                                                        Array.from({ length: compact ? 6 : 4 }).map(
+                                                                            (_, i) => (
+                                                                                <SkeletonCard
+                                                                                    key={`s-${i}`}
+                                                                                    dense={compact}
+                                                                                />
+                                                                            )
+                                                                        )}
+                                                                </motion.div>
+                                                            );
+                                                        })()}
+                                                    </section>
+                                                ) : (
+                                                    <section key={letter} id={letter} className="scroll-mt-24 relative z-0">
+                                                        <motion.div
+                                                            layout="position"
+                                                            className="flex items-center gap-2 mb-2 mt-2"
+                                                        >
+                                                            <div className="h-6.5 w-6.5 rounded-md bg-gradient-to-br from-cyan-800/30 to-teal-700/20 text-cyan-100 border border-cyan-700/40 grid place-items-center font-semibold text-[13px]">
+                                                                {letter}
+                                                            </div>
+                                                            <div className="h-px flex-1 bg-gradient-to-r from-cyan-700/30 to-transparent" />
+                                                        </motion.div>
+
+                                                        <motion.div layout="position" className="rounded-lg overflow-hidden">
+                                                            <AnimatePresence initial={false}>
+                                                                {companies
+                                                                    .slice(0, visibleCompanyCount)
+                                                                    .map((company, idx) => {
+                                                                        const rowTone =
+                                                                            idx % 2 === 0
+                                                                                ? "bg-[#0b1e28] hover:bg-[#0f2833] border-cyan-600/30"
+                                                                                : "bg-[#1f1d0a] hover:bg-[#242209] border-amber-600/35";
+
+                                                                        return (
+                                                                            <motion.div
+                                                                                key={company.id}
+                                                                                layout="position"
+                                                                                initial={{ opacity: 0, y: 8 }}
+                                                                                animate={{ opacity: 1, y: 0 }}
+                                                                                exit={{ opacity: 0, y: -8 }}
+                                                                                transition={{
+                                                                                    ...fade,
+                                                                                    delay: Math.min(idx, 8) * 0.01,
+                                                                                }}
+                                                                            >
+                                                                                <motion.button
+                                                                                    layout="position"
+                                                                                    transition={spring}
+                                                                                    whileHover={{ x: 2 }}
+                                                                                    whileTap={{ scale: 0.995 }}
+                                                                                    onClick={() =>
+                                                                                        onCompanySelected?.(company)
+                                                                                    }
+                                                                                    className={`w-full flex items-center ${compact
+                                                                                            ? "gap-2 px-3 py-2.5"
+                                                                                            : "gap-3 px-3.5 py-3"
+                                                                                        } text-left border-b last:border-b-0 ${rowTone} transition-colors border`}
+                                                                                >
+                                                                                    {showLogos && (
+                                                                                        <div
+                                                                                            className={`${compact
+                                                                                                    ? "w-9 h-9"
+                                                                                                    : "w-10 h-10"
+                                                                                                } rounded-lg grid place-items-center bg-[#ffffff] ring-1 ring-white/5`}
+                                                                                        >
+                                                                                            {company.logo_url ? (
+                                                                                                <img
+                                                                                                    src={`${company.logo_url}`}
+                                                                                                    alt={
+                                                                                                        company.company_name
+                                                                                                    }
+                                                                                                    className={`${compact
+                                                                                                            ? "h-5 w-5"
+                                                                                                            : "h-6 w-6"
+                                                                                                        } object-contain`}
+                                                                                                />
+                                                                                            ) : null}
+                                                                                        </div>
+                                                                                    )}
+                                                                                    <div className="flex-1 min-w-0">
+                                                                                        <div
+                                                                                            className={`${compact
+                                                                                                    ? "text-[13px]"
+                                                                                                    : "text-sm"
+                                                                                                } font-semibold text-cyan-50 whitespace-normal break-words line-clamp-2 leading-snug`}
+                                                                                        >
+                                                                                            {company.company_name}
+                                                                                        </div>
+                                                                                        {!compact && (
+                                                                                            <div className="text-xs text-cyan-300/80 truncate line-clamp-1">
+                                                                                                {company.company_full}
+                                                                                            </div>
+                                                                                        )}
+                                                                                        <div
+                                                                                            className={`flex flex-wrap gap-1 ${compact ? "mt-0.5" : "mt-1"
+                                                                                                }`}
+                                                                                        >
+                                                                                            {(
+                                                                                                compact
+                                                                                                    ? company.domains.slice(
+                                                                                                        0,
+                                                                                                        2
+                                                                                                    )
+                                                                                                    : company.domains
+                                                                                            ).map(({ domain }) => (
+                                                                                                <span
+                                                                                                    key={domain}
+                                                                                                    className={`px-2 py-0.5 ${compact
+                                                                                                            ? "text-[0.6rem]"
+                                                                                                            : "text-[0.65rem]"
+                                                                                                        } rounded-full border font-medium ${getDomainStyle(
+                                                                                                            domain
+                                                                                                        )}`}
+                                                                                                >
+                                                                                                    {domain}
+                                                                                                </span>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </motion.button>
+                                                                            </motion.div>
+                                                                        );
+                                                                    })}
+                                                            </AnimatePresence>
+                                                        </motion.div>
+                                                    </section>
+                                                )
+                                            )}
+                                        </motion.div>
+                                    </AnimatePresence>
+                                </div>
+
+                                <div ref={sentinelRef} className="h-1" />
+                            </div>
+
+                            {/* RIGHT: desktop A–Z rail, sticky inside parent and offset under topbar */}
+                            <aside
+                                className="
+                                    hidden sm:block
+                                    sticky
+                                    top-[calc(var(--topbar-h,48px))-4rem]
+                                    self-start
+                                    h-[calc(100vh-var(--topbar-h,48px)-3rem)]
+                                "
+                            >
+                                <motion.div
+                                    layout="position"
+                                    className="h-full w-10 md:w-11 rounded-xl bg-[#081219]/95 backdrop-blur-sm border border-cyan-700/40 flex flex-col"
+                                >
+                                    <div className="h-full flex flex-col justify-between items-stretch px-1 py-2 md:py-2.5">
+                                        {AZ_LETTERS.map((letter) => {
+                                            const isPresent = activeLetters.includes(letter);
+                                            const isActive = activeLetter === letter;
+
+                                            if (isPresent) {
+                                                return (
+                                                    <motion.a
+                                                        key={letter}
+                                                        href={`#${letter}`}
+                                                        onClick={() => {
+                                                            setSuppressObserver(true);
+                                                            setTimeout(() => setSuppressObserver(false), 400);
+                                                        }}
+                                                        whileHover={{ scale: 1.03 }}
+                                                        whileTap={{ scale: 0.97 }}
+                                                        className={`w-full h-8 md:h-8.5 rounded-lg grid place-items-center
+                                                            text-[11px] md:text-[11.5px] font-semibold tracking-wide transition-colors
+                                                            ${isActive
+                                                                ? "bg-gradient-to-br from-cyan-600/25 to-teal-500/20 text-cyan-100 ring-1 ring-cyan-400/30"
+                                                                : "text-cyan-300/80 hover:text-cyan-100 hover:bg-white/5"
+                                                            }`}
+                                                    >
+                                                        {letter}
+                                                    </motion.a>
+                                                );
+                                            }
+
+                                            return (
+                                                <div
+                                                    key={letter}
+                                                    className="w-full h-8 md:h-8.5 rounded-lg grid place-items-center
+                                                        text-[11px] md:text-[11.5px] font-semibold tracking-wide
+                                                        text-cyan-600/40 border border-transparent select-none cursor-default"
+                                                >
+                                                    {letter}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </motion.div>
+                            </aside>
+                        </div>
+                    </div>
+
+                    <AnimatePresence>
+                        {isLoading && (
                             <motion.div
-                                key={selectedDomain}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                transition={{ duration: 0.3 }}
+                                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center"
                             >
                                 <motion.div
-                                    layout
-                                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-                                    transition={{ staggerChildren: 0.05 }}
-                                >
-                                    <AnimatePresence mode="popLayout">
-                                        {companies.slice(0, visibleCompanyCount).map((company, idx) => (
-                                            <motion.div
-                                                key={company.id}
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -10 }}
-                                                transition={{ delay: idx * 0.025, duration: 0.25 }}
-                                                layout
-                                                whileHover={{ scale: 1.03, y: -2 }}
-                                                whileTap={{ scale: 0.98 }}
-                                            >
-                                                <button
-                                                    onClick={() => onCompanySelected?.(company)}
-                                                    className="group flex items-start gap-4 p-4 rounded-2xl bg-white/95 border border-slate-200 shadow-sm
-                             hover:border-cyan-300 hover:shadow-lg transition-all duration-300 ease-out w-full transform-gpu"
-                                                >
-                                                    <div className="flex items-center justify-center h-12 w-12 rounded-full bg-slate-100">
-                                                        {company.logo_url ? (
-                                                            <img
-                                                                src={`${company.logo_url}`}
-                                                                alt={company.company_name}
-                                                                className="h-8 w-8 object-contain"
-                                                            />
-                                                        ) : (
-                                                            <div className="h-8 w-8 bg-slate-300 rounded-full" />
-                                                        )}
-                                                    </div>
-
-                                                    <div className="text-left flex flex-col gap-1">
-                                                        <p className="text-sm font-semibold text-slate-900 group-hover:text-cyan-700 transition-colors">
-                                                            {company.company_name}
-                                                        </p>
-                                                        <p className="text-xs text-slate-500">
-                                                            {company.company_full}
-                                                        </p>
-
-                                                        <div className="flex flex-wrap gap-1 mt-1">
-                                                            {company.domains.slice(0, 2).map(({ domain }) => (
-                                                                <span
-                                                                    key={domain}
-                                                                    className={`px-1.5 py-0.5 text-[0.65rem] rounded-full border font-medium ring-1 ring-black/5
-                                      ${getDomainStyle(domain)} break-words whitespace-normal`}
-                                                                >
-                                                                    {domain}
-                                                                </span>
-                                                            ))}
-
-                                                            {company.domains.length > 2 && (
-                                                                <span className="px-2 py-0.5 text-[0.65rem] rounded-full border font-medium bg-slate-100 text-slate-600 border-slate-300 ring-1 ring-black/5">
-                                                                    +{company.domains.length - 2} more
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                            </motion.div>
-                                        ))}
-                                    </AnimatePresence>
-
-                                    {loadingMore && visibleCompanyCount < totalFiltered && (
-                                        <>
-                                            {Array.from({ length: 5 }).map((_, i) => (
-                                                <SkeletonCard key={`skeleton-${i}`} />
-                                            ))}
-                                        </>
-                                    )}
-                                </motion.div>
+                                    initial={{ scale: 0.95 }}
+                                    animate={{ scale: 1 }}
+                                    transition={spring}
+                                    className="h-12 w-12 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mb-3"
+                                />
+                                <p className="text-cyan-200 text-sm">Loading Companies...</p>
                             </motion.div>
-                        </div>
-                    ) : (
-                        <div key={letter} id={letter} className="mb-6 scroll-mt-24 min-h-[60px]">
-                            <h2 className="text-base font-semibold text-slate-500 mb-2">
-                                {letter}
-                            </h2>
-
-                            <motion.div
-                                layout
-                                className="bg-white/95 border border-slate-200 rounded-xl overflow-hidden"
-                                transition={{ staggerChildren: 0.04 }}
-                            >
-                                <AnimatePresence mode="popLayout">
-                                    {companies.slice(0, visibleCompanyCount).map((company, idx) => (
-                                        <motion.div
-                                            key={company.id}
-                                            layout
-                                            initial={{ opacity: 0, y: 12 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -12 }}
-                                            transition={{ delay: idx * 0.015, duration: 0.2 }}
-                                            whileHover={{ scale: 1.01 }}
-                                            whileTap={{ scale: 0.98 }}
-                                        >
-                                            <button
-                                                tabIndex={0}
-                                                onClick={() => onCompanySelected?.(company)}
-                                                className="group w-full flex items-center px-4 py-3 bg-white/95 rounded-none
-                           hover:shadow-md focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400
-                           transition-all duration-200 transform-gpu ring-1 ring-transparent hover:ring-cyan-300"
-                                            >
-                                                <div className="w-10 h-10 flex justify-center items-center bg-slate-100 rounded-full mr-4 shrink-0">
-                                                    {company.logo_url ? (
-                                                        <img
-                                                            src={`${company.logo_url}`}
-                                                            alt={company.company_name}
-                                                            className="h-6 w-6 object-contain"
-                                                        />
-                                                    ) : (
-                                                        <div className="h-6 w-6 bg-slate-300 rounded-full" />
-                                                    )}
-                                                </div>
-
-                                                <div className="flex-1 min-w-0 text-left">
-                                                    <div className="text-sm font-semibold text-slate-900 truncate group-hover:text-cyan-700 transition-colors">
-                                                        {company.company_name}
-                                                    </div>
-                                                    <div className="text-xs text-slate-500 truncate">
-                                                        {company.company_full}
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-1 mt-1">
-                                                        {company.domains.map(({ domain }) => (
-                                                            <span
-                                                                key={domain}
-                                                                className={`px-2 py-0.5 text-[0.65rem] rounded-full border font-medium ring-1 ring-black/5 ${getDomainStyle(
-                                                                    domain
-                                                                )}`}
-                                                            >
-                                                                {domain}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        </motion.div>
-                                    ))}
-                                </AnimatePresence>
-                            </motion.div>
-                        </div>
-                    )
-                )}
-
-                <div ref={sentinelRef} className="h-1" />
-
-                {isLoading && (
-                    <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
-                        <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
-                        <p className="text-cyan-200 text-lg font-medium animate-pulse">
-                            Loading Companies...
-                        </p>
-                    </div>
-                )}
-            </div>
-        </>
+                        )}
+                    </AnimatePresence>
+                </motion.div>
+            </LayoutGroup>
+        </MotionConfig>
     );
 }

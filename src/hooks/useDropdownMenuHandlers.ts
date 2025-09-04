@@ -1,12 +1,10 @@
 // hooks/useDropdownMenuHandlers.ts
 import { JSX, useEffect } from "react";
 import { useRouter } from "next/router";
-import { generateSecureURL } from "@/utils/shared/secureUrlApi";
-import toast from "react-hot-toast";
 import { ACCESS_PERMISSION } from "@prisma/client";
 type Refs = {
-    profileMenuRef: React.RefObject<HTMLDivElement | null>;
-    announcementRef: React.RefObject<HTMLDivElement | null>;
+    profileMenuRef: React.RefObject<HTMLElement | null>;
+    announcementRef: React.RefObject<HTMLElement | null>;
 };
 
 type Args = {
