@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
 import NewsCard from "@/components/NewsCard";
 import { ALL_DOMAINS } from "./ManageCompanyList";
-import { ACCESS_PERMISSION, news, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG } from "@prisma/client";
+import { ACCESS_PERMISSION, news } from "@prisma/client";
 import { createDefaultNews, getNewsOnQuery } from "../lib/api/manage_news";
 import { debounceAsync } from "@/utils/debounce";
 
@@ -223,7 +223,7 @@ export default function ManageNews() {
                         className="w-full sm:w-auto px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
                     >
                         <option value="ALL">All News Domain Tags</option>
-                        {Object.keys(NEWS_DOMAIN_TAG).map((tag) => (
+                        {["BUSINESS", "WORLD", "TECHNOLOGY", "COMPANY"].map((tag) => (
                             <option key={tag} value={tag}>
                                 {tag}
                             </option>
@@ -231,7 +231,7 @@ export default function ManageNews() {
                     </select>
 
                     {/* News Subdomain Tag Filter */}
-                    <select
+                    {/* <select
                         value={newsSubdomainTag}
                         onChange={(e) => setNewsSubdomainTag(e.target.value)}
                         className="w-full sm:w-auto px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
@@ -242,7 +242,7 @@ export default function ManageNews() {
                                 {tag}
                             </option>
                         ))}
-                    </select>
+                    </select> */}
                 </div>
 
                 {newsList.length > 0 && (

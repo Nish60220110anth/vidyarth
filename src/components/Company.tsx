@@ -85,11 +85,17 @@ export const PANE_CONFIG: PaneDef[] = [
         component: ({ company_id }) => <SummaryPane props={{ company_id }} />,
         color: "bg-blue-100 text-blue-800",
     },
+    // {
+    //     label: "Overview",
+    //     icon: <DocumentTextIcon className="w-4 h-4 mr-1" />,
+    //     component: ({ company_id }) => <OverviewPane props={{ company_id }} />,
+    //     color: "bg-purple-100 text-purple-800",
+    // },
     {
-        label: "Overview",
-        icon: <DocumentTextIcon className="w-4 h-4 mr-1" />,
-        component: ({ company_id }) => <OverviewPane props={{ company_id }} />,
-        color: "bg-purple-100 text-purple-800",
+        label: "Compendium",
+        icon: <BookOpenIcon className="w-4 h-4 mr-1" />,
+        component: ({ company_id }) => <CompendiumPane props={{ company_id }} />,
+        color: "bg-red-100 text-red-800",
     },
     {
         label: "News",
@@ -102,12 +108,6 @@ export const PANE_CONFIG: PaneDef[] = [
         icon: <ClipboardDocumentListIcon className="w-4 h-4 mr-1" />,
         component: ({ allJds }) => <JDPane props={{ jds: allJds || [] }} />,
         color: "bg-green-100 text-green-800",
-    },
-    {
-        label: "Compendium",
-        icon: <BookOpenIcon className="w-4 h-4 mr-1" />,
-        component: ({ company_id }) => <CompendiumPane props={{ company_id }} />,
-        color: "bg-red-100 text-red-800",
     },
     {
         label: "Videos",

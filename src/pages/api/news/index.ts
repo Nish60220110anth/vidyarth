@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { DOMAIN, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG, ACCESS_PERMISSION } from "@prisma/client";
+import { DOMAIN, ACCESS_PERMISSION } from "@prisma/client";
 import { getIronSession, IronSessionData } from "iron-session";
 import { sessionOptions } from "@/lib/session";
 import { bucket } from "@/lib/firebase-admin";
@@ -62,8 +62,8 @@ const GetQuerySchema = z.object({
     to: z.string().optional(),
     is_active: z.boolean().optional(),
     is_approved: z.boolean().optional(),
-    domain_tag: z.enum(NEWS_DOMAIN_TAG).optional(),
-    subdomain_tag: z.enum(NEWS_SUBDOMAIN_TAG).optional(),
+    domain_tag: z.string().optional(),
+    subdomain_tag: z.string().optional(),
 });
 
 const DeleteQuerySchema = z.object({
@@ -119,12 +119,12 @@ async function handler(
             }
 
             if (domain_tag) {
-                filters.news_tag = domain_tag as NEWS_DOMAIN_TAG;
+                filters.news_tag = domain_tag;
             }
 
-            if (subdomain_tag) {
-                filters.subdomain_tag = subdomain_tag as NEWS_SUBDOMAIN_TAG;
-            }
+            // if (subdomain_tag) {
+            //     filters.subdomain_tag = subdomain_tag;
+            // }
 
             const companyFilter =
                 cid !== undefined
@@ -152,8 +152,7 @@ async function handler(
                         include: {
                             company: true
                         }
-                    },
-                    author: { select: { name: true, email_id: true } },
+                    }
                 },
                 orderBy: { created_at: "desc" },
             });
@@ -299,8 +298,8 @@ async function handler(
                         title: "NEWS TITLE",
                         content: "",
                         link_to_source: "",
-                        news_tag: "OTHER" as NEWS_DOMAIN_TAG,
-                        subdomain_tag: "OTHER" as NEWS_SUBDOMAIN_TAG,
+                        news_tag: "OTHER",
+                        subdomain_tag: "OTHER",
                         image_url: "https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/news-images%2Fdefault-image.png?alt=media&token=4732d312-560b-4b3f-91cd-538d6fcd9851",
                         firebase_path: "news-images/default-image.png",
                         is_active: true,

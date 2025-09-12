@@ -30,7 +30,7 @@ import {
 import CompanySearchDropdown from "./CompanySearchDropDown";
 import PortalWrapper from "./PortableWrapper";
 import { ALL_DOMAINS } from "./ManageCompanyList";
-import { ACCESS_PERMISSION, NEWS_SUBDOMAIN_TAG, news } from "@prisma/client";
+import { ACCESS_PERMISSION, news } from "@prisma/client";
 import { deleteNewById, updateNews, uploadImage } from "@/lib/api/manage_news";
 
 const TAG_STYLES: Record<string, { icon: JSX.Element; color: string }> = {
@@ -366,7 +366,7 @@ export default function NewsCard({
                 )}
 
                 {/* SubDomain Tag */}
-                {editMode ? (
+                {/* {editMode ? (
                     <select value={subdomainTag} onChange={(e) => setSubdomainTag(e.target.value)} className="text-sm border rounded px-2 py-1 bg-white text-gray-900">
                         {Object.keys(NEWS_SUBDOMAIN_TAG).map((tag) => (
                             <option key={tag} value={tag}>
@@ -380,7 +380,7 @@ export default function NewsCard({
                             {news.subdomain_tag.replace(/_/g, " ")}
                         </div>
                     )
-                )}
+                )} */}
 
                 {/* Image */}
                 {news.image_url && (

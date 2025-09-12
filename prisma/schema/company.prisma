@@ -1,46 +1,38 @@
 model company {
-  id           Int      @id @default(autoincrement())
-  company_name String   @unique
-  company_full String   @db.VarChar(255)
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
-
-  is_featured Boolean @default(false)
-  is_legacy   Boolean @default(false)
-
-  logo_url String? @db.Text
-  firebase_path String?
-
-  domains companydomainmapping[]
-
-  // Relations
+  id               Int                    @id @default(autoincrement())
+  company_name     String                 @unique
+  company_full     String                 @db.VarChar(255)
+  created_at       DateTime               @default(now())
+  updated_at       DateTime               @updatedAt
+  is_featured      Boolean                @default(false)
+  is_legacy        Boolean                @default(false)
+  logo_url         String?                @db.Text
+  firebase_path    String?
+  alum_experiences company_alum_exp[]
+  compendium       company_compendium?
   info             company_info?
   jds              company_jd[]
-  compendium       company_compendium[]
-  alum_experiences company_alum_exp[]
-  shortlists       shortlist[]
+  domains          companydomainmapping[]
+  news             news_company[]
   notifications    notification[]
-
-  news        news_company[]
-  videos      video[]
-  userSession userSession[]  @relation("CompanySessions")
-  summary     summary[]      @relation("SummaryCompany")
+  shortlists       shortlist[]
+  summary          summary?               @relation("SummaryCompany")
+  usersession      usersession[]
+  videos           video[]
 }
 
 model companydomainmapping {
   id         Int     @id @default(autoincrement())
-  company    company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   company_id Int
-
-  domain DOMAIN
+  domain     DOMAIN
+  company    company @relation(fields: [company_id], references: [id], onDelete: Cascade)
 
   @@unique([company_id, domain])
 }
 
 model company_info {
-  id            Int    @id @default(autoincrement())
-  company_id    Int    @unique
+  id            Int     @id @default(autoincrement())
+  company_id    Int     @unique
   brief_content String
-
-  company company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  company       company @relation(fields: [company_id], references: [id], onDelete: Cascade)
 }

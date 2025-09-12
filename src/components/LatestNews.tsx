@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, MotionConfig, AnimatePresence } from "framer-motion";
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
 import { ArrowUturnLeftIcon } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
 import NewsCard from "@/components/NewsCard";
-import { ALL_DOMAINS } from "./ManageCompanyList";
-import { news, NEWS_DOMAIN_TAG, NEWS_SUBDOMAIN_TAG } from "@prisma/client";
+import { news } from "@prisma/client";
 import { debounceAsync } from "@/utils/debounce";
 import { getNewsOnQuery } from "@/lib/api/manage_news";
 
@@ -21,6 +20,14 @@ export default function LatestNews() {
 
     const [newsDomainTag, setNewsDomainTag] = useState("ALL");
     const [newsSubdomainTag, setNewsSubdomainTag] = useState("ALL");
+
+    const isMountedRef = useRef(true);
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     const buildQuery = useCallback(
         (overrides?: { id?: number; search?: string }) => {
@@ -42,11 +49,13 @@ export default function LatestNews() {
     const debouncedRefresh = useMemo(
         () =>
             debounceAsync(async (opts?: { id?: number; search?: string }) => {
+                if (!isMountedRef.current) return;
                 setIsRefreshing(true);
                 setErrorMsg("");
                 try {
                     const q = buildQuery(opts);
                     const res = await getNewsOnQuery(q);
+                    if (!isMountedRef.current) return;
                     if (res.success) {
                         setNewsList(res.data ?? []);
                     } else {
@@ -54,9 +63,11 @@ export default function LatestNews() {
                         setErrorMsg(res.error || "Failed to fetch news.");
                     }
                 } catch (e: any) {
+                    if (!isMountedRef.current) return;
                     setNewsList([]);
                     setErrorMsg(e?.message || "Failed to fetch news.");
                 } finally {
+                    if (!isMountedRef.current) return;
                     setIsRefreshing(false);
                 }
             }, 400),
@@ -67,24 +78,17 @@ export default function LatestNews() {
 
     // Initial + filter-driven fetch
     useEffect(() => {
-        let mounted = true;
         (async () => {
             setLoading(true);
-            await fetchNews();
-            if (mounted) setLoading(false);
+            await fetchNews(); // debounced inside
+            if (isMountedRef.current) setLoading(false);
         })();
-        return () => {
-            mounted = false;
-        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDomain, dateRange, newsDomainTag, newsSubdomainTag]);
 
-    // Debounced search
+    // Debounced search (single debounce via debouncedRefresh)
     useEffect(() => {
-        const t = setTimeout(() => {
-            fetchNews();
-        }, 400);
-        return () => clearTimeout(t);
+        fetchNews();
     }, [search, fetchNews]);
 
     const groupedNews = useMemo(() => {
@@ -96,10 +100,9 @@ export default function LatestNews() {
             grouped[dateKey].push(item);
         });
 
+        // Keys are yyyy-MM-dd so lexicographic sort works
         return Object.fromEntries(
-            Object.entries(grouped).sort(
-                ([a], [b]) => new Date(b).getTime() - new Date(a).getTime()
-            )
+            Object.entries(grouped).sort(([a], [b]) => b.localeCompare(a))
         );
     }, [newsList]);
 
@@ -182,19 +185,19 @@ export default function LatestNews() {
                                 </motion.span>
                             </motion.button>
 
-                            {/* Domain */}
-                            <select
-                                value={selectedDomain}
-                                onChange={(e) => setSelectedDomain(e.target.value)}
-                                className="px-3 py-1.5 text-xs rounded-full bg-[#0a1820] text-cyan-100 border border-cyan-700/50 hover:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-                            >
-                                <option value="ALL">All Domains</option>
-                                {ALL_DOMAINS.map((d) => (
-                                    <option key={d} value={d}>
-                                        {d}
-                                    </option>
-                                ))}
-                            </select>
+                            {/* Domain (kept disabled UI) */}
+                            {/* <select
+                value={selectedDomain}
+                onChange={(e) => setSelectedDomain(e.target.value)}
+                className="px-3 py-1.5 text-xs rounded-full bg-[#0a1820] text-cyan-100 border border-cyan-700/50 hover:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+              >
+                <option value="ALL">All Domains</option>
+                {ALL_DOMAINS.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select> */}
 
                             {/* News Domain Tag */}
                             <select
@@ -203,26 +206,26 @@ export default function LatestNews() {
                                 className="px-3 py-1.5 text-xs rounded-full bg-[#0a1820] text-cyan-100 border border-cyan-700/50 hover:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
                             >
                                 <option value="ALL">All News Domain Tags</option>
-                                {Object.keys(NEWS_DOMAIN_TAG).map((tag) => (
+                                {["BUSINESS", "WORLD", "TECHNOLOGY", "COMPANY"].map((tag) => (
                                     <option key={tag} value={tag}>
                                         {tag}
                                     </option>
                                 ))}
                             </select>
 
-                            {/* News Subdomain Tag */}
-                            <select
-                                value={newsSubdomainTag}
-                                onChange={(e) => setNewsSubdomainTag(e.target.value)}
-                                className="px-3 py-1.5 text-xs rounded-full bg-[#0a1820] text-cyan-100 border border-cyan-700/50 hover:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-                            >
-                                <option value="ALL">All News Subdomain Tags</option>
-                                {Object.keys(NEWS_SUBDOMAIN_TAG).map((tag) => (
-                                    <option key={tag} value={tag}>
-                                        {tag}
-                                    </option>
-                                ))}
-                            </select>
+                            {/* News Subdomain Tag (kept disabled UI) */}
+                            {/* <select
+                value={newsSubdomainTag}
+                onChange={(e) => setNewsSubdomainTag(e.target.value)}
+                className="px-3 py-1.5 text-xs rounded-full bg-[#0a1820] text-cyan-100 border border-cyan-700/50 hover:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+              >
+                <option value="ALL">All News Subdomain Tags</option>
+                {Object.keys(NEWS_SUBDOMAIN_TAG).map((tag) => (
+                  <option key={tag} value={tag}>
+                    {tag}
+                  </option>
+                ))}
+              </select> */}
 
                             {/* Date range */}
                             <input
@@ -240,11 +243,7 @@ export default function LatestNews() {
                             />
 
                             {/* Search */}
-                            <motion.div
-                                className="relative"
-                                whileHover={{ scale: 1.005 }}
-                                whileTap={{ scale: 0.99 }}
-                            >
+                            <motion.div className="relative" whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.99 }}>
                                 <motion.input
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
@@ -290,11 +289,20 @@ export default function LatestNews() {
                                     <div className="h-px flex-1 ml-4 bg-gradient-to-r from-transparent via-cyan-800/40 to-transparent" />
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 auto-rows-fr">
+                                {/* Masonry (CSS columns) */}
+                                <div className="columns-1 sm:columns-2 lg:columns-4 gap-5 [column-fill:_balance]">
                                     {newsItems.map((n) => (
-                                        <div key={`${n.id}-${n.updated_at}`} className="overflow-hidden rounded-2xl border border-cyan-700/40 bg-[#081219]/85 backdrop-blur">
+                                        <article
+                                            key={`${n.id}-${n.updated_at}`}
+                                            className="mb-5 overflow-hidden rounded-2xl border border-cyan-700/40 bg-[#081219]/85 backdrop-blur"
+                                            style={{
+                                                breakInside: "avoid",
+                                                WebkitColumnBreakInside: "avoid",
+                                                pageBreakInside: "avoid",
+                                            }}
+                                        >
                                             <motion.div
-                                                whileHover={{ scale: 1.02 }}
+                                                whileHover={{ y: -2 }}
                                                 transition={{ duration: 0.18, ease: "easeInOut" }}
                                                 className="h-full"
                                             >
@@ -305,7 +313,7 @@ export default function LatestNews() {
                                                     OnNewsUpdate={() => { }}
                                                 />
                                             </motion.div>
-                                        </div>
+                                        </article>
                                     ))}
                                 </div>
                             </motion.section>

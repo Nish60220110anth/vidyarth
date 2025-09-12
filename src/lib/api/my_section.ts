@@ -27,6 +27,8 @@ const getShortlistsBySession = async (count: number) => {
 }
 
 const getNewsForCompanies = async (companyQueryParams: string) => {
+
+    console.log("Fetching news with params:", companyQueryParams);
     try {
         const res = await axios.get(`${baseUrl}/api/news-for-my-section/?${companyQueryParams}`, {
             headers: {

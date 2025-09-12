@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 import { getNewsForCompanies, getShortlistsBySession } from "@/lib/api/my_section";
 import { onRouteTo } from "@/utils/urlClick";
+import { SmartImage } from "./SmartImage";
 
 type Shortlist = {
     id: number;
@@ -225,9 +226,7 @@ export default function MySection() {
                     <button
                         onClick={loadAll}
                         disabled={refreshing}
-                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border transition ${refreshing
-                                ? "border-cyan-700/60 text-cyan-300 bg-[#0b1f2b]"
-                                : "border-cyan-700/50 text-cyan-100 bg-[#0a1820] hover:border-cyan-400/60"
+                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border transition ${refreshing ? "border-cyan-700/60 text-cyan-300 bg-[#0b1f2b]" : "border-cyan-700/50 text-cyan-100 bg-[#0a1820] hover:border-cyan-400/60"
                             }`}
                         title="Refresh all"
                     >
@@ -416,11 +415,12 @@ export default function MySection() {
                                             </div>
                                         </motion.div>
                                     ) : (
+                                        // ===== Masonry layout (CSS multi-columns) =====
                                         <motion.div
                                             key={`news-${newsKey}-${selectedCompanyId ?? "all"}-${visibleCount}`}
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
-                                            className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5"
+                                            className="columns-1 md:columns-2 gap-5 [column-fill:_balance]"
                                         >
                                             {filteredNews.map((entry, idx) => {
                                                 const k = keyForNews(entry, idx);
@@ -431,19 +431,21 @@ export default function MySection() {
                                                         initial={{ opacity: 0, y: 8 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ duration: 0.2 }}
-                                                        className="group relative flex gap-3 rounded-2xl border border-cyan-700/40 bg-gradient-to-br from-[#0a1820] to-[#0e1e2b] p-3 hover:border-cyan-400/60 transform-gpu will-change-transform"
+                                                        className="group relative flex gap-3 rounded-2xl border border-cyan-700/40 bg-gradient-to-br from-[#0a1820] to-[#0e1e2b] p-3 hover:border-cyan-400/60 transform-gpu will-change-transform mb-5"
+                                                        style={{
+                                                            breakInside: "avoid",
+                                                            WebkitColumnBreakInside: "avoid",
+                                                            pageBreakInside: "avoid",
+                                                        }}
                                                     >
                                                         <div className="w-28 h-28 min-w-[7rem] rounded-xl overflow-hidden bg-[#0a2230] ring-1 ring-white/5 flex items-center justify-center">
-                                                            {entry.image_url ? (
-                                                                // eslint-disable-next-line @next/next/no-img-element
-                                                                <img
-                                                                    src={entry.image_url}
-                                                                    alt={entry.title}
-                                                                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
-                                                                />
-                                                            ) : (
-                                                                <div className="text-[11px] text-cyan-300/70">No Image</div>
-                                                            )}
+                                                            <SmartImage
+                                                                companyId={(selectedCompanyId ?? entry.company_ids?.[0]) as number}
+                                                                src={entry.image_url}
+                                                                alt={entry.title}
+                                                                className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                                                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                                            />
                                                         </div>
 
                                                         <div className="flex-1 flex flex-col min-w-0">

@@ -12,7 +12,7 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
         ],
         filters: {
             [ACCESS_PERMISSION.ENABLE_MY_SECTION]: {
-                priority: 2,
+                priority: 1,
                 filter: {
                     is_featured: true
                 },
@@ -22,7 +22,14 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
 };
 
 const GetQuerySchema = z.object({
-    cid: z.array(z.string().transform((id) => parseInt(id)))
+    cid: z.preprocess(
+        (val) => {
+            if (Array.isArray(val)) return val;
+            if (typeof val === "string") return val.includes(",") ? val.split(",") : [val];
+            return [];
+        },
+        z.array(z.coerce.number().int().positive()).nonempty("At least one cid is required")
+    ),
 });
 
 async function handler(

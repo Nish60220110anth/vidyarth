@@ -1,14 +1,13 @@
 model student_cv {
-  id Int @id @default(autoincrement())
-
-  user   user @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId Int
-
+  id          Int     @id @default(autoincrement())
+  userId      Int
   domain      DOMAIN?
   cv_path     String  @db.Text
   cv_filename String
+  version     Int
+  is_primary  Boolean
+  comment     String? @db.Text
+  user        user    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  version    Int
-  is_primary Boolean
-  comment    String? @db.Text
+  @@index([userId], map: "student_cv_userId_fkey")
 }

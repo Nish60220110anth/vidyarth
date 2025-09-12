@@ -1,33 +1,27 @@
 model company_jd {
-  id         String @id @default(cuid())
-  company_id Int
-
+  id                 String             @id @default(cuid())
+  company_id         Int
   placement_cycle_id Int
   role               String
-
-  pdf_path      String  @db.Text
-  pdf_name      String?
-  firebase_path String?
-
-  is_active Boolean @default(true)
-
-  domains companyjd_domain[]
-
-  company         company         @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  placement_cycle placement_cycle @relation(fields: [placement_cycle_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  pdf_path           String             @db.Text
+  pdf_name           String?
+  firebase_path      String?
+  is_active          Boolean            @default(true)
+  created_at         DateTime           @default(now())
+  updated_at         DateTime           @updatedAt
+  company            company            @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  placement_cycle    placement_cycle    @relation(fields: [placement_cycle_id], references: [id], onDelete: Cascade)
+  domains            companyjd_domain[]
 
   @@unique([company_id, placement_cycle_id, role])
+  @@index([placement_cycle_id], map: "company_jd_placement_cycle_id_fkey")
 }
 
 model companyjd_domain {
-  id            Int    @id @default(autoincrement())
+  id            Int        @id @default(autoincrement())
   company_jd_id String
   domain        DOMAIN
+  company_jd    company_jd @relation(fields: [company_jd_id], references: [id], onDelete: Cascade)
 
-  company_jd company_jd @relation(fields: [company_jd_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@unique([company_jd_id, domain]) // prevent duplicates
+  @@unique([company_jd_id, domain])
 }

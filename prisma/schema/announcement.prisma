@@ -1,14 +1,11 @@
 model announcements {
-  id Int @id @default(autoincrement())
-
-  user  user[] @relation("announcements_user")
-
-  title         String  @db.Text
-  brief         String  @db.Text
-  where_to_look String  @db.Text
+  id            Int      @id @default(autoincrement())
+  title         String   @db.Text
+  brief         String   @db.Text
+  where_to_look String   @db.Text
   link_name     String
   is_link       Boolean
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  user          user[]   @relation("announcements_user")
 }

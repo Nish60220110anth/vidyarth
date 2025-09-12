@@ -1,25 +1,20 @@
 model shortlist {
-  id Int @id @default(autoincrement())
-
-  company_id   Int
-  shortlist_id Int     @default(0)
-  company      company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  round_details  String
-  shortlist_type SHORTLIST_TYPE
-  round_type     String
-  day            Int?
-  role           String
-
-  is_active   Boolean @default(true)
-  is_featured Boolean @default(false)
-
-  shortlisted_users user[] @relation("shortlistusers")
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  notification notification[]
+  id                Int            @id @default(autoincrement())
+  company_id        Int
+  shortlist_id      Int            @default(0)
+  round_details     String
+  shortlist_type    SHORTLIST_TYPE
+  round_type        String
+  day               Int?
+  role              String
+  is_active         Boolean        @default(true)
+  is_featured       Boolean        @default(false)
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+  notification      notification[]
+  company           company        @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  shortlisted_users user[]         @relation("shortlistusers")
 
   @@unique([shortlist_id, company_id], name: "shortlist_unique_pair")
+  @@index([company_id], map: "shortlist_company_id_fkey")
 }

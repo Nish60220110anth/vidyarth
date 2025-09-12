@@ -81,12 +81,32 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                     }
                     : null;
 
-                result.placement_cycle = {
-                    cycle_type: user.disha_profile?.placement_cycle.placement_type,
-                    year: user.disha_profile?.placement_cycle.year,
-                    status: user.disha_profile?.placement_cycle.status,
-                    batch_name: user.disha_profile?.placement_cycle.batch_name
+                const current_cycle = await prisma.placement_cycle.findFirst({
+                    where: { status: "OPEN" },
+                });
+
+                if (user.disha_profile){
+                    result.placement_cycle = {
+                        cycle_type: user.disha_profile.placement_cycle.placement_type,
+                        year: user.disha_profile.placement_cycle.year,
+                        status: user.disha_profile.placement_cycle.status,
+                        batch_name: user.disha_profile.placement_cycle.batch_name
+                    }
+                } else if (current_cycle) {
+                    result.placement_cycle = {
+                        cycle_type: current_cycle.placement_type,
+                        year: current_cycle.year,
+                        status: current_cycle.status,
+                        batch_name: current_cycle.batch_name
+                    }
                 }
+
+                // result.placement_cycle = {
+                //     cycle_type: user.disha_profile?.placement_cycle.placement_type,
+                //     year: user.disha_profile?.placement_cycle.year,
+                //     status: user.disha_profile?.placement_cycle.status,
+                //     batch_name: user.disha_profile?.placement_cycle.batch_name
+                // }
 
                 if (user.shadow_as_user2?.user1) {
                     result.shadow = {

@@ -8,7 +8,7 @@ type ApiResult<T> = {
     error: string | null;
 };
 
-export const DISABLED = true;
+export const DISABLED = false;
 
 export const fetchSummaryByCid = async (
     cid: number

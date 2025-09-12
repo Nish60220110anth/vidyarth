@@ -122,6 +122,61 @@ function Dropdown({
     );
 }
 
+function LetterRail({
+    activeLetters,
+    activeLetter,
+    onJump,
+}: {
+    activeLetters: string[];
+    activeLetter: string | null;
+    onJump: () => void;
+}) {
+    return (
+        <motion.div
+            layout="position"
+            className="h-full w-10 md:w-11 rounded-xl bg-[#081219]/95 backdrop-blur-sm border border-cyan-700/40 flex flex-col"
+        >
+            <div className="h-full flex flex-col justify-between items-stretch px-1 py-2 md:py-2.5">
+                {AZ_LETTERS.map((letter) => {
+                    const isPresent = activeLetters.includes(letter);
+                    const isActive = activeLetter === letter;
+
+                    if (isPresent) {
+                        return (
+                            <motion.a
+                                key={letter}
+                                href={`#${letter}`}
+                                onClick={onJump}
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                className={`w-full h-8 md:h-8.5 rounded-lg grid place-items-center
+                  text-[11px] md:text-[11.5px] font-semibold tracking-wide transition-colors
+                  ${isActive
+                                        ? "bg-gradient-to-br from-cyan-600/25 to-teal-500/20 text-cyan-100 ring-1 ring-cyan-400/30"
+                                        : "text-cyan-300/80 hover:text-cyan-100 hover:bg-white/5"
+                                    }`}
+                            >
+                                {letter}
+                            </motion.a>
+                        );
+                    }
+
+                    return (
+                        <div
+                            key={letter}
+                            className="w-full h-8 md:h-8.5 rounded-lg grid place-items-center
+                text-[11px] md:text-[11.5px] font-semibold tracking-wide
+                text-cyan-600/40 border border-transparent select-none cursor-default"
+                        >
+                            {letter}
+                        </div>
+                    );
+                })}
+            </div>
+        </motion.div>
+    );
+}
+
 export default function AllCompaniesDirectory({ onCompanySelected }: AllCompaniesDirectoryProps) {
     const [allCompanies, setAllCompanies] = useState<Company[]>([]);
     const [groupedCompanies, setGroupedCompanies] = useState<Record<string, Company[]>>({});
@@ -150,6 +205,45 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
     const linearCB = [0, 0, 1, 1] as const;
     const fade: Transition = { duration: 0.18, ease: easeOutCB };
     const spring = { type: "spring", stiffness: 280, damping: 36, mass: 0.9 } as const;
+
+    // ====== NEW: Refs & state for fixed desktop rail alignment ======
+    const containerRef = useRef<HTMLDivElement>(null); // wraps the grid
+    const fixedRailRef = useRef<HTMLDivElement>(null);
+    const [railLeft, setRailLeft] = useState<number>(0);
+
+    const updateRailLeft = () => {
+        const container = containerRef.current;
+        const rail = fixedRailRef.current;
+        if (!container || !rail) return;
+
+        const rect = container.getBoundingClientRect(); // viewport coords
+        const railWidth = rail.offsetWidth || 44; // md:w-11 fallback
+        const gap = 8; // match grid gap-2 (0.5rem)
+        // place rail just OUTSIDE the container's right edge, but clamp inside viewport
+        const desiredLeft = rect.right + gap - railWidth; // align with a small interior gap
+        const viewportWidth = document.documentElement.clientWidth;
+        const clampedLeft = Math.min(
+            Math.max(desiredLeft, 8), // at least 8px from left
+            viewportWidth - railWidth - 8 // at least 8px from right
+        );
+        setRailLeft(clampedLeft);
+    };
+
+    useEffect(() => {
+        updateRailLeft();
+        const ro = new ResizeObserver(() => updateRailLeft());
+        if (containerRef.current) ro.observe(containerRef.current);
+        const onResize = () => updateRailLeft();
+        window.addEventListener("resize", onResize);
+        // vertical scroll doesn't affect left, but if you have horizontal scroll in rare cases:
+        window.addEventListener("scroll", onResize, { passive: true });
+        return () => {
+            ro.disconnect();
+            window.removeEventListener("resize", onResize);
+            window.removeEventListener("scroll", onResize);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         if (!sentinelRef.current) return;
@@ -219,6 +313,9 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                 (document.querySelector("[data-app-topbar]") as HTMLElement | null)) ?? null;
         const h = el?.offsetHeight ?? 56;
         document.documentElement.style.setProperty("--topbar-h", `${h}px`);
+        // re-align rail when topbar height known
+        updateRailLeft();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -311,7 +408,7 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
 
     return (
         <MotionConfig transition={{ duration: 0.16, ease: easeOutCB }} reducedMotion="user">
-            {/* Mobile letter rail remains fixed at the bottom */}
+            {/* Mobile letter rail fixed at the bottom (unchanged) */}
             <div className="sm:hidden fixed inset-x-2 bottom-[max(env(safe-area-inset-bottom),0.5rem)] z-50 pointer-events-none">
                 <div className="pointer-events-auto rounded-xl bg-[#081219]/95 border border-cyan-700/40 px-2 py-1.5 overflow-x-auto no-scrollbar backdrop-blur supports-[backdrop-filter]:backdrop-blur shadow-lg">
                     <div className="flex gap-1">
@@ -338,13 +435,11 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                     layout="position"
                     className="p-1 sm:p-2 relative min-h-full bg-gradient-to-br from-[#050b10] via-[#07131a] to-[#041019] isolate"
                 >
-                    <div className="w-full max-w-[1200px] mx-auto relative">
-                        {/* Grid: content + sticky rail */}
+                    <div ref={containerRef} className="w-full max-w-[1200px] mx-auto relative">
+                        {/* Grid: content + (placeholder) sticky rail column */}
                         <div className="grid items-start sm:grid-cols-[minmax(0,1fr)_2.75rem] md:grid-cols-[minmax(0,1fr)_3rem] gap-2">
-
                             {/* LEFT: content */}
                             <div className="grid grid-rows-[auto_1fr] gap-3 min-h-[calc(100vh-var(--topbar-h,56px)-1.5rem)]">
-
                                 <motion.div
                                     layout="position"
                                     initial={{ opacity: 0, y: 6 }}
@@ -536,10 +631,7 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                             {Object.entries(groupedCompanies).map(([letter, companies]) =>
                                                 viewMode === "grid" ? (
                                                     <section key={letter} id={letter} className="scroll-mt-24 relative z-0">
-                                                        <motion.div
-                                                            layout="position"
-                                                            className="flex items-center gap-2.5 mb-2.5 mt-2.5"
-                                                        >
+                                                        <motion.div layout="position" className="flex items-center gap-2.5 mb-2.5 mt-2.5">
                                                             <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-cyan-800/30 to-teal-700/20 text-cyan-100 border border-cyan-700/40 grid place-items-center font-semibold text-sm">
                                                                 {letter}
                                                             </div>
@@ -547,9 +639,7 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                                         </motion.div>
 
                                                         {(() => {
-                                                            const gridCols = showLogos
-                                                                ? density.gridColsLogos
-                                                                : density.gridColsNoLogos;
+                                                            const gridCols = showLogos ? density.gridColsLogos : density.gridColsNoLogos;
                                                             return (
                                                                 <motion.div
                                                                     layout="position"
@@ -557,144 +647,101 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                                                     className={`grid ${gridCols} ${density.gridGap}`}
                                                                 >
                                                                     <AnimatePresence initial={false}>
-                                                                        {companies
-                                                                            .slice(0, visibleCompanyCount)
-                                                                            .map((company, idx) => {
-                                                                                const tone =
-                                                                                    idx % 3 === 0
-                                                                                        ? "from-[#0b1f29] to-[#0e2a33] border-cyan-500/30"
-                                                                                        : idx % 3 === 1
-                                                                                            ? "from-[#1a1b0a] to-[#232406] border-amber-500/30"
-                                                                                            : "from-[#10221b] to-[#133024] border-emerald-500/30";
+                                                                        {companies.slice(0, visibleCompanyCount).map((company, idx) => {
+                                                                            const tone =
+                                                                                idx % 3 === 0
+                                                                                    ? "from-[#0b1f29] to-[#0e2a33] border-cyan-500/30"
+                                                                                    : idx % 3 === 1
+                                                                                        ? "from-[#1a1b0a] to-[#232406] border-amber-500/30"
+                                                                                        : "from-[#10221b] to-[#133024] border-emerald-500/30";
 
-                                                                                return (
-                                                                                    <motion.div
-                                                                                        key={company.id}
+                                                                            return (
+                                                                                <motion.div
+                                                                                    key={company.id}
+                                                                                    layout="position"
+                                                                                    initial={{ opacity: 0, y: 8 }}
+                                                                                    animate={{ opacity: 1, y: 0 }}
+                                                                                    exit={{ opacity: 0, y: -6 }}
+                                                                                    transition={{
+                                                                                        ...fade,
+                                                                                        delay: Math.min(idx, 8) * 0.012,
+                                                                                    }}
+                                                                                >
+                                                                                    <motion.button
                                                                                         layout="position"
-                                                                                        initial={{ opacity: 0, y: 8 }}
-                                                                                        animate={{ opacity: 1, y: 0 }}
-                                                                                        exit={{ opacity: 0, y: -6 }}
-                                                                                        transition={{
-                                                                                            ...fade,
-                                                                                            delay: Math.min(idx, 8) * 0.012,
-                                                                                        }}
+                                                                                        transition={spring}
+                                                                                        whileHover={{ y: -2, scale: 1.002 }}
+                                                                                        whileTap={{ scale: 0.99 }}
+                                                                                        onClick={() => onCompanySelected?.(company)}
+                                                                                        className={`group w-full text-left ${density.cardPad} ${density.radius} border bg-gradient-to-br ${tone}`}
                                                                                     >
-                                                                                        <motion.button
-                                                                                            layout="position"
-                                                                                            transition={spring}
-                                                                                            whileHover={{ y: -2, scale: 1.002 }}
-                                                                                            whileTap={{ scale: 0.99 }}
-                                                                                            onClick={() =>
-                                                                                                onCompanySelected?.(company)
-                                                                                            }
-                                                                                            className={`group w-full text-left ${density.cardPad} ${density.radius} border bg-gradient-to-br ${tone}`}
-                                                                                        >
-                                                                                            <div
-                                                                                                className={`flex items-start ${showLogos
-                                                                                                        ? "gap-3"
-                                                                                                        : "gap-2"
-                                                                                                    }`}
-                                                                                            >
-                                                                                                {showLogos && (
-                                                                                                    <div
-                                                                                                        className={`${density.logoBox} rounded-lg grid place-items-center ring-1 ring-white/5 bg-[#ffffff]`}
-                                                                                                    >
-                                                                                                        {company.logo_url ? (
-                                                                                                            <img
-                                                                                                                src={`${company.logo_url}`}
-                                                                                                                alt={
-                                                                                                                    company.company_name
-                                                                                                                }
-                                                                                                                className={`${density.logoImg} object-contain transition-transform duration-200 group-hover:scale-105`}
-                                                                                                            />
-                                                                                                        ) : null}
-                                                                                                    </div>
-                                                                                                )}
+                                                                                        <div className={`flex items-start ${showLogos ? "gap-3" : "gap-2"}`}>
+                                                                                            {showLogos && (
+                                                                                                <div
+                                                                                                    className={`${density.logoBox} rounded-lg grid place-items-center ring-1 ring-white/5 bg-[#ffffff]`}
+                                                                                                >
+                                                                                                    {company.logo_url ? (
+                                                                                                        <img
+                                                                                                            src={`${company.logo_url}`}
+                                                                                                            alt={company.company_name}
+                                                                                                            className={`${density.logoImg} object-contain transition-transform duration-200 group-hover:scale-105`}
+                                                                                                        />
+                                                                                                    ) : null}
+                                                                                                </div>
+                                                                                            )}
 
-                                                                                                <div className="flex-1 min-w-0">
-                                                                                                    <div
-                                                                                                        className={`${density.nameSize} font-semibold text-cyan-50 whitespace-normal break-words line-clamp-2 leading-snug`}
-                                                                                                    >
-                                                                                                        {
-                                                                                                            company.company_name
-                                                                                                        }
-                                                                                                    </div>
-                                                                                                    <div
-                                                                                                        className={`${density.subSize} text-cyan-300/80 whitespace-normal break-words line-clamp-1`}
-                                                                                                    >
-                                                                                                        {
-                                                                                                            company.company_full
-                                                                                                        }
-                                                                                                    </div>
-                                                                                                    <div
-                                                                                                        className={`flex flex-wrap gap-1 ${density.chipsTop}`}
-                                                                                                    >
-                                                                                                        {company.domains
-                                                                                                            .slice(
-                                                                                                                0,
-                                                                                                                density.maxChips
-                                                                                                            )
-                                                                                                            .map(
-                                                                                                                ({
-                                                                                                                    domain,
-                                                                                                                }) => (
-                                                                                                                    <span
-                                                                                                                        key={
-                                                                                                                            domain
-                                                                                                                        }
-                                                                                                                        className={`px-1.5 py-0.5 ${density.chipText} rounded-full border font-medium ${getDomainStyle(
-                                                                                                                            domain
-                                                                                                                        )}`}
-                                                                                                                    >
-                                                                                                                        {
-                                                                                                                            domain
-                                                                                                                        }
-                                                                                                                    </span>
-                                                                                                                )
-                                                                                                            )}
-                                                                                                        {company.domains
-                                                                                                            .length >
-                                                                                                            density.maxChips && (
-                                                                                                                <span
-                                                                                                                    className={`px-2 py-0.5 ${density.chipText} rounded-full border font-medium bg-[#0a2030] text-cyan-200 border-cyan-900/40`}
-                                                                                                                >
-                                                                                                                    +
-                                                                                                                    {company
-                                                                                                                        .domains
-                                                                                                                        .length -
-                                                                                                                        density.maxChips}{" "}
-                                                                                                                    more
-                                                                                                                </span>
-                                                                                                            )}
-                                                                                                    </div>
+                                                                                            <div className="flex-1 min-w-0">
+                                                                                                <div
+                                                                                                    className={`${density.nameSize} font-semibold text-cyan-50 whitespace-normal break-words line-clamp-2 leading-snug`}
+                                                                                                >
+                                                                                                    {company.company_name}
+                                                                                                </div>
+                                                                                                <div
+                                                                                                    className={`${density.subSize} text-cyan-300/80 whitespace-normal break-words line-clamp-1`}
+                                                                                                >
+                                                                                                    {company.company_full}
+                                                                                                </div>
+                                                                                                <div className={`flex flex-wrap gap-1 ${density.chipsTop}`}>
+                                                                                                    {company.domains
+                                                                                                        .slice(0, density.maxChips)
+                                                                                                        .map(({ domain }) => (
+                                                                                                            <span
+                                                                                                                key={domain}
+                                                                                                                className={`px-1.5 py-0.5 ${density.chipText} rounded-full border font-medium ${getDomainStyle(
+                                                                                                                    domain
+                                                                                                                )}`}
+                                                                                                            >
+                                                                                                                {domain}
+                                                                                                            </span>
+                                                                                                        ))}
+                                                                                                    {company.domains.length > density.maxChips && (
+                                                                                                        <span
+                                                                                                            className={`px-2 py-0.5 ${density.chipText} rounded-full border font-medium bg-[#0a2030] text-cyan-200 border-cyan-900/40`}
+                                                                                                        >
+                                                                                                            +{company.domains.length - density.maxChips} more
+                                                                                                        </span>
+                                                                                                    )}
                                                                                                 </div>
                                                                                             </div>
-                                                                                        </motion.button>
-                                                                                    </motion.div>
-                                                                                );
-                                                                            })}
+                                                                                        </div>
+                                                                                    </motion.button>
+                                                                                </motion.div>
+                                                                            );
+                                                                        })}
                                                                     </AnimatePresence>
 
                                                                     {loadingMore &&
                                                                         visibleCompanyCount < totalFiltered &&
-                                                                        Array.from({ length: compact ? 6 : 4 }).map(
-                                                                            (_, i) => (
-                                                                                <SkeletonCard
-                                                                                    key={`s-${i}`}
-                                                                                    dense={compact}
-                                                                                />
-                                                                            )
-                                                                        )}
+                                                                        Array.from({ length: compact ? 6 : 4 }).map((_, i) => (
+                                                                            <SkeletonCard key={`s-${i}`} dense={compact} />
+                                                                        ))}
                                                                 </motion.div>
                                                             );
                                                         })()}
                                                     </section>
                                                 ) : (
                                                     <section key={letter} id={letter} className="scroll-mt-24 relative z-0">
-                                                        <motion.div
-                                                            layout="position"
-                                                            className="flex items-center gap-2 mb-2 mt-2"
-                                                        >
+                                                        <motion.div layout="position" className="flex items-center gap-2 mb-2 mt-2">
                                                             <div className="h-6.5 w-6.5 rounded-md bg-gradient-to-br from-cyan-800/30 to-teal-700/20 text-cyan-100 border border-cyan-700/40 grid place-items-center font-semibold text-[13px]">
                                                                 {letter}
                                                             </div>
@@ -703,104 +750,77 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
 
                                                         <motion.div layout="position" className="rounded-lg overflow-hidden">
                                                             <AnimatePresence initial={false}>
-                                                                {companies
-                                                                    .slice(0, visibleCompanyCount)
-                                                                    .map((company, idx) => {
-                                                                        const rowTone =
-                                                                            idx % 2 === 0
-                                                                                ? "bg-[#0b1e28] hover:bg-[#0f2833] border-cyan-600/30"
-                                                                                : "bg-[#1f1d0a] hover:bg-[#242209] border-amber-600/35";
+                                                                {companies.slice(0, visibleCompanyCount).map((company, idx) => {
+                                                                    const rowTone =
+                                                                        idx % 2 === 0
+                                                                            ? "bg-[#0b1e28] hover:bg-[#0f2833] border-cyan-600/30"
+                                                                            : "bg-[#1f1d0a] hover:bg-[#242209] border-amber-600/35";
 
-                                                                        return (
-                                                                            <motion.div
-                                                                                key={company.id}
+                                                                    return (
+                                                                        <motion.div
+                                                                            key={company.id}
+                                                                            layout="position"
+                                                                            initial={{ opacity: 0, y: 8 }}
+                                                                            animate={{ opacity: 1, y: 0 }}
+                                                                            exit={{ opacity: 0, y: -8 }}
+                                                                            transition={{
+                                                                                ...fade,
+                                                                                delay: Math.min(idx, 8) * 0.01,
+                                                                            }}
+                                                                        >
+                                                                            <motion.button
                                                                                 layout="position"
-                                                                                initial={{ opacity: 0, y: 8 }}
-                                                                                animate={{ opacity: 1, y: 0 }}
-                                                                                exit={{ opacity: 0, y: -8 }}
-                                                                                transition={{
-                                                                                    ...fade,
-                                                                                    delay: Math.min(idx, 8) * 0.01,
-                                                                                }}
+                                                                                transition={spring}
+                                                                                whileHover={{ x: 2 }}
+                                                                                whileTap={{ scale: 0.995 }}
+                                                                                onClick={() => onCompanySelected?.(company)}
+                                                                                className={`w-full flex items-center ${compact ? "gap-2 px-3 py-2.5" : "gap-3 px-3.5 py-3"
+                                                                                    } text-left border-b last:border-b-0 ${rowTone} transition-colors border`}
                                                                             >
-                                                                                <motion.button
-                                                                                    layout="position"
-                                                                                    transition={spring}
-                                                                                    whileHover={{ x: 2 }}
-                                                                                    whileTap={{ scale: 0.995 }}
-                                                                                    onClick={() =>
-                                                                                        onCompanySelected?.(company)
-                                                                                    }
-                                                                                    className={`w-full flex items-center ${compact
-                                                                                            ? "gap-2 px-3 py-2.5"
-                                                                                            : "gap-3 px-3.5 py-3"
-                                                                                        } text-left border-b last:border-b-0 ${rowTone} transition-colors border`}
-                                                                                >
-                                                                                    {showLogos && (
-                                                                                        <div
-                                                                                            className={`${compact
-                                                                                                    ? "w-9 h-9"
-                                                                                                    : "w-10 h-10"
-                                                                                                } rounded-lg grid place-items-center bg-[#ffffff] ring-1 ring-white/5`}
-                                                                                        >
-                                                                                            {company.logo_url ? (
-                                                                                                <img
-                                                                                                    src={`${company.logo_url}`}
-                                                                                                    alt={
-                                                                                                        company.company_name
-                                                                                                    }
-                                                                                                    className={`${compact
-                                                                                                            ? "h-5 w-5"
-                                                                                                            : "h-6 w-6"
-                                                                                                        } object-contain`}
-                                                                                                />
-                                                                                            ) : null}
+                                                                                {showLogos && (
+                                                                                    <div
+                                                                                        className={`${compact ? "w-9 h-9" : "w-10 h-10"
+                                                                                            } rounded-lg grid place-items-center bg-[#ffffff] ring-1 ring-white/5`}
+                                                                                    >
+                                                                                        {company.logo_url ? (
+                                                                                            <img
+                                                                                                src={`${company.logo_url}`}
+                                                                                                alt={company.company_name}
+                                                                                                className={`${compact ? "h-5 w-5" : "h-6 w-6"} object-contain`}
+                                                                                            />
+                                                                                        ) : null}
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="flex-1 min-w-0">
+                                                                                    <div
+                                                                                        className={`${compact ? "text-[13px]" : "text-sm"
+                                                                                            } font-semibold text-cyan-50 whitespace-normal break-words line-clamp-2 leading-snug`}
+                                                                                    >
+                                                                                        {company.company_name}
+                                                                                    </div>
+                                                                                    {!compact && (
+                                                                                        <div className="text-xs text-cyan-300/80 truncate line-clamp-1">
+                                                                                            {company.company_full}
                                                                                         </div>
                                                                                     )}
-                                                                                    <div className="flex-1 min-w-0">
-                                                                                        <div
-                                                                                            className={`${compact
-                                                                                                    ? "text-[13px]"
-                                                                                                    : "text-sm"
-                                                                                                } font-semibold text-cyan-50 whitespace-normal break-words line-clamp-2 leading-snug`}
-                                                                                        >
-                                                                                            {company.company_name}
-                                                                                        </div>
-                                                                                        {!compact && (
-                                                                                            <div className="text-xs text-cyan-300/80 truncate line-clamp-1">
-                                                                                                {company.company_full}
-                                                                                            </div>
-                                                                                        )}
-                                                                                        <div
-                                                                                            className={`flex flex-wrap gap-1 ${compact ? "mt-0.5" : "mt-1"
-                                                                                                }`}
-                                                                                        >
-                                                                                            {(
-                                                                                                compact
-                                                                                                    ? company.domains.slice(
-                                                                                                        0,
-                                                                                                        2
-                                                                                                    )
-                                                                                                    : company.domains
-                                                                                            ).map(({ domain }) => (
+                                                                                    <div className={`flex flex-wrap gap-1 ${compact ? "mt-0.5" : "mt-1"}`}>
+                                                                                        {(compact ? company.domains.slice(0, 2) : company.domains).map(
+                                                                                            ({ domain }) => (
                                                                                                 <span
                                                                                                     key={domain}
-                                                                                                    className={`px-2 py-0.5 ${compact
-                                                                                                            ? "text-[0.6rem]"
-                                                                                                            : "text-[0.65rem]"
-                                                                                                        } rounded-full border font-medium ${getDomainStyle(
-                                                                                                            domain
-                                                                                                        )}`}
+                                                                                                    className={`px-2 py-0.5 ${compact ? "text-[0.6rem]" : "text-[0.65rem]"
+                                                                                                        } rounded-full border font-medium ${getDomainStyle(domain)}`}
                                                                                                 >
                                                                                                     {domain}
                                                                                                 </span>
-                                                                                            ))}
-                                                                                        </div>
+                                                                                            )
+                                                                                        )}
                                                                                     </div>
-                                                                                </motion.button>
-                                                                            </motion.div>
-                                                                        );
-                                                                    })}
+                                                                                </div>
+                                                                            </motion.button>
+                                                                        </motion.div>
+                                                                    );
+                                                                })}
                                                             </AnimatePresence>
                                                         </motion.div>
                                                     </section>
@@ -813,62 +833,39 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                 <div ref={sentinelRef} className="h-1" />
                             </div>
 
-                            {/* RIGHT: desktop A–Z rail, sticky inside parent and offset under topbar */}
+                            {/* RIGHT: placeholder column to preserve layout width (invisible) */}
                             <aside
+                                aria-hidden
                                 className="
-                                    hidden sm:block
-                                    sticky
-                                    top-[calc(var(--topbar-h,48px))-4rem]
-                                    self-start
-                                    h-[calc(100vh-var(--topbar-h,48px)-3rem)]
-                                "
+                  hidden sm:block
+                  sticky
+                  top-[calc(var(--topbar-h,48px))-4rem]
+                  self-start
+                  h-[calc(100vh-var(--topbar-h,48px)-3rem)]
+                  opacity-0 pointer-events-none
+                "
                             >
-                                <motion.div
-                                    layout="position"
-                                    className="h-full w-10 md:w-11 rounded-xl bg-[#081219]/95 backdrop-blur-sm border border-cyan-700/40 flex flex-col"
-                                >
-                                    <div className="h-full flex flex-col justify-between items-stretch px-1 py-2 md:py-2.5">
-                                        {AZ_LETTERS.map((letter) => {
-                                            const isPresent = activeLetters.includes(letter);
-                                            const isActive = activeLetter === letter;
-
-                                            if (isPresent) {
-                                                return (
-                                                    <motion.a
-                                                        key={letter}
-                                                        href={`#${letter}`}
-                                                        onClick={() => {
-                                                            setSuppressObserver(true);
-                                                            setTimeout(() => setSuppressObserver(false), 400);
-                                                        }}
-                                                        whileHover={{ scale: 1.03 }}
-                                                        whileTap={{ scale: 0.97 }}
-                                                        className={`w-full h-8 md:h-8.5 rounded-lg grid place-items-center
-                                                            text-[11px] md:text-[11.5px] font-semibold tracking-wide transition-colors
-                                                            ${isActive
-                                                                ? "bg-gradient-to-br from-cyan-600/25 to-teal-500/20 text-cyan-100 ring-1 ring-cyan-400/30"
-                                                                : "text-cyan-300/80 hover:text-cyan-100 hover:bg-white/5"
-                                                            }`}
-                                                    >
-                                                        {letter}
-                                                    </motion.a>
-                                                );
-                                            }
-
-                                            return (
-                                                <div
-                                                    key={letter}
-                                                    className="w-full h-8 md:h-8.5 rounded-lg grid place-items-center
-                                                        text-[11px] md:text-[11.5px] font-semibold tracking-wide
-                                                        text-cyan-600/40 border border-transparent select-none cursor-default"
-                                                >
-                                                    {letter}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </motion.div>
+                                <div className="h-full w-10 md:w-11" />
                             </aside>
+                        </div>
+
+                        <div
+                            ref={fixedRailRef}
+                            className="hidden sm:block fixed z-40"
+                            style={{
+                                left: railLeft,
+                                top: "calc(var(--topbar-h,56px) + 0.75rem)",
+                                height: "calc(100vh - var(--topbar-h,56px) - 2rem)",
+                            }}
+                        >
+                            <LetterRail
+                                activeLetters={activeLetters}
+                                activeLetter={activeLetter}
+                                onJump={() => {
+                                    setSuppressObserver(true);
+                                    setTimeout(() => setSuppressObserver(false), 400);
+                                }}
+                            />
                         </div>
                     </div>
 

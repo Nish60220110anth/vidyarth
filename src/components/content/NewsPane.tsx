@@ -115,7 +115,7 @@ const NewsPane: React.FC<EnhancedProps> = ({ props }) => {
                             placeholder="Search title or content…"
                             className="px-3 py-2 rounded-lg bg-[#0b1721] border border-cyan-900/40 text-cyan-100 placeholder:text-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-600/70"
                         />
-                        <select
+                        {/* <select
                             value={domainFilter}
                             onChange={(e) => setDomainFilter(e.target.value)}
                             className="px-3 py-2 rounded-lg bg-[#0b1721] border border-cyan-900/40 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-600/70"
@@ -126,7 +126,7 @@ const NewsPane: React.FC<EnhancedProps> = ({ props }) => {
                                     {d === "ALL" ? "All domains" : d}
                                 </option>
                             ))}
-                        </select>
+                        </select> */}
                         <button
                             onClick={() => setSortDir((s) => (s === "desc" ? "asc" : "desc"))}
                             className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#0b1721] border border-cyan-900/40 text-cyan-100 hover:bg-[#0d1f2b]"

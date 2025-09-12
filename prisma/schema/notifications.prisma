@@ -1,76 +1,63 @@
 model notification {
-  id String @id @default(cuid())
-
-  type      NOTIFICATION_TYPE
-  subtype   NOTIFICATION_SUBTYPE?
-  initiator NOTIFICATION_SOURCE_INITIATOR
-
+  id          String                        @id @default(cuid())
+  type        NOTIFICATION_TYPE
+  subtype     NOTIFICATION_SUBTYPE?
+  initiator   NOTIFICATION_SOURCE_INITIATOR
   shortlistId Int?
-  shortlist   shortlist? @relation(fields: [shortlistId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  companyId   Int?
+  domain      DOMAIN?
+  round       ROUND_TYPE?
+  is_handled  Boolean
+  created_at  DateTime                      @default(now())
+  updated_at  DateTime                      @updatedAt
+  company     company?                      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  shortlist   shortlist?                    @relation(fields: [shortlistId], references: [id], onDelete: Cascade)
+  links       notification_link[]
 
-  companyId Int?
-  company   company? @relation(fields: [companyId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-
-  domain DOMAIN?
-  round ROUND_TYPE?
-  links  notification_link[]
-
-  is_handled Boolean
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  @@index([companyId], map: "notification_companyId_fkey")
+  @@index([shortlistId], map: "notification_shortlistId_fkey")
 }
 
 model notification_link {
-  id        Int    @id @default(autoincrement())
-  link      String @db.Text
-  link_name String
-
+  id             Int          @id @default(autoincrement())
+  link           String       @db.Text
+  link_name      String
   notificationId String
-  notification   notification @relation(fields: [notificationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  notification   notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
 
   @@index([notificationId])
 }
 
 model notification_properties {
-  type NOTIFICATION_TYPE @id
-
+  type            NOTIFICATION_TYPE @id
   send_email      Boolean
   delay_minutes   Int
   only_for_target Boolean
-  
-
-  role USER_ROLE?
+  role            USER_ROLE?
 
   @@index([type])
 }
 
 model email_content {
-  id Int @id @default(autoincrement())
-
-  title   String @db.VarChar(255)
-  content String @db.Text
-  brief String @db.Text
-
-  cc  user[] @relation("EmailCC")
-  bcc user[] @relation("EmailBCC")
-
+  id                    Int                     @id @default(autoincrement())
+  title                 String                  @db.VarChar(255)
+  content               String                  @db.Text
+  brief                 String                  @db.Text
   email_recipient_state email_recipient_state[] @relation("email_recipient_state_content")
+  user_emailbcc         user[]                  @relation("emailbcc")
+  user_emailcc          user[]                  @relation("emailcc")
 }
 
 model email_recipient_state {
-  id Int @id @default(autoincrement())
-
-  userId Int
-  user    user @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade, name: "Email_Recipient_state")
-
+  id              Int           @id @default(autoincrement())
+  userId          Int
   email_contentId Int
-  email_content    email_content @relation("email_recipient_state_content", fields: [email_contentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  delay_minutes Int
-
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
+  delay_minutes   Int
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+  email_content   email_content @relation("email_recipient_state_content", fields: [email_contentId], references: [id], onDelete: Cascade)
+  user            user          @relation("Email_Recipient_state", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, email_contentId])
+  @@index([email_contentId], map: "email_recipient_state_email_contentId_fkey")
 }

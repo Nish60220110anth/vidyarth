@@ -6,8 +6,6 @@ model placement_cycle {
   status         PLACEMENT_CYCLE_STATUS
   created_at     DateTime               @default(now())
   updated_at     DateTime               @updatedAt
-
-  // Relations
-  company_jds company_jd[]
-  dishas      dishamentee[]
+  company_jds    company_jd[]
+  dishas         dishamentee[]
 }

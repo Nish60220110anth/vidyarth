@@ -1,16 +1,14 @@
 model company_alum_exp {
-  id Int @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  company_id  Int
+  content     String   @db.Text
+  is_approved Boolean  @default(false)
+  is_featured Boolean  @default(false)
+  created_at  DateTime @default(now())
+  company     company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  user        user     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  user_id Int
-  user    user @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
-
-  company_id Int
-  company    company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  content String @db.Text
-
-  is_approved Boolean @default(false)
-  is_featured Boolean @default(false)
-
-  created_at DateTime @default(now())
+  @@index([company_id], map: "company_alum_exp_company_id_fkey")
+  @@index([user_id], map: "company_alum_exp_user_id_fkey")
 }

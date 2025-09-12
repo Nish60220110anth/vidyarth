@@ -1,47 +1,40 @@
 model news {
-  id Int @id @default(autoincrement())
+  id             Int            @id @default(autoincrement())
+  title          String?        @db.VarChar(255)
+  content        String?        @db.Text
+  description    String?        @db.Text
+  link_to_source String?        @unique(map: "idx_url") @db.VarChar(500)
+  is_active      Boolean        @default(true)
+  is_approved    Boolean        @default(false)
+  news_tag       String?        @db.VarChar(30)
+  subdomain_tag  String?        @db.VarChar(30)
+  image_url      String?        @db.Text
+  firebase_path  String?
+  author_id      Int?
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @default(now()) @updatedAt
+  companies      news_company[]
+  domains        news_domain[]
 
-  title          String
-  content        String  @db.Text
-  description    String? @db.Text
-  link_to_source String? @db.Text
-
-  is_active   Boolean @default(true)
-  is_approved Boolean @default(false)
-
-  news_tag      NEWS_DOMAIN_TAG
-  subdomain_tag NEWS_SUBDOMAIN_TAG?
-
-  image_url     String? @db.Text
-  firebase_path String?
-
-  author_id  Int
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  author user @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  companies news_company[]
-  domains   news_domain[]
+  @@index([author_id], map: "news_author_id_fkey")
 }
 
 model news_company {
-  id         Int @id @default(autoincrement())
+  id         Int     @id @default(autoincrement())
   news_id    Int
   company_id Int
-
-  news    news    @relation(fields: [news_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  company company @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  company    company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  news       news    @relation(fields: [news_id], references: [id], onDelete: Cascade)
 
   @@unique([news_id, company_id])
+  @@index([company_id], map: "news_company_company_id_fkey")
 }
 
 model news_domain {
   id      Int    @id @default(autoincrement())
   news_id Int
   domain  DOMAIN
-
-  news news @relation(fields: [news_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  news    news   @relation(fields: [news_id], references: [id], onDelete: Cascade)
 
   @@unique([news_id, domain])
 }

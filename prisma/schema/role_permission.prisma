@@ -1,18 +1,15 @@
 model role_permission {
-  id          Int       @id @default(autoincrement())
-  role        USER_ROLE @unique
+  id          Int                 @id @default(autoincrement())
+  role        USER_ROLE           @unique
   description String?
-
   permissions rolepermissionmap[]
 }
 
 model rolepermissionmap {
-  id Int @id @default(autoincrement())
-
-  role_permission    role_permission @relation(fields: [role_permission_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id                 Int               @id @default(autoincrement())
   role_permission_id Int
-
-  permission ACCESS_PERMISSION
+  permission         ACCESS_PERMISSION
+  role_permission    role_permission   @relation(fields: [role_permission_id], references: [id], onDelete: Cascade)
 
   @@unique([role_permission_id, permission])
 }

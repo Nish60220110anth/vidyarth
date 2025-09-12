@@ -1,0 +1,49 @@
+model usersession {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  isCvHr          Boolean
+  companyName     String?
+  companyId       Int
+  jdLinks         String
+  compendiumLinks String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime
+  company         company  @relation(fields: [companyId], references: [id], onDelete: Cascade, map: "userSession_companyId_fkey")
+  user            user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "userSession_userId_fkey")
+
+  @@index([companyId], map: "userSession_companyId_fkey")
+  @@index([userId], map: "userSession_userId_fkey")
+}
+
+model youtubeembedsettings {
+  id             String  @id
+  autoplay       Boolean @default(false)
+  mute           Boolean @default(false)
+  controls       Int     @default(1)
+  loop           Boolean @default(false)
+  startAt        Int?
+  endAt          Int?
+  rel            Boolean @default(true)
+  modestBranding Boolean @default(false)
+  fs             Boolean @default(true)
+  ccLoadPolicy   Boolean @default(false)
+  ccLangPref     String?
+  ivLoadPolicy   Int?
+  playsInline    Boolean @default(false)
+  disableKb      Boolean @default(false)
+  enableJsApi    Boolean @default(false)
+  origin         String?
+}
+
+view signouts {
+  id           String?                @db.VarChar(32)
+  pcomid       Int
+  userId       Int?                   @default(0)
+  signout_type signouts_signout_type? @default(normal)
+  signout_time DateTime?              @default(now()) @db.Timestamp(0)
+}
+
+enum signouts_signout_type {
+  normal
+  sso
+}

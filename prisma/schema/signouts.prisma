@@ -1,9 +1,1 @@
-model signouts {
-  id Int @id @default(autoincrement())
 
-  pcomid Int  @unique
-  user   user @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId Int
-
-  signout_type String
-}

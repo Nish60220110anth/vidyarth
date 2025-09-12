@@ -1,87 +1,52 @@
 model user {
-  id Int @id @default(autoincrement())
-
-  name     String
-  pgpid    String? @unique
-  pcomid   Int?
-  email_id String  @unique
-
-  password String
-  role     USER_ROLE
-
-  is_active   Boolean @default(false)
-  is_verified Boolean @default(false)
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  last_login DateTime?
-
-  alum_experiences company_alum_exp[]
-  authored_news    news[]
-
-  shadow_as_user1 shadowpair? @relation("shadowuser1")
-  shadow_as_user2 shadowpair? @relation("shadowuser2")
-
-  // DISHA relation (1-to-1)
-  disha_profile dishamentee? @relation("dishaprofile")
-
-  // DISHA mentorship role (1-to-many)
-  disha_mentees dishamentee[] @relation("dishamentor")
-
-  // domain_preference      userdomainpreference?   @relation("userdomain")
-  // known_languages        userlanguage[]          @relation("languagesknown")
-  shortlists             shortlist[]             @relation("shortlistusers")
-  announcements          announcements[]         @relation("announcements_user")
-  student_cv             student_cv[]
-  signouts               signouts[]
-  userSession            userSession[]           @relation("UserSessions")
+  id                     Int                     @id @default(autoincrement())
+  name                   String
+  pgpid                  String?                 @unique
+  pcomid                 Int?
+  email_id               String                  @unique
+  password               String
+  role                   USER_ROLE
+  is_active              Boolean                 @default(false)
+  is_verified            Boolean                 @default(false)
+  created_at             DateTime                @default(now())
+  updated_at             DateTime                @updatedAt
+  last_login             DateTime?
+  whatsapp_number        String?
+  alum_experiences       company_alum_exp[]
+  disha_mentees          dishamentee[]           @relation("dishamentor")
+  disha_profile          dishamentee?            @relation("dishaprofile")
   EMAIL_RECEIPIENT_STATE email_recipient_state[] @relation("Email_Recipient_state")
-
-  ccEmails  email_content[] @relation("EmailCC")
-  bccEmails email_content[] @relation("EmailBCC")
-
-  whatsapp_number  String?
+  shadow_as_user1        shadowpair?             @relation("shadowuser1")
+  shadow_as_user2        shadowpair?             @relation("shadowuser2")
+  student_cv             student_cv[]
+  usersession            usersession[]
+  announcements          announcements[]         @relation("announcements_user")
+  email_content_emailbcc email_content[]         @relation("emailbcc")
+  email_content_emailcc  email_content[]         @relation("emailcc")
+  shortlists             shortlist[]             @relation("shortlistusers")
 
   @@unique([pgpid, pcomid])
 }
 
 model dishamentee {
-  id Int @id @default(autoincrement())
-
-  user_id Int  @unique
-  user    user @relation("dishaprofile", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  mentor_id Int?
-  mentor    user? @relation("dishamentor", fields: [mentor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
+  id                 Int             @id @default(autoincrement())
+  user_id            Int             @unique
+  mentor_id          Int?
   placement_cycle_id Int
-  placement_cycle    placement_cycle @relation(fields: [placement_cycle_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  created_at         DateTime        @default(now())
+  updated_at         DateTime        @updatedAt
+  mentor             user?           @relation("dishamentor", fields: [mentor_id], references: [id], onDelete: Cascade)
+  placement_cycle    placement_cycle @relation(fields: [placement_cycle_id], references: [id], onDelete: Cascade)
+  user               user            @relation("dishaprofile", fields: [user_id], references: [id], onDelete: Cascade)
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  @@index([mentor_id], map: "dishamentee_mentor_id_fkey")
+  @@index([placement_cycle_id], map: "dishamentee_placement_cycle_id_fkey")
 }
 
 model shadowpair {
-  id Int @id @default(autoincrement())
-
-  user1   user @relation("shadowuser1", fields: [user1Id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id      Int  @id @default(autoincrement())
   user1Id Int  @unique
-  user2   user @relation("shadowuser2", fields: [user2Id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   user2Id Int  @unique
+  user1   user @relation("shadowuser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2   user @relation("shadowuser2", fields: [user2Id], references: [id], onDelete: Cascade)
 }
-
-// model userlanguage {
-//   id Int @id @default(autoincrement())
-
-//   user_id Int
-//   user    user @relation("languagesknown", fields: [user_id], references: [id])
-
-//   language    LANGUAGE
-//   proficiency PROFICIENCY
-
-//   created_at DateTime @default(now())
-//   updated_at DateTime @updatedAt
-
-//   @@unique([user_id, language])
-// }
