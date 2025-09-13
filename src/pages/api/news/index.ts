@@ -21,7 +21,7 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
         permissions: [
             ACCESS_PERMISSION.ENABLE_NEWS,
             ACCESS_PERMISSION.MANAGE_NEWS,
-            ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY
+            ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY,
         ],
         filters: {
             [ACCESS_PERMISSION.MANAGE_NEWS]: {
@@ -34,24 +34,14 @@ const METHOD_PERMISSIONS: Record<string, MethodConfig> = {
             },
             [ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY]: {
                 priority: 2,
-                filter: {
-                    is_approved: true,
-                    is_active: true
-                }
-            }
+                filter: { is_active: true, is_approved: true },
+            },
         },
     },
-    put: {
-        permissions: [ACCESS_PERMISSION.MANAGE_NEWS],
-    },
-    delete: {
-        permissions: [ACCESS_PERMISSION.MANAGE_NEWS],
-    },
-    post: {
-        permissions: [ACCESS_PERMISSION.MANAGE_NEWS],
-    },
+    put: { permissions: [ACCESS_PERMISSION.MANAGE_NEWS] },
+    delete: { permissions: [ACCESS_PERMISSION.MANAGE_NEWS] },
+    post: { permissions: [ACCESS_PERMISSION.MANAGE_NEWS] },
 };
-
 
 const GetQuerySchema = z.object({
     id: ToInt.optional(),
@@ -64,108 +54,152 @@ const GetQuerySchema = z.object({
     is_approved: z.boolean().optional(),
     domain_tag: z.string().optional(),
     subdomain_tag: z.string().optional(),
+    // Virtualization / pagination
+    limit: ToInt.optional(),
+    cursor_id: ToInt.optional(),
+    cursor_ts: z.string().optional(), // ISO date string for created_at
 });
 
 const DeleteQuerySchema = z.object({
     id: ToInt,
 });
 
-async function handler(
-    req: NextApiRequest,
-    res: NextApiResponse
-) {
+function clamp(n: number, min: number, max: number) {
+    return Math.max(min, Math.min(max, n));
+}
 
+function parseBoundaryDate(input?: string, opts?: { endOfDay?: boolean }): Date | undefined {
+    if (!input) return undefined;
+    const hasTime = input.includes("T");
+    const s = hasTime ? input : `${input}T${opts?.endOfDay ? "23:59:59.999" : "00:00:00.000"}`;
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? undefined : d;
+}
+
+function parseISOish(input?: string): Date | undefined {
+    if (!input) return undefined;
+    const d = new Date(input);
+    return isNaN(d.getTime()) ? undefined : d;
+}
+
+async function handler(req: NextApiRequest, res: NextApiResponse) {
     const session: IronSessionData = await getIronSession(req, res, sessionOptions);
 
     if (req.method === "GET") {
         try {
-
             const parsedQuery = GetQuerySchema.safeParse(req.query);
             if (!parsedQuery.success) {
                 apiHelpers.badRequest(res, `Invalid query parameters: ${JSON.stringify(parsedQuery.error)}`);
                 return;
             }
 
-            const { id, cid, domain, title, from, to, is_active, is_approved, domain_tag, subdomain_tag } = parsedQuery.data;
+            const {
+                id,
+                cid,
+                domain,
+                title,
+                from,
+                to,
+                is_active,
+                is_approved,
+                domain_tag,
+                /* subdomain_tag, */
+                limit: limitRaw,
+                cursor_id,
+                cursor_ts,
+            } = parsedQuery.data;
 
             const permissionFilter = (req as any).filter ?? {};
-            const filters: any = {
-                ...permissionFilter,
-            };
+            const filters: any = { ...permissionFilter };
 
-            if (id !== undefined) {
-                filters.id = id;
-            }
-
-            if (is_active !== undefined) {
-                filters.is_active = is_active;
-            }
-
-            if (is_approved !== undefined) {
-                filters.is_approved = is_approved;
-            }
+            if (id !== undefined) filters.id = id;
+            if (is_active !== undefined) filters.is_active = is_active;
+            if (is_approved !== undefined) filters.is_approved = is_approved;
 
             if (title) {
-                filters.OR = [
-                    { title: { contains: String(title) } },
-                    { content: { contains: String(title) } },
-                ];
+                const q = String(title);
+                filters.OR = [{ title: { contains: q } }, { content: { contains: q } }];
             }
 
-            if (from || to) {
+            const fromDate = parseBoundaryDate(from, { endOfDay: false });
+            const toDate = parseBoundaryDate(to, { endOfDay: true });
+            if (fromDate || toDate) {
                 filters.created_at = {};
-                if (from) filters.created_at.gte = new Date(`${from}T00:00:00`);
-                if (to) filters.created_at.lte = new Date(`${to}T23:59:59`);
+                if (fromDate) filters.created_at.gte = fromDate;
+                if (toDate) filters.created_at.lte = toDate;
             }
 
-            if (domain_tag) {
-                filters.news_tag = domain_tag;
-            }
-
-            // if (subdomain_tag) {
-            //     filters.subdomain_tag = subdomain_tag;
-            // }
+            if (domain_tag) filters.news_tag = domain_tag;
 
             const companyFilter =
                 cid !== undefined
                     ? {
                         companies: {
                             some: {
-                                company_id: parseInt(Array.isArray(cid) ? cid[0] : cid),
+                                company_id: parseInt(Array.isArray(cid) ? cid[0] : (cid as unknown as string)),
                             },
                         },
                     }
                     : {};
 
-            const newsList = await prisma.news.findMany({
-                where: {
-                    ...filters,
-                    ...(domain && {
-                        domains: { some: { domain: domain as DOMAIN } },
-                    }),
-                    ...companyFilter
+            const andConds: any[] = [{ ...filters }];
 
-                },
+            if (domain) andConds.push({ domains: { some: { domain: domain as DOMAIN } } });
+            if (Object.keys(companyFilter).length) andConds.push(companyFilter);
+
+            // Stable pagination: created_at desc, id desc
+            const take = clamp(typeof limitRaw === "number" ? limitRaw : 24, 1, 100);
+
+            // Cursor pagination (only if cursor_ts parses)
+            const cts = parseISOish(cursor_ts);
+            if (cts) {
+                const orPage: any[] = [{ created_at: { lt: cts } }];
+                if (cursor_id) {
+                    orPage.push({ AND: [{ created_at: cts }, { id: { lt: cursor_id } }] });
+                }
+                andConds.push({ OR: orPage });
+            }
+
+            const where = andConds.length ? { AND: andConds } : {};
+
+            const rows = await prisma.news.findMany({
+                where,
                 include: {
                     domains: true,
                     companies: {
                         include: {
-                            company: true
-                        }
-                    }
+                            company: {
+                                select: {
+                                    id: true,
+                                    company_name: true,
+                                    company_full: true,
+                                },
+                            },
+                        },
+                    },
                 },
-                orderBy: { created_at: "desc" },
+                orderBy: [{ created_at: "desc" }, { id: "desc" }],
+                take: take + 1, // fetch one extra to know if there's a next page
             });
 
-            apiHelpers.success(res, { data: newsList })
-            return;
+            const has_more = rows.length > take;
+            const data = has_more ? rows.slice(0, take) : rows;
 
+            const last = data[data.length - 1];
+            const next_cursor = last
+                ? {
+                    cursor_id: last.id,
+                    cursor_ts: last.created_at?.toISOString?.() ?? undefined,
+                }
+                : null;
+
+            apiHelpers.success(res, { data, page: { has_more, next_cursor } });
+            return;
         } catch (err: any) {
-            apiHelpers.error(res, "Failed to fetch news", 500, { error: err })
+            apiHelpers.error(res, "Failed to fetch news", 500, { error: err });
             return;
         }
     } else if (req.method === "DELETE") {
-
         const parsedQuery = DeleteQuerySchema.safeParse(req.query);
         if (!parsedQuery.success) {
             apiHelpers.badRequest(res, `Invalid query parameters: ${JSON.stringify(parsedQuery.error)}`);
@@ -183,9 +217,7 @@ async function handler(
             await prisma.news_domain.deleteMany({ where: { news_id: newsId } });
             await prisma.news_company.deleteMany({ where: { news_id: newsId } });
 
-            await prisma.news.delete({
-                where: { id: newsId },
-            });
+            await prisma.news.delete({ where: { id: newsId } });
 
             if (
                 existingNews?.image_url &&
@@ -200,11 +232,10 @@ async function handler(
                 }
             }
 
-            apiHelpers.success(res, {})
+            apiHelpers.success(res, {});
             return;
-
         } catch (err) {
-            apiHelpers.error(res, "Internal server error", 500, { error: err })
+            apiHelpers.error(res, "Internal server error", 500, { error: err });
             return;
         }
     } else if (req.method === "PUT") {
@@ -214,16 +245,27 @@ async function handler(
             const bodyString = Buffer.concat(buffers).toString();
             const parsedBody = JSON.parse(bodyString);
 
-            const { id, title, content, is_active, is_approved, newsTag, subdomainTag, domains, companies, link_to_source } = parsedBody;
+            const {
+                id,
+                title,
+                content,
+                is_active,
+                is_approved,
+                newsTag,
+                subdomainTag,
+                domains,
+                companies,
+                link_to_source,
+            } = parsedBody;
 
             if (!id) {
-                apiHelpers.badRequest(res, "Invalid ID")
+                apiHelpers.badRequest(res, "Invalid ID");
                 return;
             }
 
             const news_id = parseInt(getFieldValue(id));
 
-            const news = await prisma.news.update({
+            await prisma.news.update({
                 where: { id: news_id },
                 data: {
                     title,
@@ -262,15 +304,22 @@ async function handler(
                     domains: true,
                     companies: {
                         include: {
-                            company: true
-                        }
+                            company: {
+                                select: {
+                                    id: true,
+                                    company_name: true,
+                                    company_full: true,
+                                },
+                            },
+                        },
                     },
-                }});
+                },
+            });
 
-            apiHelpers.success(res, { data: updatedNews })
+            apiHelpers.success(res, { data: updatedNews });
             return;
         } catch (err: any) {
-            apiHelpers.error(res, "Failed to update news", 500, { error: err })
+            apiHelpers.error(res, "Failed to update news", 500, { error: err });
             return;
         }
     } else if (req.method === "POST") {
@@ -279,9 +328,7 @@ async function handler(
 
             if (req.headers["content-type"]?.includes("application/json")) {
                 const buffers: Uint8Array[] = [];
-                for await (const chunk of req) {
-                    buffers.push(chunk);
-                }
+                for await (const chunk of req) buffers.push(chunk);
                 const rawBody = Buffer.concat(buffers).toString();
                 const parsed = JSON.parse(rawBody);
                 is_default = parsed.is_default;
@@ -300,7 +347,8 @@ async function handler(
                         link_to_source: "",
                         news_tag: "OTHER",
                         subdomain_tag: "OTHER",
-                        image_url: "https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/news-images%2Fdefault-image.png?alt=media&token=4732d312-560b-4b3f-91cd-538d6fcd9851",
+                        image_url:
+                            "https://firebasestorage.googleapis.com/v0/b/vidyarth-systems.firebasestorage.app/o/news-images%2Fdefault-image.png?alt=media&token=4732d312-560b-4b3f-91cd-538d6fcd9851",
                         firebase_path: "news-images/default-image.png",
                         is_active: true,
                         is_approved: false,
@@ -308,14 +356,14 @@ async function handler(
                     },
                 });
 
-                apiHelpers.created(res, { data: news })
+                apiHelpers.created(res, { data: news });
                 return;
             } else {
-                apiHelpers.forbidden(res)
+                apiHelpers.forbidden(res);
                 return;
             }
         } catch (err: any) {
-            apiHelpers.error(res, "Couldn't create news entry", 500, { error: err })
+            apiHelpers.error(res, "Couldn't create news entry", 500, { error: err });
             return;
         }
     }

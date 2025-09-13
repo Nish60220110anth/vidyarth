@@ -2,6 +2,8 @@ import React, { useCallback, useMemo, useState, memo } from "react";
 import { ArrowPathIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 import { NewsPaneProps } from "@/types/panes";
 import { motion, AnimatePresence } from "framer-motion";
+import { SmartImage } from "@/components/SmartImage";
+import type { Variants } from "framer-motion";
 
 const DOMAIN_COLORS: Record<string, { bg: string; text: string; ring: string }> = {
     FINANCE: { bg: "bg-green-900/20", text: "text-green-300", ring: "ring-green-600/40" },
@@ -12,22 +14,29 @@ const DOMAIN_COLORS: Record<string, { bg: string; text: string; ring: string }> 
     GENMAN: { bg: "bg-purple-900/20", text: "text-purple-300", ring: "ring-purple-600/40" },
 };
 
-const wrapVariants = {
+const EASE_CB = [0.25, 1, 0.5, 1] as const;
+
+export const wrapVariants: Variants = {
     hidden: { opacity: 0, y: 6 },
-    show: { opacity: 1, y: 0, transition: { staggerChildren: 0.05, ease: [0.25, 1, 0.5, 1] } },
+    show: {
+        opacity: 1,
+        y: 0,
+        transition: { when: "beforeChildren", staggerChildren: 0.05, ease: EASE_CB },
+    },
 };
 
-const cardVariants = {
+export const cardVariants: Variants = {
     hidden: { opacity: 0, y: 10 },
-    show: { opacity: 1, y: 0 },
+    show: { opacity: 1, y: 0, transition: { ease: EASE_CB } },
 };
 
 const Skeleton: React.FC = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="columns-1 sm:columns-2 lg:columns-3 gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
             <div
                 key={i}
-                className="rounded-xl border border-cyan-900/40 bg-gradient-to-br from-[#0a161f] to-[#0e1e2b] p-4 animate-pulse"
+                className="mb-6 rounded-xl border border-cyan-900/40 bg-gradient-to-br from-[#0a161f] to-[#0e1e2b] p-4 animate-pulse"
+                style={{ breakInside: "avoid", pageBreakInside: "avoid", WebkitColumnBreakInside: "avoid" as any }}
             >
                 <div className="w-full aspect-[16/9] mb-3 rounded-lg bg-cyan-900/20" />
                 <div className="h-4 w-3/4 rounded bg-cyan-900/30 mb-2" />
@@ -39,30 +48,21 @@ const Skeleton: React.FC = () => (
 );
 
 type EnhancedProps = NewsPaneProps & {
-    props: NewsPaneProps["props"] & {
-        loading?: boolean;
-        error?: string;
-        onRefresh?: () => void;
-    };
+    props: NewsPaneProps["props"] & { loading?: boolean; error?: string; onRefresh?: () => void };
 };
 
 const NewsPane: React.FC<EnhancedProps> = ({ props }) => {
-    const p = props as any;
+    const p = (props as unknown) as any;
     const list = (p?.news ?? []) as Array<any>;
     const loading = Boolean(p?.loading);
     const error = (p?.error as string) || "";
     const onRefresh = p?.onRefresh as (() => void) | undefined;
+    const companyId = (p?.companyId as number) ?? 0;
 
     const [expanded, setExpanded] = useState<Set<number>>(new Set());
     const [query, setQuery] = useState("");
     const [domainFilter, setDomainFilter] = useState<string>("ALL");
     const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
-
-    const allDomains = useMemo(() => {
-        const s = new Set<string>();
-        for (const n of list) (n?.domains ?? []).forEach((d: string) => d && s.add(String(d).toUpperCase()));
-        return ["ALL", ...Array.from(s).sort()];
-    }, [list]);
 
     const computedNews = useMemo(
         () =>
@@ -71,7 +71,11 @@ const NewsPane: React.FC<EnhancedProps> = ({ props }) => {
                 hasLink: !!n.source_link,
                 dateVal: n.created_at ? new Date(n.created_at).getTime() : 0,
                 dateStr: n.created_at
-                    ? new Date(n.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+                    ? new Date(n.created_at).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                    })
                     : "Unknown",
                 lcTitle: (n.title ?? "").toLowerCase(),
                 lcContent: (n.content ?? "").toLowerCase(),
@@ -83,14 +87,8 @@ const NewsPane: React.FC<EnhancedProps> = ({ props }) => {
     const filteredSorted = useMemo(() => {
         const q = query.trim().toLowerCase();
         let rows = computedNews;
-
-        if (domainFilter !== "ALL") {
-            rows = rows.filter((n) => n.domainsUp.includes(domainFilter));
-        }
-        if (q) {
-            rows = rows.filter((n) => n.lcTitle.includes(q) || n.lcContent.includes(q));
-        }
-
+        if (domainFilter !== "ALL") rows = rows.filter((n) => n.domainsUp.includes(domainFilter));
+        if (q) rows = rows.filter((n) => n.lcTitle.includes(q) || n.lcContent.includes(q));
         rows = [...rows].sort((a, b) => (sortDir === "desc" ? b.dateVal - a.dateVal : a.dateVal - b.dateVal));
         return rows;
     }, [computedNews, query, domainFilter, sortDir]);
@@ -105,46 +103,40 @@ const NewsPane: React.FC<EnhancedProps> = ({ props }) => {
 
     return (
         <div className="w-full flex flex-col gap-4">
-            <div className="sticky top-0 z-10 bg-[#0d1f2b] border border-cyan-900/40 rounded-xl p-3 sm:p-4 shadow-[0_0_20px_rgba(0,255,255,0.06)]">
-                <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-                    <h3 className="text-cyan-200 font-semibold">News</h3>
-                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                        <input
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Search title or content…"
-                            className="px-3 py-2 rounded-lg bg-[#0b1721] border border-cyan-900/40 text-cyan-100 placeholder:text-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-600/70"
-                        />
-                        {/* <select
-                            value={domainFilter}
-                            onChange={(e) => setDomainFilter(e.target.value)}
-                            className="px-3 py-2 rounded-lg bg-[#0b1721] border border-cyan-900/40 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-600/70"
-                            aria-label="Filter by domain"
-                        >
-                            {allDomains.map((d) => (
-                                <option key={d} value={d}>
-                                    {d === "ALL" ? "All domains" : d}
-                                </option>
-                            ))}
-                        </select> */}
-                        <button
-                            onClick={() => setSortDir((s) => (s === "desc" ? "asc" : "desc"))}
-                            className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#0b1721] border border-cyan-900/40 text-cyan-100 hover:bg-[#0d1f2b]"
-                            aria-label={`Sort by date ${sortDir === "desc" ? "oldest first" : "newest first"}`}
-                        >
-                            {sortDir === "desc" ? "Newest → Oldest" : "Oldest → Newest"}
-                        </button>
-                        {onRefresh && (
-                            <button
-                                onClick={onRefresh}
-                                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-cyan-900/40 text-cyan-200 bg-[#0b1721] hover:bg-[#0f2130]"
-                                title="Refresh news"
-                                aria-label="Refresh news"
-                            >
-                                <ArrowPathIcon className="w-5 h-5" />
-                                Refresh
-                            </button>
-                        )}
+            {/* Sticky controls */}
+            <div className="sticky top-0 z-30">
+                <div className="relative">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-full bg-[#0d1f2b] shadow-[0_0_20px_rgba(0,255,255,0.06)] border-b border-cyan-900/40" />
+                    <div className="relative bg-[#0d1f2b] border border-cyan-900/40 rounded-xl p-3 sm:p-4 shadow-[0_0_20px_rgba(0,255,255,0.06)]">
+                        <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+                            <h3 className="text-cyan-200 font-semibold">News</h3>
+                            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                                <input
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    placeholder="Search title or content…"
+                                    className="px-3 py-2 rounded-lg bg-[#0b1721] border border-cyan-900/40 text-cyan-100 placeholder:text-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-600/70"
+                                />
+                                <button
+                                    onClick={() => setSortDir((s) => (s === "desc" ? "asc" : "desc"))}
+                                    className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#0b1721] border border-cyan-900/40 text-cyan-100 hover:bg-[#0d1f2b]"
+                                    aria-label={`Sort by date ${sortDir === "desc" ? "oldest first" : "newest first"}`}
+                                >
+                                    {sortDir === "desc" ? "Newest → Oldest" : "Oldest → Newest"}
+                                </button>
+                                {onRefresh && (
+                                    <button
+                                        onClick={onRefresh}
+                                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-cyan-900/40 text-cyan-200 bg-[#0b1721] hover:bg-[#0f2130]"
+                                        title="Refresh news"
+                                        aria-label="Refresh news"
+                                    >
+                                        <ArrowPathIcon className="w-5 h-5" />
+                                        Refresh
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -178,8 +170,9 @@ const NewsPane: React.FC<EnhancedProps> = ({ props }) => {
                     <p className="text-sm text-cyan-300/70 mt-1">Try clearing search or changing the domain.</p>
                 </div>
             ) : (
-                <motion.div className="w-full flex flex-col gap-6" variants={{ hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0, transition: { staggerChildren: 0.05, ease: [0.25, 1, 0.5, 1] } } }} initial="hidden" animate="show">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                <motion.div className="w-full flex flex-col gap-6" variants={wrapVariants} initial="hidden" animate="show">
+                    {/* Masonry via CSS columns */}
+                    <div className="w-full columns-1 sm:columns-2 lg:columns-3 gap-6 [column-fill:_balance]">
                         <AnimatePresence initial={false}>
                             {filteredSorted.map((entry, idx) => {
                                 const isExpanded = expanded.has(idx);
@@ -196,23 +189,30 @@ const NewsPane: React.FC<EnhancedProps> = ({ props }) => {
                                     : {};
 
                                 return (
-                                    <motion.div key={`${entry.title}-${idx}`} variants={cardVariants} layout>
+                                    <motion.div
+                                        key={`${entry.title}-${idx}`}
+                                        variants={cardVariants}
+                                        layout
+                                        className="mb-6"
+                                        style={{
+                                            breakInside: "avoid",
+                                            pageBreakInside: "avoid",
+                                            WebkitColumnBreakInside: "avoid" as any,
+                                        }}
+                                    >
                                         <Wrapper
                                             {...wrapperProps}
                                             className={`group relative flex flex-col rounded-xl border border-cyan-900/40 bg-gradient-to-br from-[#0a161f] to-[#0e1e2b] shadow-[0_0_25px_rgba(0,255,255,0.10)] hover:shadow-[0_0_38px_rgba(0,255,255,0.22)] transition-all duration-300 p-4 overflow-hidden hover:-translate-y-0.5 ${clickable ? "cursor-pointer" : "cursor-default"
                                                 }`}
                                         >
                                             <div className="w-full aspect-[16/9] mb-3 rounded-lg overflow-hidden bg-black/30 flex items-center justify-center">
-                                                {entry.image_url ? (
-                                                    <img
-                                                        src={entry.image_url}
-                                                        alt={entry.title}
-                                                        loading="lazy"
-                                                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
-                                                    />
-                                                ) : (
-                                                    <div className="text-xs text-cyan-300/50">No Image</div>
-                                                )}
+                                                <SmartImage
+                                                    companyId={companyId}
+                                                    src={entry.image_url}
+                                                    alt={entry.title}
+                                                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                                />
                                             </div>
 
                                             <h3 className="text-lg font-semibold text-cyan-100 leading-snug mb-1">{entry.title}</h3>
@@ -220,9 +220,16 @@ const NewsPane: React.FC<EnhancedProps> = ({ props }) => {
                                             <div className="flex flex-wrap gap-2 mb-2">
                                                 {(entry.domains ?? []).map((domain: string, i: number) => {
                                                     const key = (domain || "").toUpperCase();
-                                                    const color = DOMAIN_COLORS[key] || { bg: "bg-slate-800/50", text: "text-slate-300", ring: "ring-slate-600/30" };
+                                                    const color = DOMAIN_COLORS[key] || {
+                                                        bg: "bg-slate-800/50",
+                                                        text: "text-slate-300",
+                                                        ring: "ring-slate-600/30",
+                                                    };
                                                     return (
-                                                        <span key={`${domain}-${i}`} className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${color.bg} ${color.text} ring-1 ring-inset ${color.ring}`}>
+                                                        <span
+                                                            key={`${domain}-${i}`}
+                                                            className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${color.bg} ${color.text} ring-1 ring-inset ${color.ring}`}
+                                                        >
                                                             {domain}
                                                         </span>
                                                     );
@@ -258,7 +265,9 @@ const NewsPane: React.FC<EnhancedProps> = ({ props }) => {
 
                                             <div className="flex items-center justify-between text-[11px] text-cyan-200/60 mt-4 pt-2 border-t border-cyan-900/40">
                                                 <span>{entry.dateStr}</span>
-                                                {clickable && <ArrowTopRightOnSquareIcon className="w-4 h-4 text-cyan-300 opacity-80 group-hover:opacity-100 transition-opacity" />}
+                                                {clickable && (
+                                                    <ArrowTopRightOnSquareIcon className="w-4 h-4 text-cyan-300 opacity-80 group-hover:opacity-100 transition-opacity" />
+                                                )}
                                             </div>
                                         </Wrapper>
                                     </motion.div>

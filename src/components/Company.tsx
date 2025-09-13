@@ -35,8 +35,9 @@ import type { JDEntry, NewsEntry, PaneKey, VideoEntry } from "@/types/panes";
 import {
     fetchCompanyInfo,
     fetchJDByCompanyID,
-    fetchNewsByCompanyID,
     fetchVideosByCompanyID,
+    fetchNewsByCompanyIDPaged,
+    type NewsPageCursor,
 } from "@/lib/api/company";
 import { getFileBlobByPath } from "@/lib/api/file";
 
@@ -86,10 +87,10 @@ export const PANE_CONFIG: PaneDef[] = [
         color: "bg-blue-100 text-blue-800",
     },
     // {
-    //     label: "Overview",
-    //     icon: <DocumentTextIcon className="w-4 h-4 mr-1" />,
-    //     component: ({ company_id }) => <OverviewPane props={{ company_id }} />,
-    //     color: "bg-purple-100 text-purple-800",
+    //   label: "Overview",
+    //   icon: <DocumentTextIcon className="w-4 h-4 mr-1" />,
+    //   component: ({ company_id }) => <OverviewPane props={{ company_id }} />,
+    //   color: "bg-purple-100 text-purple-800",
     // },
     {
         label: "Compendium",
@@ -100,7 +101,7 @@ export const PANE_CONFIG: PaneDef[] = [
     {
         label: "News",
         icon: <NewspaperIcon className="w-4 h-4 mr-1" />,
-        component: ({ allNews }) => <NewsPane props={{ news: allNews || [] }} />,
+        component: ({ allNews, companyId }) => <NewsPane props={{ news: allNews || [], companyId }} />,
         color: "bg-yellow-100 text-yellow-800",
     },
     {
@@ -116,10 +117,10 @@ export const PANE_CONFIG: PaneDef[] = [
         color: "bg-indigo-100 text-indigo-800",
     },
     // {
-    //     label: "Alum Exp",
-    //     icon: <AcademicCapIcon className="w-4 h-4 mr-1" />,
-    //     component: () => <AlumExpPane />,
-    //     color: "bg-pink-100 text-pink-800",
+    //   label: "Alum Exp",
+    //   icon: <AcademicCapIcon className="w-4 h-4 mr-1" />,
+    //   component: () => <AlumExpPane />,
+    //   color: "bg-pink-100 text-pink-800",
     // },
 ];
 
@@ -132,7 +133,11 @@ export default function CompanyPage() {
     const [company, setCompany] = useState<Company>();
     const [allJds, setAllJDS] = useState<Partial<JDEntry>[]>();
     const [allVideos, setAllVideos] = useState<Partial<VideoEntry>[]>();
-    const [allNews, setAllNews] = useState<Partial<NewsEntry>[]>();
+    const [allNews, setAllNews] = useState<Partial<NewsEntry>[]>(); // first page only (UI unchanged)
+
+    // store pagination meta for future "load more" (NewsPane API unchanged for now)
+    const [newsCursor, setNewsCursor] = useState<NewsPageCursor>(null);
+    const [newsHasMore, setNewsHasMore] = useState<boolean>(false);
 
     const [activeTab, setActiveTab] = useState<PaneKey>(PANE_CONFIG[0].label);
     const [direction, setDirection] = useState(0);
@@ -207,15 +212,13 @@ export default function CompanyPage() {
     const fetchAll = useCallback(async () => {
         if (!companyId || isNaN(companyId)) return;
 
-        const abort = new AbortController();
         setRefreshing(true);
-
         try {
             const [c, j, v, n] = await Promise.allSettled([
                 fetchCompanyInfo(companyId, ACCESS_PERMISSION.ENABLE_COMPANY_DIRECTORY),
                 fetchJDByCompanyID(companyId),
                 fetchVideosByCompanyID(companyId),
-                fetchNewsByCompanyID(companyId),
+                fetchNewsByCompanyIDPaged(companyId, { limit: 24 }), // paginated, first page only
             ]);
 
             if (!mountedRef.current) return;
@@ -223,12 +226,20 @@ export default function CompanyPage() {
             if (c.status === "fulfilled") setCompany(c.value.data as any);
             if (j.status === "fulfilled") setAllJDS(j.value.data as any);
             if (v.status === "fulfilled") setAllVideos(v.value.data as any);
-            if (n.status === "fulfilled") setAllNews(n.value.data as any);
+
+            if (n.status === "fulfilled" && n.value.success) {
+                setAllNews(n.value.data as any);
+                setNewsCursor(n.value.page?.next_cursor ?? null);
+                setNewsHasMore(Boolean(n.value.page?.has_more));
+            } else if (n.status === "fulfilled" && !n.value.success) {
+                toast.error(n.value.error || "Failed to load news");
+                setAllNews([]);
+                setNewsCursor(null);
+                setNewsHasMore(false);
+            }
         } finally {
             if (mountedRef.current) setRefreshing(false);
         }
-
-        return () => abort.abort();
     }, [companyId]);
 
     useEffect(() => {
@@ -241,7 +252,8 @@ export default function CompanyPage() {
         () => ({
             "Job Description": <JDPane props={{ jds: allJds || [] }} />,
             Videos: <VideoPane props={{ videos: allVideos || [] }} />,
-            News: <NewsPane props={{ news: allNews || [] }} />,
+            // pass the first page; NewsPane API unchanged
+            News: <NewsPane props={{ news: allNews || [], companyId: companyId }} />,
             Overview: <OverviewPane props={{ company_id: companyId }} />,
             Summary: <SummaryPane props={{ company_id: companyId }} />,
             Compendium: <CompendiumPane props={{ company_id: companyId }} />,
@@ -384,9 +396,9 @@ export default function CompanyPage() {
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.25 }}
-                        className="flex flex-col sm:flex-row flex-wrap gap-2 items-center justify-center sm:justify-end w-full sm:w-auto"
+                        className="flex flex-col sm:flex-row flex-wrap gap-2 items-center justify-center sm:justify-end w/full sm:w-auto"
                     >
-                        {/* Refresh (normalized) */}
+                        {/* Refresh */}
                         <button
                             onClick={fetchAll}
                             className="group inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium
@@ -400,7 +412,7 @@ export default function CompanyPage() {
                             <span className="group-hover:text-cyan-700 transition-colors">Refresh</span>
                         </button>
 
-                        {/* Download JD (normalized + disabled state) */}
+                        {/* Download JD */}
                         <div className="relative inline-block">
                             <button
                                 onClick={hasValidJDs ? handleDownloadJDs : undefined}
@@ -410,14 +422,18 @@ export default function CompanyPage() {
                   min-w-[9.5rem]
                   ${hasValidJDs
                                         ? "border border-slate-300 text-slate-700 bg-white hover:shadow hover:ring-1 hover:ring-cyan-400"
-                                        : "border border-slate-300 text-slate-400 bg-slate-100 cursor-not-allowed"}`}
+                                        : "border border-slate-300 text-slate-400 bg-slate-100 cursor-not-allowed"
+                                    }`}
                                 aria-disabled={!hasValidJDs}
                             >
                                 <ArrowDownTrayIcon
                                     className={`w-4 h-4 transition-transform duration-200
                     ${hasValidJDs ? "text-slate-500 group-hover:-translate-y-0.5" : "text-slate-400"}`}
                                 />
-                                <span className={`${hasValidJDs ? "group-hover:text-cyan-700" : "text-slate-400"} transition-colors`}>
+                                <span
+                                    className={`${hasValidJDs ? "group-hover:text-cyan-700" : "text-slate-400"
+                                        } transition-colors`}
+                                >
                                     {hasValidJDs ? "Download JD" : "No JD"}
                                 </span>
                             </button>
@@ -438,7 +454,6 @@ export default function CompanyPage() {
                             </AnimatePresence>
                         </div>
                     </motion.div>
-
                 </motion.div>
 
                 {/* Tabs */}
@@ -447,7 +462,13 @@ export default function CompanyPage() {
                         {PANE_CONFIG.map((pane) => {
                             const isActive = activeTab === pane.label;
                             const badge =
-                                pane.label === "News" ? counts.news : pane.label === "Videos" ? counts.videos : pane.label === "Job Description" ? counts.jds : 0;
+                                pane.label === "News"
+                                    ? counts.news
+                                    : pane.label === "Videos"
+                                        ? counts.videos
+                                        : pane.label === "Job Description"
+                                            ? counts.jds
+                                            : 0;
 
                             return (
                                 <button
@@ -472,7 +493,10 @@ export default function CompanyPage() {
                                         {pane.label}
                                     </span>
                                     {badge > 0 && (
-                                        <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-black/10" : "bg-gray-200 text-gray-700"}`}>
+                                        <span
+                                            className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-black/10" : "bg-gray-200 text-gray-700"
+                                                }`}
+                                        >
                                             {badge}
                                         </span>
                                     )}
@@ -482,7 +506,7 @@ export default function CompanyPage() {
                     </div>
                 </div>
 
-                {/* Content (only scroll container) */}
+                {/* Content */}
                 <div className="flex-1 min-h-0 min-w-0 px-3 sm:px-6 py-3 sm:py-4 overflow-y-auto bg-gray-50">
                     <AnimatePresence mode="wait" initial={false}>
                         <motion.div
@@ -502,7 +526,9 @@ export default function CompanyPage() {
                 {downloading && (
                     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center">
                         <div className="h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(0,255,255,0.6)] mb-4" />
-                        <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">Downloading…</p>
+                        <p className="text-cyan-200 text-base sm:text-lg font-medium animate-pulse px-4 text-center">
+                            Downloading…
+                        </p>
                     </div>
                 )}
             </motion.div>

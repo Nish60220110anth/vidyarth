@@ -9,7 +9,8 @@ export interface JDPaneProps {
 
 export interface NewsPaneProps {
     props: {
-        news: Partial<NewsEntry>[];
+        news: Partial<NewsEntry>[],
+        companyId?: number
     };
 }
 

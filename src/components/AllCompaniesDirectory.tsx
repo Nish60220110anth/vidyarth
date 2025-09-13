@@ -74,6 +74,44 @@ function useOutsideClose<T extends HTMLElement>(
     }, [ref, onClose]);
 }
 
+function DomainChip({
+    text,
+    className = "",
+}: { text: string; className?: string }) {
+    return (
+        <span
+            className={`px-1.5 py-0.5 rounded-full border font-medium 
+        max-w-[7.5rem] xs:max-w-[8.5rem] sm:max-w-[9.5rem] md:max-w-[10.5rem]
+        overflow-hidden text-ellipsis whitespace-nowrap ${className}`}
+            title={text}
+        >
+            {text}
+        </span>
+    );
+}
+
+function LogoBox({
+    src,
+    alt,
+    box = "h-11 w-11",
+    img = "h-7 w-7",
+}: { src?: string; alt: string; box?: string; img?: string }) {
+    return (
+        <div className={`${box} rounded-lg grid place-items-center bg-white ring-1 ring-white/5 shrink-0`}>
+            {src ? (
+                <img
+                    src={src}
+                    alt={alt}
+                    className={`${img} object-contain`}
+                    loading="lazy"
+                    decoding="async"
+                />
+            ) : null}
+        </div>
+    );
+}
+
+
 function Dropdown({
     trigger,
     open,
@@ -508,7 +546,7 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                             </div>
                                         </Dropdown>
 
-                                        <Dropdown
+                                        {/* <Dropdown
                                             open={openSort}
                                             onOpenChange={setOpenSort}
                                             align="right"
@@ -549,7 +587,7 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
                                                     Name Z → A
                                                 </motion.button>
                                             </div>
-                                        </Dropdown>
+                                        </Dropdown> */}
 
                                         <motion.button
                                             layout="position"
@@ -750,77 +788,75 @@ export default function AllCompaniesDirectory({ onCompanySelected }: AllCompanie
 
                                                         <motion.div layout="position" className="rounded-lg overflow-hidden">
                                                             <AnimatePresence initial={false}>
-                                                                {companies.slice(0, visibleCompanyCount).map((company, idx) => {
-                                                                    const rowTone =
-                                                                        idx % 2 === 0
-                                                                            ? "bg-[#0b1e28] hover:bg-[#0f2833] border-cyan-600/30"
-                                                                            : "bg-[#1f1d0a] hover:bg-[#242209] border-amber-600/35";
+                                                                    {companies.slice(0, visibleCompanyCount).map((company, idx) => {
+                                                                        const tone =
+                                                                            idx % 3 === 0
+                                                                                ? "from-[#0b1f29] to-[#0e2a33] border-cyan-500/30"
+                                                                                : idx % 3 === 1
+                                                                                    ? "from-[#1a1b0a] to-[#232406] border-amber-500/30"
+                                                                                    : "from-[#10221b] to-[#133024] border-emerald-500/30";
 
-                                                                    return (
-                                                                        <motion.div
-                                                                            key={company.id}
-                                                                            layout="position"
-                                                                            initial={{ opacity: 0, y: 8 }}
-                                                                            animate={{ opacity: 1, y: 0 }}
-                                                                            exit={{ opacity: 0, y: -8 }}
-                                                                            transition={{
-                                                                                ...fade,
-                                                                                delay: Math.min(idx, 8) * 0.01,
-                                                                            }}
-                                                                        >
-                                                                            <motion.button
+                                                                        return (
+                                                                            <motion.div
+                                                                                key={company.id}
                                                                                 layout="position"
-                                                                                transition={spring}
-                                                                                whileHover={{ x: 2 }}
-                                                                                whileTap={{ scale: 0.995 }}
-                                                                                onClick={() => onCompanySelected?.(company)}
-                                                                                className={`w-full flex items-center ${compact ? "gap-2 px-3 py-2.5" : "gap-3 px-3.5 py-3"
-                                                                                    } text-left border-b last:border-b-0 ${rowTone} transition-colors border`}
+                                                                                initial={{ opacity: 0, y: 8 }}
+                                                                                animate={{ opacity: 1, y: 0 }}
+                                                                                exit={{ opacity: 0, y: -6 }}
+                                                                                transition={{ ...fade, delay: Math.min(idx, 8) * 0.012 }}
                                                                             >
-                                                                                {showLogos && (
-                                                                                    <div
-                                                                                        className={`${compact ? "w-9 h-9" : "w-10 h-10"
-                                                                                            } rounded-lg grid place-items-center bg-[#ffffff] ring-1 ring-white/5`}
-                                                                                    >
-                                                                                        {company.logo_url ? (
-                                                                                            <img
-                                                                                                src={`${company.logo_url}`}
+                                                                                <motion.button
+                                                                                    layout="position"
+                                                                                    transition={spring}
+                                                                                    whileHover={{ y: -2, scale: 1.002 }}
+                                                                                    whileTap={{ scale: 0.99 }}
+                                                                                    onClick={() => onCompanySelected?.(company)}
+                                                                                    className={`group w-full text-left ${density.cardPad} ${density.radius} border bg-gradient-to-br ${tone}
+          overflow-hidden isolate`}  // <- clip any overflows
+                                                                                >
+                                                                                    <div className={`flex items-start ${showLogos ? "gap-3" : "gap-2"}`}>
+                                                                                        {showLogos && (
+                                                                                            <LogoBox
+                                                                                                src={company.logo_url}
                                                                                                 alt={company.company_name}
-                                                                                                className={`${compact ? "h-5 w-5" : "h-6 w-6"} object-contain`}
+                                                                                                box={density.logoBox}
+                                                                                                img={density.logoImg}
                                                                                             />
-                                                                                        ) : null}
-                                                                                    </div>
-                                                                                )}
-                                                                                <div className="flex-1 min-w-0">
-                                                                                    <div
-                                                                                        className={`${compact ? "text-[13px]" : "text-sm"
-                                                                                            } font-semibold text-cyan-50 whitespace-normal break-words line-clamp-2 leading-snug`}
-                                                                                    >
-                                                                                        {company.company_name}
-                                                                                    </div>
-                                                                                    {!compact && (
-                                                                                        <div className="text-xs text-cyan-300/80 truncate line-clamp-1">
-                                                                                            {company.company_full}
-                                                                                        </div>
-                                                                                    )}
-                                                                                    <div className={`flex flex-wrap gap-1 ${compact ? "mt-0.5" : "mt-1"}`}>
-                                                                                        {(compact ? company.domains.slice(0, 2) : company.domains).map(
-                                                                                            ({ domain }) => (
-                                                                                                <span
-                                                                                                    key={domain}
-                                                                                                    className={`px-2 py-0.5 ${compact ? "text-[0.6rem]" : "text-[0.65rem]"
-                                                                                                        } rounded-full border font-medium ${getDomainStyle(domain)}`}
-                                                                                                >
-                                                                                                    {domain}
-                                                                                                </span>
-                                                                                            )
                                                                                         )}
+
+                                                                                        <div className="flex-1 min-w-0"> {/* <- allows truncation */}
+                                                                                            <div className={`${density.nameSize} font-semibold text-cyan-50 break-words line-clamp-2 leading-snug`}>
+                                                                                                {company.company_name}
+                                                                                            </div>
+                                                                                            <div className={`${density.subSize} text-cyan-300/80 truncate`}>
+                                                                                                {company.company_full}
+                                                                                            </div>
+
+                                                                                            {/* Chips: wrap + per-chip truncation; never overflow */}
+                                                                                            <div className={`flex flex-wrap items-center gap-1 ${density.chipsTop} overflow-hidden`}>
+                                                                                                {company.domains.slice(0, density.maxChips).map(({ domain }) => (
+                                                                                                    <DomainChip
+                                                                                                        key={domain}
+                                                                                                        text={domain}
+                                                                                                        className={getDomainStyle(domain) + " " + density.chipText}
+                                                                                                    />
+                                                                                                ))}
+
+                                                                                                {company.domains.length > density.maxChips && (
+                                                                                                    <span
+                                                                                                        className={`px-2 py-0.5 ${density.chipText} rounded-full border font-medium 
+                    bg-[#0a2030] text-cyan-200 border-cyan-900/40`}
+                                                                                                    >
+                                                                                                        +{company.domains.length - density.maxChips} more
+                                                                                                    </span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        </div>
                                                                                     </div>
-                                                                                </div>
-                                                                            </motion.button>
-                                                                        </motion.div>
-                                                                    );
-                                                                })}
+                                                                                </motion.button>
+                                                                            </motion.div>
+                                                                        );
+                                                                    })}
                                                             </AnimatePresence>
                                                         </motion.div>
                                                     </section>

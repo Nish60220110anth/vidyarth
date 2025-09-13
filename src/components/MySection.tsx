@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 import { getNewsForCompanies, getShortlistsBySession } from "@/lib/api/my_section";
 import { onRouteTo } from "@/utils/urlClick";
-import { SmartImage } from "./SmartImage";
+import { SmartImage } from "@/components/SmartImage";
 
 type Shortlist = {
     id: number;
@@ -431,11 +431,11 @@ export default function MySection() {
                                                         initial={{ opacity: 0, y: 8 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ duration: 0.2 }}
-                                                        className="group relative flex gap-3 rounded-2xl border border-cyan-700/40 bg-gradient-to-br from-[#0a1820] to-[#0e1e2b] p-3 hover:border-cyan-400/60 transform-gpu will-change-transform mb-5"
+                                                        className="group relative mb-5 flex gap-3 rounded-2xl border border-cyan-700/40 bg-gradient-to-br from-[#0a1820] to-[#0e1e2b] p-3 hover:border-cyan-400/60 transform-gpu will-change-transform break-inside-avoid print:break-inside-avoid-page"
                                                         style={{
                                                             breakInside: "avoid",
-                                                            WebkitColumnBreakInside: "avoid",
                                                             pageBreakInside: "avoid",
+                                                            ...({ WebkitColumnBreakInside: "avoid" } as any),
                                                         }}
                                                     >
                                                         <div className="w-28 h-28 min-w-[7rem] rounded-xl overflow-hidden bg-[#0a2230] ring-1 ring-white/5 flex items-center justify-center">

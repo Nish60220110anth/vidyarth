@@ -59,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
             })
 
-            const userSession = await prisma.userSession.create({
+            const userSession = await prisma.usersession.create({
                 data: {
                     userId: fuserId,
                     isCvHr,
@@ -85,7 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
             const fid = parseInt(getFieldValue(id));
 
-            const storedSession = await prisma.userSession.findUnique({
+            const storedSession = await prisma.usersession.findUnique({
                 where: { id: fid },
             });
 

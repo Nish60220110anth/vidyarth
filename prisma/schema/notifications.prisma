@@ -44,8 +44,8 @@ model email_content {
   content               String                  @db.Text
   brief                 String                  @db.Text
   email_recipient_state email_recipient_state[] @relation("email_recipient_state_content")
-  user_emailbcc         user[]                  @relation("emailbcc")
-  user_emailcc          user[]                  @relation("emailcc")
+  bcc         user[]                  @relation("emailbcc")
+  cc          user[]                  @relation("emailcc")
 }
 
 model email_recipient_state {

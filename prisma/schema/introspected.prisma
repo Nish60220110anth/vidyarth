@@ -7,7 +7,7 @@ model usersession {
   jdLinks         String
   compendiumLinks String
   createdAt       DateTime @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime @default(now())  @updatedAt
   company         company  @relation(fields: [companyId], references: [id], onDelete: Cascade, map: "userSession_companyId_fkey")
   user            user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "userSession_userId_fkey")
 
