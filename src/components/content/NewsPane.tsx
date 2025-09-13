@@ -36,7 +36,7 @@ const Skeleton: React.FC = () => (
             <div
                 key={i}
                 className="mb-6 rounded-xl border border-cyan-900/40 bg-gradient-to-br from-[#0a161f] to-[#0e1e2b] p-4 animate-pulse"
-                style={{ breakInside: "avoid", pageBreakInside: "avoid", WebkitColumnBreakInside: "avoid" as any }}
+                style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
             >
                 <div className="w-full aspect-[16/9] mb-3 rounded-lg bg-cyan-900/20" />
                 <div className="h-4 w-3/4 rounded bg-cyan-900/30 mb-2" />
@@ -197,7 +197,6 @@ const NewsPane: React.FC<EnhancedProps> = ({ props }) => {
                                         style={{
                                             breakInside: "avoid",
                                             pageBreakInside: "avoid",
-                                            WebkitColumnBreakInside: "avoid" as any,
                                         }}
                                     >
                                         <Wrapper
