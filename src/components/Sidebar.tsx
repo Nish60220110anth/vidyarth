@@ -291,7 +291,7 @@ export default function Sidebar({ email, role, onLogout, name, id }: SidebarProp
                                     transition={{ duration: 0.28, ease: EASE }}
                                 >
                                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-900">
-                                        <span className="text-[1.05rem] font-semibold tracking-wide">CHARON</span>
+                                        <span className="text-[1.05rem] font-semibold tracking-wide">SHUKRACHARYA</span>
                                         <button
                                             onClick={() => setMobileOpen(false)}
                                             className="p-1.5 rounded-md hover:bg-cyan-900/20 transition"

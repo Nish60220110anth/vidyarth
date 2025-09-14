@@ -24,7 +24,7 @@ export default function SidebarHeader({ collapsed, toggleSidebar }: SidebarHeade
                         className="object-contain filter invert brightness-0 saturate-100 hue-rotate-[170deg]"
                         priority
                     />
-                    <span className="text-[1.15rem] font-bold tracking-wide">CHARON</span>
+                    <span className="text-[1.15rem] font-bold tracking-wide">SHUKRACHARYA</span>
                 </div>
             ) : (
                 <Image
