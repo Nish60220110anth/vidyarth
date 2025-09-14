@@ -52,3 +52,5 @@ next-env.d.ts
 /certs/
 /docker/
 ecosystem.config.cjs
+
+/public/content

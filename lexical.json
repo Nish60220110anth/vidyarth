@@ -8,26 +8,6 @@
             "format": 0,
             "mode": "normal",
             "style": "",
-            "text": "```plaintext",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "paragraph",
-        "version": 1,
-        "textFormat": 0,
-        "textStyle": ""
-      },
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
             "text": "About the Company",
             "type": "text",
             "version": 1
@@ -47,7 +27,27 @@
             "format": 0,
             "mode": "normal",
             "style": "",
-            "text": "Founded in 1982, Adobe is a leading global computer software company headquartered in San José, CA. Renowned for its creative and digital media solutions like Photoshop and Acrobat, Adobe empowers users ranging from budding artists to large enterprises to deliver exceptional digital experiences.",
+            "text": "AB InBev is a multinational drink and brewing company headquartered in Leuven, Belgium. It is the world's largest brewer and operates over 500 beer brands, including Budweiser, Corona, and Stella Artois. The company prioritizes sustainability and is actively working towards reducing its carbon footprint and water usage.",
+            "type": "text",
+            "version": 1
+          }
+        ],
+        "direction": null,
+        "format": "",
+        "indent": 0,
+        "type": "paragraph",
+        "version": 1,
+        "textFormat": 0,
+        "textStyle": ""
+      },
+      {
+        "children": [
+          {
+            "detail": 0,
+            "format": 0,
+            "mode": "normal",
+            "style": "",
+            "text": "AB InBev operates on a business model that centers around producing, distributing, and selling a diverse range of alcoholic and non-alcoholic beverages. The scale of their operations allows them to have a significant presence in the global market, and they are continuously innovating their portfolio through acquisitions and brand development. Recent developments include a stronger focus on digital transformation and e-commerce platforms to align with changing consumer preferences.",
             "type": "text",
             "version": 1
           }
@@ -69,7 +69,7 @@
                 "format": 1,
                 "mode": "normal",
                 "style": "",
-                "text": "Business Model:",
+                "text": "CEO:",
                 "type": "text",
                 "version": 1
               },
@@ -78,7 +78,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": " Primarily subscription-based (e.g., Creative Cloud, Document Cloud, Experience Cloud)",
+                "text": " Michel Doukeris",
                 "type": "text",
                 "version": 1
               }
@@ -97,7 +97,7 @@
                 "format": 1,
                 "mode": "normal",
                 "style": "",
-                "text": "Scale:",
+                "text": "CFO:",
                 "type": "text",
                 "version": 1
               },
@@ -106,7 +106,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": " Operates in 70 offices across 26 countries with over 22,000 employees.",
+                "text": " Felipe Dutra",
                 "type": "text",
                 "version": 1
               }
@@ -125,7 +125,7 @@
                 "format": 1,
                 "mode": "normal",
                 "style": "",
-                "text": "Recent Developments:",
+                "text": "Revenue Chain:",
                 "type": "text",
                 "version": 1
               },
@@ -134,247 +134,7 @@
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": " Continued growth despite pandemic challenges with plans for hiring drives.",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 3
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "list",
-        "version": 1,
-        "listType": "bullet",
-        "start": 1,
-        "tag": "ul"
-      },
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "Roles Offered",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "heading",
-        "version": 1,
-        "tag": "h2"
-      },
-      {
-        "children": [
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 1,
-                "mode": "normal",
-                "style": "",
-                "text": "Title:",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": " Product Management Intern, ",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 2,
-                "mode": "normal",
-                "style": "",
-                "text": "Remote",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": " - ",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 1,
-                "mode": "normal",
-                "style": "",
-                "text": "Function:",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": " Product - ",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 1,
-                "mode": "normal",
-                "style": "",
-                "text": "CTC:",
-                "type": "text",
-                "version": 1
-              },
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": " Competitive stipend",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 1
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "list",
-        "version": 1,
-        "listType": "bullet",
-        "start": 1,
-        "tag": "ul"
-      },
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "Interview Experience Insights",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "heading",
-        "version": 1,
-        "tag": "h2"
-      },
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "Format",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "heading",
-        "version": 1,
-        "tag": "h3"
-      },
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "4–5 interview rounds which typically include:",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "paragraph",
-        "version": 1,
-        "textFormat": 0,
-        "textStyle": ""
-      },
-      {
-        "children": [
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": "Application & Resume Screening",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 1
-          },
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": "Phone Screen with Recruiter",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 2
-          },
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": "Technical/Functional Phone Screen",
+                "text": " From raw materials procurement to production, logistics, and distribution, the emphasis is on efficiency, sustainability, and brand loyalty.",
                 "type": "text",
                 "version": 1
               }
@@ -390,156 +150,19 @@
             "children": [
               {
                 "detail": 0,
-                "format": 0,
+                "format": 1,
                 "mode": "normal",
                 "style": "",
-                "text": "On-Site/Virtual Interviews (Technical, Behavioral, HR)",
+                "text": "Current Financials:",
                 "type": "text",
                 "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 4
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "list",
-        "version": 1,
-        "listType": "bullet",
-        "start": 1,
-        "tag": "ul"
-      },
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "Common Themes",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "heading",
-        "version": 1,
-        "tag": "h3"
-      },
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "Engineering concepts (data structures, algorithms), Product/Design case scenarios, Behavioral questions focusing on teamwork and problem-solving.",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "paragraph",
-        "version": 1,
-        "textFormat": 0,
-        "textStyle": ""
-      },
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "Sample Questions",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "heading",
-        "version": 1,
-        "tag": "h3"
-      },
-      {
-        "children": [
-          {
-            "children": [
+              },
               {
                 "detail": 0,
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "How would you improve Adobe XD?",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 1
-          },
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": "Explain the difference between shallow copy and deep copy.",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 2
-          },
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": "Describe a challenging project and how you overcame difficulties.",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 3
-          },
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": "What are the main principles you followed during teamwork?",
+                "text": " Stable growth with investments in sustainability and technology, with recent reports showing resilience in sales despite challenging market conditions.",
                 "type": "text",
                 "version": 1
               }
@@ -555,10 +178,19 @@
             "children": [
               {
                 "detail": 0,
+                "format": 1,
+                "mode": "normal",
+                "style": "",
+                "text": "Company Expectations:",
+                "type": "text",
+                "version": 1
+              },
+              {
+                "detail": 0,
                 "format": 0,
                 "mode": "normal",
                 "style": "",
-                "text": "How does the void keyword function in C++?",
+                "text": " Strong analytical skills, adaptability to new market trends, and a proactive approach towards sustainability.",
                 "type": "text",
                 "version": 1
               }
@@ -569,6 +201,62 @@
             "type": "listitem",
             "version": 1,
             "value": 5
+          },
+          {
+            "children": [
+              {
+                "detail": 0,
+                "format": 1,
+                "mode": "normal",
+                "style": "",
+                "text": "Critical Focus Areas:",
+                "type": "text",
+                "version": 1
+              },
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": " Innovation in product offerings, competitive supply chain management, and digital engagement with consumers.",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": null,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "version": 1,
+            "value": 6
+          },
+          {
+            "children": [
+              {
+                "detail": 0,
+                "format": 1,
+                "mode": "normal",
+                "style": "",
+                "text": "Value System:",
+                "type": "text",
+                "version": 1
+              },
+              {
+                "detail": 0,
+                "format": 0,
+                "mode": "normal",
+                "style": "",
+                "text": " Commitment to sustainability, community engagement, and responsible drinking.",
+                "type": "text",
+                "version": 1
+              }
+            ],
+            "direction": null,
+            "format": "",
+            "indent": 0,
+            "type": "listitem",
+            "version": 1,
+            "value": 7
           }
         ],
         "direction": null,
@@ -587,183 +275,7 @@
             "format": 0,
             "mode": "normal",
             "style": "",
-            "text": "Tips from Seniors",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "heading",
-        "version": 1,
-        "tag": "h3"
-      },
-      {
-        "children": [
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": "Be clear and concise in your communication.",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 1
-          },
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": "Practice STAR method for behavioral questions.",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 2
-          },
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": "Focus on understanding the core values of Adobe.",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 3
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "list",
-        "version": 1,
-        "listType": "bullet",
-        "start": 1,
-        "tag": "ul"
-      },
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "Last-Minute Pointers",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "heading",
-        "version": 1,
-        "tag": "h2"
-      },
-      {
-        "children": [
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": "Stay calm and confident throughout the interview.",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 1
-          },
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": "Review and tailor your experiences to Adobe's core values: Genuine, Exceptional, Innovative, Involved.",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 2
-          },
-          {
-            "children": [
-              {
-                "detail": 0,
-                "format": 0,
-                "mode": "normal",
-                "style": "",
-                "text": "Emphasize customer-centricity and problem-solving skills in answers.",
-                "type": "text",
-                "version": 1
-              }
-            ],
-            "direction": null,
-            "format": "",
-            "indent": 0,
-            "type": "listitem",
-            "version": 1,
-            "value": 3
-          }
-        ],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "list",
-        "version": 1,
-        "listType": "bullet",
-        "start": 1,
-        "tag": "ul"
-      },
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "```",
+            "text": "For business school students, it is essential to align personal values with corporate culture, emphasizing teamwork and leadership skills, as well as understanding the global market landscape.",
             "type": "text",
             "version": 1
           }

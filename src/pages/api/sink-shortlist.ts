@@ -167,7 +167,7 @@ export default async function handler(
                     day,
                     role: company_role,
                     is_active: true,
-                    is_featured: false,
+                    is_featured: true,
                     updated_at: new Date(updated_at),
                     shortlisted_users: {
                         connect: { id: student.id },
