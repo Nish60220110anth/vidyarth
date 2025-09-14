@@ -224,7 +224,7 @@ export default function LoginPage({
     return (
         <>
             <Head>
-                <title>Login • Charon</title>
+                <title>Login • Shukracharya</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <meta name="theme-color" content="#0a141d" />
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -260,7 +260,7 @@ export default function LoginPage({
                         <div className="p-[1px] rounded-2xl bg-gradient-to-b from-cyan-600/40 to-cyan-800/20 shadow-[0_0_32px_rgba(0,255,255,0.07)]">
                             <div className="rounded-2xl bg-[#0b1014]/90 border border-cyan-900/60 p-5 sm:p-8">
                                 <h1 className="text-2xl sm:text-4xl font-extrabold text-center text-cyan-300 mb-2 sm:mb-3 tracking-wide">
-                                    Welcome to Charon
+                                    Welcome to Shukracharya
                                 </h1>
                                 <p className="text-center text-cyan-200/80 text-sm sm:text-base mb-6 sm:mb-8">
                                     Sign in to continue to your dashboard
@@ -379,7 +379,7 @@ export default function LoginPage({
 
                 {/* Real footer in flow (never overlaps), with iPhone safe-area padding */}
                 <footer className="row-start-2 row-end-3 text-center text-cyan-500 text-[11px] sm:text-xs px-4 py-4 [padding-bottom:env(safe-area-inset-bottom)]">
-                    © {new Date().getFullYear()} Charon. All rights reserved.
+                    © {new Date().getFullYear()} Shukracharya. All rights reserved.
                 </footer>
             </div>
         </>

@@ -216,7 +216,7 @@ export default function Sidebar({ email, role, onLogout, name, id }: SidebarProp
     return (
         <>
             <Head>
-                <title>{toTitleCase(activeKey?.toLocaleLowerCase().replaceAll("_", " ") || "Charon")}</title>
+                <title>{toTitleCase(activeKey?.toLocaleLowerCase().replaceAll("_", " ") || "Shukracharya")}</title>
             </Head>
 
             {/* PAGE: column layout -> TopBar at top, then below a row with left nav + right content */}

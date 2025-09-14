@@ -17,5 +17,5 @@ SELECT
 FROM
   (
     `chitragupta`.`signouts` `s`
-    LEFT JOIN `charon`.`user` `u` ON((`u`.`pcomid` = `s`.`pcom_id`))
+    LEFT JOIN `shukracharya`.`user` `u` ON((`u`.`pcomid` = `s`.`pcom_id`))
   )

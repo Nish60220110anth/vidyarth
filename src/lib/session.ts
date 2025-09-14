@@ -15,7 +15,7 @@ export type SessionUser = {
 
 export const sessionOptions: SessionOptions = {
     password: process.env.SESSION_PASSWORD as string,
-    cookieName: 'charon_user',
+    cookieName: 'shukracharya_user',
     cookieOptions: {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

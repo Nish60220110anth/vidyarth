@@ -62,7 +62,7 @@ export default function WelcomePage({
                 transition={{ duration: 0.6 }}
             >
                 <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-100 mb-4 tracking-tight">
-                    Welcome to <span className="text-slate-100">Charon</span> 🎓
+                    Welcome to <span className="text-slate-100">Shukracharya</span> 🎓
                 </h1>
                 <div className="ui-underline mb-4" />
                 <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto">
@@ -130,7 +130,7 @@ export default function WelcomePage({
             <div className="mt-2 w-full max-w-6xl">
                 <div className="h-px w-full bg-gradient-to-r from-transparent via-cyan-800/40 to-transparent mb-3" />
                 <p className="mx-auto w-fit px-3 py-1 text-[12px] sm:text-sm rounded-full border border-cyan-800/60 bg-[#0b141b]/80 text-cyan-300/90 shadow-[0_0_10px_rgba(0,255,255,0.06)]">
-                    © {new Date().getFullYear()} Charon • Built & supported by{" "}
+                    © {new Date().getFullYear()} Shukracharya • Built & supported by{" "}
                     <span className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-cyan-100 via-teal-200 to-cyan-100">
                         Team Synapse
                     </span>{" "}

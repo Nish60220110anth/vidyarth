@@ -27,27 +27,27 @@ export default function App({ Component, pageProps }: AppProps) {
       <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
 
         <Head>
-          <title>Charon</title>
+          <title>Shukracharya</title>
 
           <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <meta name="theme-color" content="#0f172a" />
-          <meta name="title" content="Charon - Your Placement Companion" />
-          <meta name="description" content="Charon is a comprehensive platform for students preparing for placements, offering CV prep, mock interviews, and more." />
-          <meta name="keywords" content="Charon, placements, IIM, CV, jobs, student portal" />
+          <meta name="title" content="Shukracharya - Your Placement Companion" />
+          <meta name="description" content="Shukracharya is a comprehensive platform for students preparing for placements, offering CV prep, mock interviews, and more." />
+          <meta name="keywords" content="Shukracharya, placements, IIM, CV, jobs, student portal" />
           <meta name="author" content="Team Synapse" />
 
           <meta property="og:type" content="website" />
-          <meta property="og:url" content="https://systems.teamsynapse.app/charon" />
-          <meta property="og:title" content="Charon - Your Placement Companion" />
-          <meta property="og:description" content="Explore jobs, prepare for interviews, and manage your placement journey with Charon." />
-          <meta property="og:image" content="https://systems.teamsynapse.app/charon/preview.jpg" />
+          <meta property="og:url" content="https://systems.teamsynapse.app/shukracharya" />
+          <meta property="og:title" content="Shukracharya - Your Placement Companion" />
+          <meta property="og:description" content="Explore jobs, prepare for interviews, and manage your placement journey with Shukracharya." />
+          <meta property="og:image" content="https://systems.teamsynapse.app/shukracharya/preview.jpg" />
 
           <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:url" content="https://systems.teamsynapse.app/charon" />
-          <meta name="twitter:title" content="Charon - Your Placement Companion" />
-          <meta name="twitter:description" content="Explore jobs, prepare for interviews, and manage your placement journey with Charon." />
-          <meta name="twitter:image" content="https://systems.teamsynapse.app/charon/preview.jpg" />
+          <meta name="twitter:url" content="https://systems.teamsynapse.app/shukracharya" />
+          <meta name="twitter:title" content="Shukracharya - Your Placement Companion" />
+          <meta name="twitter:description" content="Explore jobs, prepare for interviews, and manage your placement journey with Shukracharya." />
+          <meta name="twitter:image" content="https://systems.teamsynapse.app/shukracharya/preview.jpg" />
           <meta name="twitter:site" content="@TeamSynapse" />
         </Head>
 

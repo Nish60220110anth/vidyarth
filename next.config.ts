@@ -6,7 +6,7 @@ const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === 'tr
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  basePath: '/charon',
+  basePath: '/shukracharya',
   trailingSlash: true,
   compress: true,
   productionBrowserSourceMaps: false,

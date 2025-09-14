@@ -13,7 +13,7 @@ import { customLexicalTree } from "./CustomLexicalTree";
 const editorConfig = {
 
     theme: lexicalTheme,
-    namespace: "charon",
+    namespace: "shukracharya",
     editorState: customLexicalTree,
     onError(error: unknown) {
         throw error;

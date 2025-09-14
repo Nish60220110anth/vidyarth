@@ -1,5 +1,5 @@
 {
-  "name": "charon",
+  "name": "shukracharya",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -24,10 +24,10 @@
     "// ───────── PM2 helpers (use one of these depending on your file) ─────────": "",
     "pm2:start": "pm2 start ecosystem.config.cjs --env production",
     "pm2:start:ts": "pm2 start ecosystem.config.ts --env production --node-args='-r ts-node/register/transpile-only'",
-    "pm2:reload": "pm2 reload charon",
-    "pm2:restart": "pm2 restart charon",
-    "pm2:stop": "pm2 stop charon && pm2 delete charon",
-    "pm2:logs": "pm2 logs charon",
+    "pm2:reload": "pm2 reload shukracharya",
+    "pm2:restart": "pm2 restart shukracharya",
+    "pm2:stop": "pm2 stop shukracharya && pm2 delete shukracharya",
+    "pm2:logs": "pm2 logs shukracharya",
     "pm2:save": "pm2 save && pm2 startup",
     "// ───────── Utilities ─────────": "",
     "clean": "rimraf .next",
