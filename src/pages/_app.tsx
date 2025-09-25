@@ -10,6 +10,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AnimatePresence, motion } from 'framer-motion';
 import Head from 'next/head';
 import { AuthProvider } from '@/contexts/AuthContext';
+import {  GoogleAnalytics } from '@next/third-parties/google'
 
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), {
   ssr: false,
@@ -59,6 +60,7 @@ export default function App({ Component, pageProps }: AppProps) {
             transition={{ duration: 0.25 }}
           >
             <Component {...pageProps} />
+            <GoogleAnalytics gaId="G-0X0W6NCH6Y" />
           </motion.div>
         </AnimatePresence>
 
